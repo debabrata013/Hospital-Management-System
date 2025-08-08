@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://pattnaikd833:WCpNo7zqKCZ7oLET@cluster0.zbyg6hq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://pattnaikd833:WCpNo7zqKCZ7oLET@cluster0.zbyg6hq.mongodb.net/arogya_hospital?retryWrites=true&w=majority&appName=Cluster0';
 
 // User Schema (simplified for script)
 const UserSchema = new mongoose.Schema({

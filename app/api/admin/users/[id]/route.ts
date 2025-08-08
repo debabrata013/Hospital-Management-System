@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin, logAuditAction } from '@/lib/auth-middleware'
-import { connectToDatabase } from '@/lib/mongodb'
+import connectToMongoose from '@/lib/mongoose'
 import { User } from '@/models'
 import bcrypt from 'bcryptjs'
 
@@ -13,7 +13,7 @@ export async function GET(
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     const user = await User.findById(params.id).select('-passwordHash')
     
@@ -47,7 +47,7 @@ export async function PUT(
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     const body = await request.json()
     const {
@@ -161,7 +161,7 @@ export async function DELETE(
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     // Find user
     const user = await User.findById(params.id)

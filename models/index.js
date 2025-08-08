@@ -11,8 +11,8 @@ const Message = require('./Message.js');
 const Appointment = require('./Appointment.js');
 const AuditLog = require('./AuditLog.js');
 
-// Export all models
-module.exports = {
+// Export all models (CommonJS)
+const models = {
   User,
   Patient,
   MedicalRecord,
@@ -23,7 +23,10 @@ module.exports = {
   AuditLog
 };
 
-// For ES6 imports
+module.exports = models;
+
+// For ES6 imports - export as default and named exports
+module.exports.default = models;
 module.exports.User = User;
 module.exports.Patient = Patient;
 module.exports.MedicalRecord = MedicalRecord;

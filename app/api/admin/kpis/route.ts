@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin } from '@/lib/auth-middleware'
-import { connectToDatabase } from '@/lib/mongodb'
-import { Patient, Appointment, Billing, Medicine, AuditLog } from '@/models'
+import connectToMongoose from '@/lib/mongoose'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +8,14 @@ export async function GET(request: NextRequest) {
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
+
+    // Import models dynamically
+    const Patient = (await import('@/models/Patient.js')).default
+    const Appointment = (await import('@/models/Appointment.js')).default
+    const Billing = (await import('@/models/Billing.js')).default
+    const Medicine = (await import('@/models/Medicine.js')).default
+    const AuditLog = (await import('@/models/AuditLog.js')).default
 
     // Get today's date range
     const today = new Date()

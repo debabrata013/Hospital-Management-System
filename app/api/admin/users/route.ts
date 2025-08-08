@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin, logAuditAction } from '@/lib/auth-middleware'
-import { connectToDatabase } from '@/lib/mongodb'
+import connectToMongoose from '@/lib/mongoose'
 import { User } from '@/models'
 import bcrypt from 'bcryptjs'
 
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     const body = await request.json()
     const {

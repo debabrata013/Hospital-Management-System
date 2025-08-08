@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase, testConnection } from '@/lib/mongodb'
+import connectToMongoose, { testMongooseConnection } from '@/lib/mongoose'
 import { DatabaseUtils } from '@/lib/db-utils'
 
 export async function GET(request: NextRequest) {
   try {
     // Test basic connection
-    const isConnected = await testConnection()
+    const isConnected = await testMongooseConnection()
     
     if (!isConnected) {
       return NextResponse.json(
@@ -18,9 +18,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get database info
-    const { db } = await connectToDatabase()
-    const collections = await db.listCollections().toArray()
+    // Get database info using Mongoose connection
+    const mongoose = await connectToMongoose()
+    const collections = await mongoose.connection.db.listCollections().toArray()
     
     // Test a simple operation
     const testResult = await DatabaseUtils.find('test_collection', {})
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       success: true,
       message: 'MongoDB connection successful',
       data: {
-        database: 'arogya_hospital',
+        database: mongoose.connection.name,
         collections: collections.map(col => col.name),
         connectionTime: new Date().toISOString(),
         testOperation: testResult.success

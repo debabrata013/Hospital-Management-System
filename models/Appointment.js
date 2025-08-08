@@ -402,7 +402,7 @@ AppointmentSchema.pre('save', function(next) {
 });
 
 // Method to check in patient
-AppointmentSchema.methods.checkIn = function(staffId, vitals = {}) {
+AppointmentSchema.methods.performCheckIn = function(staffId, vitals = {}) {
   this.status = 'checked-in';
   this.checkIn = {
     checkedInAt: new Date(),

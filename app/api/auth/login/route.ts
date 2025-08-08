@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
+import connectToMongoose from '@/lib/mongoose'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 export async function POST(request: NextRequest) {
+  let body: any = {}
+  
   try {
-    await connectToDatabase()
+    await connectToMongoose()
 
-    const body = await request.json()
+    body = await request.json()
     const { email, password } = body
 
     // Validate input
@@ -18,9 +20,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Import User model dynamically
-    const mongoose = require('mongoose')
-    const User = mongoose.models.User || require('@/models/User.js')
+    // Import User model directly
+    const User = (await import('@/models/User.js')).default
 
     // Find user by email
     const user = await User.findOne({ email: email.toLowerCase() })
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Log successful login
     try {
-      const AuditLog = mongoose.models.AuditLog || require('@/models/AuditLog.js')
+      const AuditLog = (await import('@/models/AuditLog.js')).default
       await AuditLog.create({
         userId: user._id,
         userRole: user.role,
@@ -118,8 +119,7 @@ export async function POST(request: NextRequest) {
     
     // Log failed login attempt
     try {
-      const mongoose = require('mongoose')
-      const AuditLog = mongoose.models.AuditLog || require('@/models/AuditLog.js')
+      const AuditLog = (await import('@/models/AuditLog.js')).default
       await AuditLog.create({
         userId: null,
         userRole: 'unknown',

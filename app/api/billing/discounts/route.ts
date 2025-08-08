@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin, logAuditAction } from '@/lib/auth-middleware'
-import { connectToDatabase } from '@/lib/mongodb'
+import connectToMongoose from '@/lib/mongoose'
 import { Billing } from '@/models'
 
 // GET - Get pending discount requests
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'pending'
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const auth = await requireSuperAdmin(request)
     if (auth instanceof NextResponse) return auth
 
-    await connectToDatabase()
+    await connectToMongoose()
 
     const body = await request.json()
     const { billId, action, remarks } = body
