@@ -1,0 +1,165 @@
+STATEMENT OF WORK (SOW)
+Project Title:
+Web-based Hospital Management System with Enhanced Clinical AI and Patient Care Modules
+
+Client:
+Manoj Swarup
+
+Vendor:
+[Your Company Name]
+
+Timeline:
+4 Weeks (30 Days)
+Budget:
+₹50,000
+
+Delivery Mode:
+
+Web Admin Panel
+
+Public-Facing Website (Frontend + Backend)
+
+PROJECT SCOPE
+Goal
+Develop a robust hospital management system for both administrators and public users. The system will offer comprehensive online and offline support, patient management, advanced AI-powered clinical tools, and patient-facing features.
+
+MODULES & FEATURES
+1. User Access & Authentication
+Role-based secure login (Admin, Doctor, Staff, Receptionist, Patient)
+
+Encrypted session handling; offline login support
+
+Authorization workflow for billing discounts by Super Admin
+
+2. Dashboard & Navigation
+Role-specific dashboards with KPIs (Patients Today, Appointments, Billing, Inventory, Reports)
+
+Global search and modular UI navigation
+
+3. Patient Registration & Encounter
+Manual entry with demographic data and emergency contact; unique alphanumeric patient ID
+
+Offline-first entry with later sync
+
+Enhanced:
+
+Comprehensive admission management (admission details, assigned staff, room/ward tracking)
+
+Discharge summary directly linked to admission event
+
+Historical admissions and discharge log for every patient
+
+4. Medical Records (EMR)
+Doctor notes, diagnosis, prescription, and printable/email diet chart
+
+Full patient medical history tracker, file uploads (lab, X-ray)
+
+Vitals logging: BP, height, weight, pulse, temperature, respiratory rate
+
+Every consultation logs mandatory vitals, time-stamped and linked to encounter
+
+Offline-enabled medical record editing and syncing
+
+5. Billing & Payments
+Consultation, services, test, and pharmacy billing
+
+Invoice creation and printing
+
+Accepts cash, UPI, insurance
+
+Daily summary/reporting
+
+Discount authorization workflow via secure internal messaging
+
+6. Medicine & Pharmacy Tracking
+Medicine inventory by batch and expiry
+
+Stock alerts, vendor management, auto-billing on prescription
+
+Offline billing and reporting
+
+7. Discharge Summary
+Doctor-generated summary: prescription, diagnosis, aftercare
+
+Export as PDF; links patient’s historical admission record
+
+8. Staff & Duty Management
+Staff role/profile, shift, attendance, leave tracking
+
+Doctor scheduling/availability management
+
+9. Reports & Analytics
+Detailed Excel/PDF reports (revenue, patients, appointments, meds inventory, discharge, treatments, surgeries)
+
+Automated reporting on key clinical and operational metrics
+
+10. Security & Compliance
+Role-based permission control
+
+Robust audit logs and access trails
+
+Full health privacy compliance per Indian medical record standards
+
+11. Website (Public Frontend)
+Hospital profile, doctor/team listing, responsive contact form, Google Maps
+
+Online appointment requests
+
+Mobile-optimized (responsive) design
+
+12. Offline Functionality
+IndexedDB/local storage for offline-first registration and medical entry
+
+Background data sync on reconnect
+
+Secure offline session support
+
+13. Internal Messaging
+Secure chat for staff (doctor ↔ admin ↔ receptionist)
+
+Timestamped message storage
+
+Real-time notification badges and alerts
+
+14. [NEW] AI-Driven Clinical Support
+Embedded open source AI to create human-readable patient summary notes from doctors' bullet points
+
+AI-driven personalized diet plans: Doctor enters key notes/bullets, AI generates editable diet plan for approval
+
+All AI recommendations require review and sign-off by a clinician before being finalized in the patient’s record
+
+15. [NEW] Enhanced Patient Care Workflows
+Complete patient journey: From admission, vitals, ongoing history, and consultations, to discharge summary and post-care
+
+Vitals logging at every doctor consult (BP, height, weight, temperature, pulse, respiratory)
+
+Discharge summary and past admission history available and linked per patient
+
+TECHNOLOGY STACK
+Layer	Technology
+Frontend	React.js or Vue.js
+Backend	Node.js + Express.js
+Database	SQLite (offline) + MySQL/PostgreSQL (online/sync)
+Sync	Service Workers + IndexedDB
+Hosting	Cloud VPS / Firebase (as per specification)
+Auth	JWT or session-based
+AI Module	Open-source AI NLP (for summary & diet plan modules)
+TIMELINE
+Week	Deliverables
+1	Wireframes, UI/UX finalization, DB schema
+2	User Auth, Registration, Medical Records, Admission Mgmt
+3	Billing, Messaging, Offline Sync, AI module integration
+4	Website integration, Testing, Final Review & Handover
+DELIVERABLES
+Web-based Admin Panel
+
+Public-facing hospital website
+
+API-driven backend with database
+
+Comprehensive offline (offline-first) data entry and sync
+
+Complete documentation (video/manual)
+
+ACCEPTANCE & APPROVAL
+This Statement of Work consolidates all features, technical scope, and delivery expectations for the Web-based Hospital Management System as discussed and attached. By approving this document, Dr. Niharika Nayak accepts the defined modules, features, and project parameters.
