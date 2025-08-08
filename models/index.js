@@ -1,17 +1,18 @@
 // Hospital Management System - Model Exports
 // This file exports all Mongoose models for easy importing
 
-import User from './User.js';
-import Patient from './Patient.js';
-import MedicalRecord from './MedicalRecord.js';
-import Billing from './Billing.js';
-import Medicine from './Medicine.js';
-import Message from './Message.js';
-import Appointment from './Appointment.js';
-import AuditLog from './AuditLog.js';
+// Import all models
+const User = require('./User.js');
+const Patient = require('./Patient.js');
+const MedicalRecord = require('./MedicalRecord.js');
+const Billing = require('./Billing.js');
+const Medicine = require('./Medicine.js');
+const Message = require('./Message.js');
+const Appointment = require('./Appointment.js');
+const AuditLog = require('./AuditLog.js');
 
 // Export all models
-export {
+module.exports = {
   User,
   Patient,
   MedicalRecord,
@@ -22,20 +23,18 @@ export {
   AuditLog
 };
 
-// Default export with all models
-export default {
-  User,
-  Patient,
-  MedicalRecord,
-  Billing,
-  Medicine,
-  Message,
-  Appointment,
-  AuditLog
-};
+// For ES6 imports
+module.exports.User = User;
+module.exports.Patient = Patient;
+module.exports.MedicalRecord = MedicalRecord;
+module.exports.Billing = Billing;
+module.exports.Medicine = Medicine;
+module.exports.Message = Message;
+module.exports.Appointment = Appointment;
+module.exports.AuditLog = AuditLog;
 
 // Model names for reference
-export const ModelNames = {
+module.exports.ModelNames = {
   USER: 'User',
   PATIENT: 'Patient',
   MEDICAL_RECORD: 'MedicalRecord',
@@ -47,7 +46,7 @@ export const ModelNames = {
 };
 
 // Collection names for direct database operations
-export const CollectionNames = {
+module.exports.CollectionNames = {
   USERS: 'users',
   PATIENTS: 'patients',
   MEDICAL_RECORDS: 'medicalrecords',
