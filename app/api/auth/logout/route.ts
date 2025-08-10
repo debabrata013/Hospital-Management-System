@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateUser, logAuditAction } from '@/lib/auth-middleware'
+import { authenticateUser, logAuditAction, getClientIP } from '@/lib/auth-middleware'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
         'LOGOUT',
         'User',
         auth.user.id,
-        request.ip,
-        request.headers.get('user-agent')
+        getClientIP(request),
+        request.headers.get('user-agent') || undefined
       )
     }
 

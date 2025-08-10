@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectToMongoose from '@/lib/mongoose'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { getClientIP } from '@/lib/auth-middleware'
+const { User, AuditLog } = require('@/models')
 
 export async function POST(request: NextRequest) {
   let body: any = {}
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
         actionType: 'LOGIN',
         resourceType: 'User',
         resourceId: user._id.toString(),
-        ipAddress: request.ip || 'unknown',
+        ipAddress: getClientIP(request),
         deviceInfo: {
           userAgent: request.headers.get('user-agent') || 'unknown'
         },
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
         action: `Failed login attempt for email: ${body?.email || 'unknown'}`,
         actionType: 'LOGIN_FAILED',
         resourceType: 'User',
-        ipAddress: request.ip || 'unknown',
+        ipAddress: getClientIP(request),
         deviceInfo: {
           userAgent: request.headers.get('user-agent') || 'unknown'
         },

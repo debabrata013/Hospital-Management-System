@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSuperAdmin, logAuditAction } from '@/lib/auth-middleware'
+import { requireSuperAdmin, logAuditAction, getClientIP } from '@/lib/auth-middleware'
 import connectToMongoose from '@/lib/mongoose'
-import { User } from '@/models'
+const { User } = require('@/models')
 import bcrypt from 'bcryptjs'
 
 // GET - List users with pagination and search
@@ -164,8 +164,8 @@ export async function POST(request: NextRequest) {
       'CREATE',
       'User',
       user._id.toString(),
-      request.ip,
-      request.headers.get('user-agent')
+      getClientIP(request),
+      request.headers.get('user-agent') || undefined
     )
 
     return NextResponse.json({

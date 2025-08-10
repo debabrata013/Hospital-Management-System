@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectToMongoose from '@/lib/mongoose'
 import bcrypt from 'bcryptjs'
+import { getClientIP } from '@/lib/auth-middleware'
+const { User, AuditLog } = require('@/models')
 
 export async function POST(request: NextRequest) {
   try {
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
         actionType: 'CREATE',
         resourceType: 'User',
         resourceId: newUser._id.toString(),
-        ipAddress: request.ip || 'unknown',
+        ipAddress: getClientIP(request),
         deviceInfo: {
           userAgent: request.headers.get('user-agent') || 'unknown'
         },
@@ -160,10 +162,10 @@ export async function POST(request: NextRequest) {
         userId: null,
         userRole: 'unknown',
         userName: 'Failed Registration Attempt',
-        action: `Failed registration attempt for email: ${body?.email || 'unknown'}`,
+        action: `Failed registration attempt for email: ${email || 'unknown'}`,
         actionType: 'CREATE',
         resourceType: 'User',
-        ipAddress: request.ip || 'unknown',
+        ipAddress: getClientIP(request),
         deviceInfo: {
           userAgent: request.headers.get('user-agent') || 'unknown'
         },

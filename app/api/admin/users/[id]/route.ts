@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSuperAdmin, logAuditAction } from '@/lib/auth-middleware'
+import { requireSuperAdmin, logAuditAction, getClientIP } from '@/lib/auth-middleware'
 import connectToMongoose from '@/lib/mongoose'
-import { User } from '@/models'
+const { User } = require('@/models')
 import bcrypt from 'bcryptjs'
 
 // GET - Get single user
@@ -134,8 +134,8 @@ export async function PUT(
       'UPDATE',
       'User',
       params.id,
-      request.ip,
-      request.headers.get('user-agent')
+      getClientIP(request),
+      request.headers.get('user-agent') || undefined
     )
 
     return NextResponse.json({
@@ -194,8 +194,8 @@ export async function DELETE(
       'DELETE',
       'User',
       params.id,
-      request.ip,
-      request.headers.get('user-agent')
+      getClientIP(request),
+      request.headers.get('user-agent') || undefined
     )
 
     return NextResponse.json({
