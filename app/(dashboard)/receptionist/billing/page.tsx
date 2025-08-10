@@ -30,7 +30,6 @@ import Link from 'next/link'
 interface BillItem {
   id: string
   service: string
-  serviceHindi: string
   quantity: number
   rate: number
   amount: number
@@ -41,7 +40,6 @@ interface Bill {
   id: string
   patientId: string
   patientName: string
-  patientNameHindi: string
   phone: string
   billDate: string
   items: BillItem[]
@@ -61,12 +59,11 @@ const mockBills: Bill[] = [
     id: "B001",
     patientId: "P001",
     patientName: "Ram Sharma",
-    patientNameHindi: "राम शर्मा",
     phone: "+91 98765 43210",
     billDate: "2024-01-15",
     items: [
-      { id: "I001", service: "Consultation", serviceHindi: "परामर्श", quantity: 1, rate: 500, amount: 500 },
-      { id: "I002", service: "Blood Test", serviceHindi: "रक्त जांच", quantity: 1, rate: 300, amount: 300 }
+      { id: "I001", service: "Consultation", quantity: 1, rate: 500, amount: 500 },
+      { id: "I002", service: "Blood Test", quantity: 1, rate: 300, amount: 300 }
     ],
     subtotal: 800,
     discount: 50,
@@ -81,12 +78,11 @@ const mockBills: Bill[] = [
     id: "B002",
     patientId: "P002", 
     patientName: "Sunita Devi",
-    patientNameHindi: "सुनीता देवी",
     phone: "+91 98765 43211",
     billDate: "2024-01-15",
     items: [
-      { id: "I003", service: "Consultation", serviceHindi: "परामर्श", quantity: 1, rate: 800, amount: 800 },
-      { id: "I004", service: "Ultrasound", serviceHindi: "अल्ट्रासाउंड", quantity: 1, rate: 1200, amount: 1200 }
+      { id: "I003", service: "Consultation", quantity: 1, rate: 800, amount: 800 },
+      { id: "I004", service: "Ultrasound", quantity: 1, rate: 1200, amount: 1200 }
     ],
     subtotal: 2000,
     discount: 100,
@@ -101,12 +97,12 @@ const mockBills: Bill[] = [
 ]
 
 const servicesList = [
-  { id: "S001", name: "Consultation", nameHindi: "परामर्श", rate: 500, category: "consultation" },
-  { id: "S002", name: "Blood Test", nameHindi: "रक्त जांच", rate: 300, category: "lab" },
-  { id: "S003", name: "X-Ray", nameHindi: "एक्स-रे", rate: 400, category: "imaging" },
-  { id: "S004", name: "Ultrasound", nameHindi: "अल्ट्रासाउंड", rate: 1200, category: "imaging" },
-  { id: "S005", name: "ECG", nameHindi: "ईसीजी", rate: 200, category: "test" },
-  { id: "S006", name: "Medicine", nameHindi: "दवा", rate: 0, category: "pharmacy" }
+  { id: "S001", name: "Consultation", rate: 500, category: "consultation" },
+  { id: "S002", name: "Blood Test", rate: 300, category: "lab" },
+  { id: "S003", name: "X-Ray", rate: 400, category: "imaging" },
+  { id: "S004", name: "Ultrasound", rate: 1200, category: "imaging" },
+  { id: "S005", name: "ECG", rate: 200, category: "test" },
+  { id: "S006", name: "Medicine", rate: 0, category: "pharmacy" }
 ]
 
 export default function BillingManagement() {
@@ -122,7 +118,6 @@ export default function BillingManagement() {
   // New bill state
   const [newBill, setNewBill] = useState({
     patientName: "",
-    patientNameHindi: "",
     phone: "",
     items: [] as BillItem[]
   })
@@ -143,10 +138,10 @@ export default function BillingManagement() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'लंबित'
-      case 'partial': return 'आंशिक'
-      case 'paid': return 'भुगतान'
-      case 'overdue': return 'अतिदेय'
+      case 'pending': return 'Pending'
+      case 'partial': return 'Partial'
+      case 'paid': return 'Paid'
+      case 'overdue': return 'Overdue'
       default: return status
     }
   }

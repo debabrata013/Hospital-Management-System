@@ -34,13 +34,11 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from "date-fns"
-import { hi } from "date-fns/locale"
 
 interface Appointment {
   id: string
   patientId: string
   patientName: string
-  patientNameHindi: string
   phone: string
   doctorId: string
   doctorName: string
@@ -69,8 +67,8 @@ interface Doctor {
 const mockDoctors: Doctor[] = [
   {
     id: "D001",
-    name: "डॉ. अनिल कुमार",
-    department: "सामान्य चिकित्सा",
+    name: "Dr. Anil Kumar",
+    department: "General Medicine",
     specialization: "General Medicine",
     availableSlots: ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30"],
     consultationFee: 500,
@@ -78,8 +76,8 @@ const mockDoctors: Doctor[] = [
   },
   {
     id: "D002", 
-    name: "डॉ. प्रिया सिंह",
-    department: "स्त्री रोग",
+    name: "Dr. Priya Singh",
+    department: "Gynecology",
     specialization: "Gynecology",
     availableSlots: ["10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00"],
     consultationFee: 800,
@@ -87,8 +85,8 @@ const mockDoctors: Doctor[] = [
   },
   {
     id: "D003",
-    name: "डॉ. राजेश गुप्ता", 
-    department: "आपातकाल",
+    name: "Dr. Rajesh Gupta", 
+    department: "Emergency",
     specialization: "Emergency Medicine",
     availableSlots: ["24/7"],
     consultationFee: 1000,
@@ -101,18 +99,17 @@ const mockAppointments: Appointment[] = [
     id: "A001",
     patientId: "P001",
     patientName: "Ram Sharma",
-    patientNameHindi: "राम शर्मा",
     phone: "+91 98765 43210",
     doctorId: "D001",
-    doctorName: "डॉ. अनिल कुमार",
-    department: "सामान्य चिकित्सा",
+    doctorName: "Dr. Anil Kumar",
+    department: "General Medicine",
     appointmentDate: "2024-01-15",
     appointmentTime: "10:00",
     duration: 30,
     type: "consultation",
     status: "scheduled",
     priority: "normal",
-    notes: "नियमित जांच के लिए",
+    notes: "Regular checkup appointment",
     createdBy: "Reception-1",
     createdAt: "2024-01-14T10:30:00Z"
   },
@@ -120,18 +117,17 @@ const mockAppointments: Appointment[] = [
     id: "A002",
     patientId: "P002", 
     patientName: "Sunita Devi",
-    patientNameHindi: "सुनीता देवी",
     phone: "+91 98765 43211",
     doctorId: "D002",
-    doctorName: "डॉ. प्रिया सिंह",
-    department: "स्त्री रोग",
+    doctorName: "Dr. Priya Singh",
+    department: "Gynecology",
     appointmentDate: "2024-01-15",
     appointmentTime: "11:00",
     duration: 30,
     type: "follow-up",
     status: "confirmed",
     priority: "normal",
-    notes: "फॉलो-अप चेकअप",
+    notes: "Follow-up checkup appointment",
     createdBy: "Reception-1",
     createdAt: "2024-01-14T11:00:00Z"
   }

@@ -38,7 +38,6 @@ interface QueuePatient {
   id: string
   patientId: string
   name: string
-  nameHindi: string
   tokenNumber: string
   appointmentTime: string
   actualArrivalTime?: string
@@ -60,17 +59,16 @@ const mockQueueData: QueuePatient[] = [
     id: "Q001",
     patientId: "P001",
     name: "Ram Sharma",
-    nameHindi: "राम शर्मा",
     tokenNumber: "T001",
     appointmentTime: "09:30 AM",
     actualArrivalTime: "09:25 AM",
-    doctor: "डॉ. अनिल कुमार",
-    department: "सामान्य चिकित्सा",
+    doctor: "Dr. Anil Kumar",
+    department: "General Medicine",
     status: "waiting",
     priority: "normal",
     phone: "+91 98765 43210",
     age: 45,
-    gender: "पुरुष",
+    gender: "Male",
     appointmentType: "scheduled",
     waitingTime: 15
   },
@@ -78,17 +76,16 @@ const mockQueueData: QueuePatient[] = [
     id: "Q002",
     patientId: "P002", 
     name: "Sunita Devi",
-    nameHindi: "सुनीता देवी",
     tokenNumber: "T002",
     appointmentTime: "10:00 AM",
     actualArrivalTime: "09:55 AM",
-    doctor: "डॉ. प्रिया सिंह",
-    department: "स्त्री रोग",
+    doctor: "Dr. Priya Singh",
+    department: "Gynecology",
     status: "in-consultation",
     priority: "normal",
     phone: "+91 98765 43211",
     age: 32,
-    gender: "महिला",
+    gender: "Female",
     appointmentType: "scheduled",
     waitingTime: 25,
     consultationStartTime: "10:15 AM"
@@ -97,17 +94,16 @@ const mockQueueData: QueuePatient[] = [
     id: "Q003",
     patientId: "P003",
     name: "Ajay Kumar",
-    nameHindi: "अजय कुमार", 
     tokenNumber: "E001",
     appointmentTime: "Emergency",
     actualArrivalTime: "10:30 AM",
-    doctor: "डॉ. राजेश गुप्ता",
-    department: "आपातकाल",
+    doctor: "Dr. Rajesh Gupta",
+    department: "Emergency",
     status: "emergency",
     priority: "urgent",
     phone: "+91 98765 43212",
     age: 28,
-    gender: "पुरुष",
+    gender: "Male",
     appointmentType: "emergency",
     waitingTime: 5
   },
@@ -115,26 +111,25 @@ const mockQueueData: QueuePatient[] = [
     id: "Q004",
     patientId: "P004",
     name: "Geeta Sharma",
-    nameHindi: "गीता शर्मा",
     tokenNumber: "T003",
     appointmentTime: "10:30 AM",
     actualArrivalTime: "10:45 AM",
-    doctor: "डॉ. अनिल कुमार",
-    department: "सामान्य चिकित्सा",
+    doctor: "Dr. Anil Kumar",
+    department: "General Medicine",
     status: "waiting",
     priority: "high",
     phone: "+91 98765 43213",
     age: 55,
-    gender: "महिला",
+    gender: "Female",
     appointmentType: "walk-in",
     waitingTime: 30
   }
 ]
 
 const mockDoctors = [
-  { id: "D001", name: "डॉ. अनिल कुमार", department: "सामान्य चिकित्सा", status: "available" },
-  { id: "D002", name: "डॉ. प्रिया सिंह", department: "स्त्री रोग", status: "busy" },
-  { id: "D003", name: "डॉ. राजेश गुप्ता", department: "आपातकाल", status: "available" }
+  { id: "D001", name: "Dr. Anil Kumar", department: "General Medicine", status: "available" },
+  { id: "D002", name: "Dr. Priya Singh", department: "Gynecology", status: "busy" },
+  { id: "D003", name: "Dr. Rajesh Gupta", department: "Emergency", status: "available" }
 ]
 
 export default function PatientQueue() {

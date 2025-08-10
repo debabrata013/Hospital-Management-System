@@ -62,16 +62,16 @@ interface Contact {
 const mockContacts: Contact[] = [
   {
     id: "D001",
-    name: "डॉ. अनिल कुमार",
+    name: "Dr. Anil Kumar",
     role: "doctor",
-    department: "सामान्य चिकित्सा",
+    department: "General Medicine",
     status: "online"
   },
   {
     id: "D002", 
-    name: "डॉ. प्रिया सिंह",
+    name: "Dr. Priya Singh",
     role: "doctor",
-    department: "स्त्री रोग",
+    department: "Gynecology",
     status: "busy"
   },
   {
@@ -82,11 +82,11 @@ const mockContacts: Contact[] = [
   },
   {
     id: "S001",
-    name: "नर्स सुमित्रा",
+    name: "Nurse Sumitra",
     role: "staff",
-    department: "नर्सिंग",
+    department: "Nursing",
     status: "offline",
-    lastSeen: "2 घंटे पहले"
+    lastSeen: "2 hours ago"
   },
   {
     id: "R002",
@@ -99,12 +99,12 @@ const mockContacts: Contact[] = [
 const mockMessages: Message[] = [
   {
     id: "M001",
-    from: "डॉ. अनिल कुमार",
+    from: "Dr. Anil Kumar",
     fromRole: "doctor",
     to: "Reception-1",
     toRole: "receptionist",
-    subject: "मरीज़ P001 के लिए रक्त जांच",
-    content: "कृपया राम शर्मा (P001) के लिए रक्त जांच की रिपोर्ट तैयार करवाएं। CBC और Sugar Test करवाना है।",
+    subject: "Blood Test for Patient P001",
+    content: "Please arrange blood test report for Ram Sharma (P001). CBC and Sugar Test required.",
     timestamp: "2024-01-15T11:45:00Z",
     priority: "normal",
     status: "unread",
@@ -117,8 +117,8 @@ const mockMessages: Message[] = [
     fromRole: "admin", 
     to: "All Staff",
     toRole: "staff",
-    subject: "स्टाफ मीटिंग - आज शाम 5 बजे",
-    content: "सभी स्टाफ सदस्यों से अनुरोध है कि आज शाम 5 बजे कॉन्फ्रेंस रूम में उपस्थित हों। नई नीतियों पर चर्चा होगी।",
+    subject: "Staff Meeting - Today 5 PM",
+    content: "All staff members are requested to be present in the conference room at 5 PM today. New policies will be discussed.",
     timestamp: "2024-01-15T11:30:00Z",
     priority: "high",
     status: "read",
@@ -126,12 +126,12 @@ const mockMessages: Message[] = [
   },
   {
     id: "M003",
-    from: "डॉ. प्रिया सिंह",
+    from: "Dr. Priya Singh",
     fromRole: "doctor",
     to: "Reception-1", 
     toRole: "receptionist",
-    subject: "आपातकालीन - मरीज़ P002",
-    content: "सुनीता देवी (P002) की स्थिति गंभीर है। तुरंत एम्बुलेंस की व्यवस्था करें और परिवार को सूचित करें।",
+    subject: "Emergency - Patient P002",
+    content: "Sunita Devi (P002) condition is critical. Please arrange ambulance immediately and inform family.",
     timestamp: "2024-01-15T10:15:00Z",
     priority: "urgent",
     status: "read",
