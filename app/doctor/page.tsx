@@ -1,0 +1,602 @@
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Progress } from "@/components/ui/progress"
+import { 
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, MessageSquare, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
+
+// Mock data for the doctor dashboard
+const doctorInfo = {
+  name: "डॉ. प्रिया शर्मा",
+  specialization: "हृदय रोग विशेषज्ञ (Cardiologist)",
+  department: "कार्डियोलॉजी विभाग",
+  employeeId: "DOC001",
+  experience: "12 years"
+}
+
+const todayStats = {
+  totalAppointments: 12,
+  completedConsultations: 8,
+  pendingPatients: 4,
+  emergencyCalls: 2,
+  avgConsultationTime: 18
+}
+
+const todayAppointments = [
+  {
+    id: "APT001",
+    patientName: "राजेश कुमार",
+    patientId: "P001",
+    time: "09:30 AM",
+    type: "Follow-up",
+    status: "completed",
+    condition: "Hypertension",
+    room: "Room 101",
+    phone: "+91 98765 43210"
+  },
+  {
+    id: "APT002", 
+    patientName: "सुनीता देवी",
+    patientId: "P002",
+    time: "10:15 AM",
+    type: "Consultation",
+    status: "in_progress",
+    condition: "Chest Pain",
+    room: "Room 101",
+    phone: "+91 87654 32109"
+  },
+  {
+    id: "APT003",
+    patientName: "मोहम्मद अली",
+    patientId: "P003",
+    time: "11:00 AM",
+    type: "Check-up",
+    status: "waiting",
+    condition: "Cardiac Monitoring",
+    room: "Room 101",
+    phone: "+91 76543 21098"
+  },
+  {
+    id: "APT004",
+    patientName: "अनिता सिंह",
+    patientId: "P004",
+    time: "02:30 PM",
+    type: "Emergency",
+    status: "scheduled",
+    condition: "Acute Chest Pain",
+    room: "Emergency",
+    phone: "+91 65432 10987"
+  }
+]
+
+const recentPatients = [
+  {
+    id: "P001",
+    name: "राजेश कुमार",
+    age: 45,
+    lastVisit: "2024-01-09",
+    condition: "Hypertension",
+    status: "stable",
+    vitals: { bp: "140/90", temp: "98.6°F", weight: "75kg" },
+    nextAppointment: "2024-01-16"
+  },
+  {
+    id: "P002",
+    name: "सुनीता देवी",
+    age: 38,
+    lastVisit: "2024-01-09",
+    condition: "Chest Pain Investigation",
+    status: "under_observation",
+    vitals: { bp: "130/85", temp: "99.1°F", weight: "62kg" },
+    nextAppointment: "2024-01-12"
+  },
+  {
+    id: "P003",
+    name: "मोहम्मद अली",
+    age: 62,
+    lastVisit: "2024-01-08",
+    condition: "Post-Surgery Recovery",
+    status: "improving",
+    vitals: { bp: "125/80", temp: "98.4°F", weight: "68kg" },
+    nextAppointment: "2024-01-15"
+  }
+]
+
+const pendingTasks = [
+  {
+    id: "TASK001",
+    type: "prescription_review",
+    patient: "राजेश कुमार",
+    description: "Review and approve prescription modifications",
+    priority: "high",
+    dueTime: "11:30 AM"
+  },
+  {
+    id: "TASK002",
+    type: "lab_review",
+    patient: "सुनीता देवी",
+    description: "Review ECG and blood test results",
+    priority: "medium",
+    dueTime: "02:00 PM"
+  },
+  {
+    id: "TASK003",
+    type: "ai_summary",
+    patient: "मोहम्मद अली",
+    description: "Approve AI-generated patient summary",
+    priority: "low",
+    dueTime: "04:00 PM"
+  }
+]
+
+// Navigation items
+const navigationItems = [
+  {
+    title: "मुख्य (Main)",
+    items: [
+      { title: "Dashboard", icon: LayoutDashboard, url: "/doctor", isActive: true },
+      { title: "Today's Schedule", icon: Calendar, url: "/doctor/schedule" },
+    ]
+  },
+  {
+    title: "रोगी प्रबंधन (Patient Care)",
+    items: [
+      { title: "Patient Records", icon: Users, url: "/doctor/patients" },
+      { title: "Consultations", icon: Stethoscope, url: "/doctor/consultations" },
+      { title: "Medical History", icon: FileText, url: "/doctor/history" },
+    ]
+  },
+  {
+    title: "उपकरण (Tools)",
+    items: [
+      { title: "AI Assistant", icon: Brain, url: "/doctor/ai-tools" },
+      { title: "Lab Results", icon: FlaskConical, url: "/doctor/lab-results" },
+      { title: "Messages", icon: MessageSquare, url: "/doctor/messages" },
+    ]
+  }
+]
+
+export default function DoctorDashboard() {
+  const [notifications] = useState(5)
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-700">Completed</Badge>
+      case 'in_progress':
+        return <Badge className="bg-blue-100 text-blue-700">In Progress</Badge>
+      case 'waiting':
+        return <Badge className="bg-yellow-100 text-yellow-700">Waiting</Badge>
+      case 'scheduled':
+        return <Badge className="bg-purple-100 text-purple-700">Scheduled</Badge>
+      case 'stable':
+        return <Badge className="bg-green-100 text-green-700">Stable</Badge>
+      case 'under_observation':
+        return <Badge className="bg-yellow-100 text-yellow-700">Under Observation</Badge>
+      case 'improving':
+        return <Badge className="bg-blue-100 text-blue-700">Improving</Badge>
+      default:
+        return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-600 bg-red-50 border-red-200'
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+      case 'low': return 'text-green-600 bg-green-50 border-green-200'
+      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+    }
+  }
+
+  const getTaskIcon = (type: string) => {
+    switch (type) {
+      case 'prescription_review': return <Pill className="h-4 w-4" />
+      case 'lab_review': return <FlaskConical className="h-4 w-4" />
+      case 'ai_summary': return <Brain className="h-4 w-4" />
+      default: return <FileText className="h-4 w-4" />
+    }
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
+        {/* Sidebar */}
+        <Sidebar className="border-pink-100">
+          <SidebarHeader className="border-b border-pink-100 p-6">
+            <div className="flex items-center space-x-3">
+              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
+                <Heart className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">आरोग्य अस्पताल</h2>
+                <p className="text-sm text-gray-500">डॉक्टर पैनल</p>
+              </div>
+            </div>
+          </SidebarHeader>
+          
+          <SidebarContent className="px-4 py-6">
+            {navigationItems.map((section) => (
+              <SidebarGroup key={section.title}>
+                <SidebarGroupLabel className="text-gray-600 font-medium mb-2">
+                  {section.title}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {section.items.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={item.isActive}
+                          className="w-full justify-start hover:bg-pink-50 data-[active=true]:bg-pink-100 data-[active=true]:text-pink-700"
+                        >
+                          <Link href={item.url} className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                            <item.icon className="h-5 w-5" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </SidebarContent>
+          
+          <SidebarFooter className="border-t border-pink-100 p-4">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                <AvatarFallback className="bg-pink-100 text-pink-700">प्र</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{doctorInfo.name}</p>
+                <p className="text-xs text-gray-500 truncate">Cardiologist</p>
+              </div>
+            </div>
+          </SidebarFooter>
+          
+          <SidebarRail />
+        </Sidebar>
+
+        {/* Main Content */}
+        <SidebarInset className="flex-1">
+          {/* Top Navigation */}
+          <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
+            <div className="flex items-center justify-between h-16 px-6">
+              <div className="flex items-center space-x-4">
+                <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">{doctorInfo.name}</h1>
+                  <p className="text-sm text-gray-500 flex items-center">
+                    <Stethoscope className="h-4 w-4 mr-1" />
+                    {doctorInfo.specialization}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                {/* Notifications */}
+                <div className="relative">
+                  <Button variant="ghost" size="sm" className="relative hover:bg-pink-50">
+                    <Bell className="h-5 w-5 text-gray-600" />
+                    {notifications > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {notifications}
+                      </span>
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Profile Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                        <AvatarFallback className="bg-pink-100 text-pink-700">प्र</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <DropdownMenuLabel>Doctor Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Calendar className="mr-2 h-4 w-4" />
+                      My Schedule
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </header>
+
+          {/* Dashboard Content */}
+          <main className="flex-1 p-6 space-y-8">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
+                      <p className="text-3xl font-bold text-gray-900">{todayStats.totalAppointments}</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        {todayStats.completedConsultations} completed
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
+                      <Calendar className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Pending Patients</p>
+                      <p className="text-3xl font-bold text-yellow-600">{todayStats.pendingPatients}</p>
+                      <p className="text-sm text-yellow-600 mt-1">
+                        Waiting for consultation
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-3 rounded-xl">
+                      <Clock className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Emergency Calls</p>
+                      <p className="text-3xl font-bold text-red-600">{todayStats.emergencyCalls}</p>
+                      <p className="text-sm text-red-600 mt-1">
+                        Urgent attention needed
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
+                      <Activity className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Avg Consultation</p>
+                      <p className="text-3xl font-bold text-blue-600">{todayStats.avgConsultationTime}m</p>
+                      <p className="text-sm text-blue-600 flex items-center mt-1">
+                        <TrendingUp className="h-4 w-4 mr-1" />
+                        Efficient timing
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                      <Stethoscope className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Experience</p>
+                      <p className="text-3xl font-bold text-green-600">{doctorInfo.experience.split(' ')[0]}</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        Years of practice
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
+                      <User className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <Card className="border-pink-100">
+              <CardHeader>
+                <CardTitle className="text-gray-900">Quick Actions</CardTitle>
+                <CardDescription>Common daily operations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Link href="/doctor/consultations/new">
+                    <Button className="w-full h-16 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-1">
+                      <Plus className="h-5 w-5" />
+                      <span className="text-sm">New Consultation</span>
+                    </Button>
+                  </Link>
+                  
+                  <Link href="/doctor/patients">
+                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                      <Users className="h-5 w-5" />
+                      <span className="text-sm">Patient Records</span>
+                    </Button>
+                  </Link>
+                  
+                  <Link href="/doctor/ai-tools">
+                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                      <Brain className="h-5 w-5" />
+                      <span className="text-sm">AI Assistant</span>
+                    </Button>
+                  </Link>
+                  
+                  <Link href="/doctor/lab-results">
+                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                      <FlaskConical className="h-5 w-5" />
+                      <span className="text-sm">Lab Results</span>
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Main Dashboard Widgets */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Today's Appointments */}
+              <Card className="border-pink-100">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-gray-900">Today's Appointments</CardTitle>
+                    <CardDescription>Your scheduled patients for today</CardDescription>
+                  </div>
+                  <Link href="/doctor/schedule">
+                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                      View All
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {todayAppointments.map((appointment) => (
+                      <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-pink-100 p-2 rounded-lg">
+                            <Clock className="h-5 w-5 text-pink-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{appointment.patientName}</p>
+                            <p className="text-sm text-gray-600">{appointment.condition} • {appointment.type}</p>
+                            <p className="text-sm text-gray-500">{appointment.time} • {appointment.room}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {getStatusBadge(appointment.status)}
+                          <p className="text-xs text-gray-500 mt-1">{appointment.patientId}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Patients */}
+              <Card className="border-pink-100">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-gray-900">Recent Patients</CardTitle>
+                    <CardDescription>Recently consulted patients</CardDescription>
+                  </div>
+                  <Link href="/doctor/patients">
+                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                      View All
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentPatients.map((patient) => (
+                      <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <User className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
+                            <p className="text-sm text-gray-600">{patient.condition}</p>
+                            <p className="text-sm text-gray-500">
+                              BP: {patient.vitals.bp} • Temp: {patient.vitals.temp}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {getStatusBadge(patient.status)}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Next: {new Date(patient.nextAppointment).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pending Tasks */}
+            <Card className="border-pink-100">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-gray-900">Pending Tasks</CardTitle>
+                  <CardDescription>Items requiring your attention</CardDescription>
+                </div>
+                <Badge className="bg-red-100 text-red-700">
+                  {pendingTasks.length} pending
+                </Badge>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {pendingTasks.map((task) => (
+                    <div key={task.id} className={`p-4 rounded-xl border ${getPriorityColor(task.priority)}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {getTaskIcon(task.type)}
+                          <div>
+                            <p className="font-semibold">{task.patient}</p>
+                            <p className="text-sm opacity-75">{task.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={`${getPriorityColor(task.priority)} border-0`}>
+                            {task.priority}
+                          </Badge>
+                          <p className="text-xs opacity-75 mt-1">Due: {task.dueTime}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  )
+}
