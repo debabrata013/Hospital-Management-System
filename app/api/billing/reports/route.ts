@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BillingService } from '@/lib/services/billing';
 import { financialReportSchema } from '@/lib/validations/billing';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const billingService = new BillingService();
 
 // GET /api/billing/reports - Generate financial reports
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -69,7 +68,7 @@ export async function GET(request: NextRequest) {
 // POST /api/billing/reports - Generate custom report
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

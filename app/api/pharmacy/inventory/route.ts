@@ -7,15 +7,14 @@ import {
   stockMovementQuerySchema,
   inventoryReportSchema
 } from '@/lib/validations/pharmacy';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const pharmacyService = new PharmacyService();
 
 // GET /api/pharmacy/inventory - Get inventory reports and stock movements
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -103,7 +102,7 @@ export async function GET(request: NextRequest) {
 // POST /api/pharmacy/inventory - Add batch or record stock movement
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -200,7 +199,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/pharmacy/inventory - Update batch information
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

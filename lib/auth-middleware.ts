@@ -300,6 +300,49 @@ export async function authenticateAdmin(request: NextRequest): Promise<AuthResul
   return auth;
 }
 
+// Super Admin authentication
+export async function requireSuperAdmin(request: NextRequest): Promise<AuthResult | NextResponse> {
+  const auth = await authenticateUser(request);
+  
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+  
+  if (auth.user.role !== 'super-admin') {
+    return NextResponse.json(
+      { error: 'Super admin access required' },
+      { status: 403 }
+    );
+  }
+  
+  return auth;
+}
+
+// Audit logging function
+export async function logAuditAction(
+  userId: string,
+  action: string,
+  resource: string,
+  details?: any,
+  ipAddress?: string
+): Promise<void> {
+  try {
+    const { AuditLog } = await import('@/models');
+    
+    await AuditLog.create({
+      userId,
+      action,
+      resource,
+      details: details || {},
+      ipAddress: ipAddress || 'unknown',
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Failed to log audit action:', error);
+    // Don't throw error to avoid breaking the main operation
+  }
+}
+
 // Middleware wrapper for API routes
 export function withAuth(
   handler: (request: NextRequest, auth: AuthResult) => Promise<NextResponse>,
@@ -369,9 +412,11 @@ export default {
   authenticateDoctor,
   authenticateStaff,
   authenticateAdmin,
+  requireSuperAdmin,
   requireRole,
   requirePermission,
   withAuth,
   getClientIP,
-  rateLimit
+  rateLimit,
+  logAuditAction
 };

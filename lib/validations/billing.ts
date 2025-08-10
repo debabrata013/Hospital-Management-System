@@ -153,3 +153,47 @@ export default {
   OutstandingPaymentsQuerySchema,
   PaymentGatewayResponseSchema
 };
+
+// Individual exports for API routes
+export const createInvoiceSchema = CreateInvoiceSchema;
+export const updateInvoiceSchema = UpdateInvoiceSchema;
+export const invoiceQuerySchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(20),
+  patientId: z.string().optional(),
+  status: z.enum(['draft', 'pending', 'paid', 'partially_paid', 'overdue', 'cancelled']).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  search: z.string().optional(),
+  sortBy: z.string().default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc')
+});
+
+export const processPaymentSchema = PaymentSchema;
+export const refundPaymentSchema = RefundRequestSchema;
+export const paymentQuerySchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(20),
+  invoiceId: z.string().optional(),
+  paymentMethod: z.enum(['cash', 'card', 'upi', 'net_banking', 'insurance']).optional(),
+  status: z.enum(['pending', 'completed', 'failed', 'refunded']).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  sortBy: z.string().default('paymentDate'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc')
+});
+
+export const applyDiscountSchema = DiscountRequestSchema;
+export const discountApprovalSchema = DiscountApprovalSchema;
+export const discountQuerySchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(20),
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  discountType: z.enum(['percentage', 'fixed']).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  sortBy: z.string().default('requestDate'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc')
+});
+
+export const financialReportSchema = FinancialReportQuerySchema;

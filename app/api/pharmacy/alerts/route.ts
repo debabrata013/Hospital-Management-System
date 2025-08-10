@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Medicine from '@/models/Medicine';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 // GET /api/pharmacy/alerts - Get stock alerts and notifications
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -168,7 +167,7 @@ export async function GET(request: NextRequest) {
 // POST /api/pharmacy/alerts - Send alert notifications or update alert settings
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -279,7 +278,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/pharmacy/alerts - Update global alert configuration
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

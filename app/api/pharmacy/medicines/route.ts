@@ -5,15 +5,14 @@ import {
   updateMedicineSchema,
   medicineQuerySchema 
 } from '@/lib/validations/pharmacy';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const pharmacyService = new PharmacyService();
 
 // GET /api/pharmacy/medicines - Get medicines with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -66,7 +65,7 @@ export async function GET(request: NextRequest) {
 // POST /api/pharmacy/medicines - Create new medicine
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/pharmacy/medicines - Update medicine
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

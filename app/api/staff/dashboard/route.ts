@@ -3,13 +3,12 @@ import User from '@/models/User';
 import StaffProfile from '@/models/StaffProfile';
 import StaffShift from '@/models/StaffShift';
 import LeaveRequest from '@/models/LeaveRequest';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 // GET /api/staff/dashboard - Get staff dashboard data and analytics
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

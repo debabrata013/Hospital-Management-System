@@ -119,3 +119,4 @@ export function getMongooseConnectionStatus(): string {
 }
 
 export default connectToMongoose
+export { connectToMongoose as connectDB }

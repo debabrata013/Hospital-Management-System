@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BillingService } from '@/lib/services/billing';
 import { createInvoiceSchema } from '@/lib/validations/billing';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const billingService = new BillingService();
@@ -26,7 +25,7 @@ const bulkPaymentSchema = z.object({
 // POST /api/billing/bulk - Bulk operations (invoices, payments, etc.)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

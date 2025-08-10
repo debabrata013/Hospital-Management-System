@@ -9,15 +9,14 @@ import {
   rejectLeaveSchema,
   extendLeaveSchema
 } from '@/lib/validations/staff';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const staffService = new StaffService();
 
 // GET /api/staff/leaves - Get leave requests with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -117,7 +116,7 @@ export async function GET(request: NextRequest) {
 // POST /api/staff/leaves - Create leave request or perform leave actions
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -315,7 +314,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/staff/leaves - Update leave request
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -378,7 +377,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/staff/leaves - Cancel leave request
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

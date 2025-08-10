@@ -5,15 +5,14 @@ import {
   updateVendorSchema,
   vendorQuerySchema 
 } from '@/lib/validations/pharmacy';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const pharmacyService = new PharmacyExtendedService();
 
 // GET /api/pharmacy/vendors - Get vendors with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -73,7 +72,7 @@ export async function GET(request: NextRequest) {
 // POST /api/pharmacy/vendors - Create new vendor
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -131,7 +130,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/pharmacy/vendors - Update vendor
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

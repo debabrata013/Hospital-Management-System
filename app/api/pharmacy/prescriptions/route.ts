@@ -4,15 +4,14 @@ import {
   dispensePrescriptionSchema,
   prescriptionQuerySchema 
 } from '@/lib/validations/pharmacy';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const pharmacyService = new PharmacyExtendedService();
 
 // GET /api/pharmacy/prescriptions - Get prescriptions for dispensing
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -66,7 +65,7 @@ export async function GET(request: NextRequest) {
 // POST /api/pharmacy/prescriptions - Dispense prescription
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

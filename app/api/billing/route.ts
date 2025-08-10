@@ -5,15 +5,14 @@ import {
   updateInvoiceSchema,
   invoiceQuerySchema 
 } from '@/lib/validations/billing';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const billingService = new BillingService();
 
 // GET /api/billing - Get invoices with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -69,7 +68,7 @@ export async function GET(request: NextRequest) {
 // POST /api/billing - Create new invoice
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -132,7 +131,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/billing - Update invoice
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

@@ -5,15 +5,14 @@ import {
   updateStaffProfileSchema,
   staffQuerySchema 
 } from '@/lib/validations/staff';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const staffService = new StaffService();
 
 // GET /api/staff/profiles - Get staff profiles with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
 // POST /api/staff/profiles - Create new staff profile
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -139,7 +138,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/staff/profiles - Update staff profile
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

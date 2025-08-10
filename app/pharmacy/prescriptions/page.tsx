@@ -7,132 +7,110 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Heart, ArrowLeft, Search, FileText, Eye, Check, X, Clock, User, Stethoscope, Calendar, AlertCircle } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { 
+  Heart, 
+  FileText, 
+  Search, 
+  Filter, 
+  ArrowLeft,
+  RefreshCw,
+  Loader2,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  XCircle,
+  User,
+  Calendar,
+  Pill
+} from 'lucide-react'
+import { usePrescriptions } from "@/hooks/usePharmacy"
+import { toast } from "sonner"
 
-// Mock prescription data
-const prescriptionData = [
-  {
-    id: "RX001",
-    patientName: "Sarah Johnson",
-    patientId: "P001",
-    doctorName: "Dr. Michael Smith",
-    department: "Internal Medicine",
-    prescriptionDate: "2024-01-15",
-    status: "pending",
-    priority: "high",
-    medicines: [
-      { name: "Amoxicillin 500mg", dosage: "1 tablet", frequency: "3 times daily", duration: "7 days", quantity: 21 },
-      { name: "Paracetamol 650mg", dosage: "1 tablet", frequency: "as needed", duration: "5 days", quantity: 10 }
-    ],
-    notes: "Patient has mild fever and throat infection. Monitor for allergic reactions.",
-    totalAmount: 455.50
-  },
-  {
-    id: "RX002",
-    patientName: "Michael Brown",
-    patientId: "P002",
-    doctorName: "Dr. Emily Davis",
-    department: "Endocrinology",
-    prescriptionDate: "2024-01-15",
-    status: "fulfilled",
-    priority: "normal",
-    medicines: [
-      { name: "Metformin 500mg", dosage: "1 tablet", frequency: "2 times daily", duration: "30 days", quantity: 60 },
-      { name: "Lisinopril 10mg", dosage: "1 tablet", frequency: "once daily", duration: "30 days", quantity: 30 }
-    ],
-    notes: "Regular diabetes and hypertension management. Patient education provided.",
-    totalAmount: 1250.00,
-    fulfilledDate: "2024-01-15",
-    fulfilledBy: "John Pharmacist"
-  },
-  {
-    id: "RX003",
-    patientName: "Emily Wilson",
-    patientId: "P003",
-    doctorName: "Dr. Robert Johnson",
-    department: "Orthopedics",
-    prescriptionDate: "2024-01-14",
-    status: "pending",
-    priority: "normal",
-    medicines: [
-      { name: "Ibuprofen 400mg", dosage: "1 tablet", frequency: "3 times daily", duration: "5 days", quantity: 15 }
-    ],
-    notes: "Post-surgery pain management. Take with food to avoid stomach upset.",
-    totalAmount: 225.50
-  },
-  {
-    id: "RX004",
-    patientName: "David Lee",
-    patientId: "P004",
-    doctorName: "Dr. Lisa Chen",
-    department: "Cardiology",
-    prescriptionDate: "2024-01-14",
-    status: "partially_fulfilled",
-    priority: "high",
-    medicines: [
-      { name: "Atorvastatin 20mg", dosage: "1 tablet", frequency: "once daily", duration: "30 days", quantity: 30 },
-      { name: "Aspirin 75mg", dosage: "1 tablet", frequency: "once daily", duration: "30 days", quantity: 30 }
-    ],
-    notes: "Cardiovascular risk management. Regular monitoring required.",
-    totalAmount: 850.00
-  }
-]
-
-const statusOptions = ["All Status", "pending", "fulfilled", "partially_fulfilled", "cancelled"]
-const priorityOptions = ["All Priority", "high", "normal", "low"]
-
-export default function PrescriptionsPage() {
+export default function PrescriptionsManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState("All Status")
-  const [selectedPriority, setSelectedPriority] = useState("All Priority")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [page, setPage] = useState(1)
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
-  const [fulfillmentNotes, setFulfillmentNotes] = useState("")
+  const [isDispenseDialogOpen, setIsDispenseDialogOpen] = useState(false)
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>
-      case "fulfilled":
-        return <Badge className="bg-green-100 text-green-700">Fulfilled</Badge>
-      case "partially_fulfilled":
-        return <Badge className="bg-blue-100 text-blue-700">Partially Fulfilled</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-700">Cancelled</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
-    }
-  }
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return <Badge className="bg-red-100 text-red-700">High</Badge>
-      case "normal":
-        return <Badge className="bg-gray-100 text-gray-700">Normal</Badge>
-      case "low":
-        return <Badge className="bg-green-100 text-green-700">Low</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{priority}</Badge>
-    }
-  }
-
-  const filteredData = prescriptionData.filter(prescription => {
-    const matchesSearch = prescription.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         prescription.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         prescription.id.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = selectedStatus === "All Status" || prescription.status === selectedStatus
-    const matchesPriority = selectedPriority === "All Priority" || prescription.priority === selectedPriority
-    
-    return matchesSearch && matchesStatus && matchesPriority
+  // API hooks
+  const { 
+    prescriptions, 
+    pagination, 
+    loading: prescriptionsLoading, 
+    error: prescriptionsError,
+    refetch: refetchPrescriptions,
+    dispensePrescription 
+  } = usePrescriptions({
+    page,
+    limit: 20,
+    search: searchTerm,
+    status: statusFilter
   })
 
-  const handleFulfillPrescription = (prescriptionId: string) => {
-    // Handle prescription fulfillment logic
-    console.log("Fulfilling prescription:", prescriptionId, "Notes:", fulfillmentNotes)
-    setFulfillmentNotes("")
+  const statusOptions = [
+    { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'partially_dispensed', label: 'Partially Dispensed', color: 'bg-blue-100 text-blue-700' },
+    { value: 'dispensed', label: 'Dispensed', color: 'bg-green-100 text-green-700' },
+    { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700' }
+  ]
+
+  const priorityOptions = [
+    { value: 'low', label: 'Low', color: 'bg-gray-100 text-gray-700' },
+    { value: 'normal', label: 'Normal', color: 'bg-blue-100 text-blue-700' },
+    { value: 'high', label: 'High', color: 'bg-orange-100 text-orange-700' },
+    { value: 'urgent', label: 'Urgent', color: 'bg-red-100 text-red-700' }
+  ]
+
+  // Handle prescription dispensing
+  const handleDispensePrescription = async (prescription: any) => {
+    try {
+      await dispensePrescription(prescription._id, {
+        dispensedBy: 'current-user', // This should come from session
+        dispensingNotes: 'Dispensed as prescribed',
+        medicines: prescription.medicines.map((med: any) => ({
+          medicineId: med.medicineId,
+          dispensedQuantity: med.quantity,
+          batchNo: 'AUTO', // This should be selected from available batches
+          notes: ''
+        }))
+      })
+      setIsDispenseDialogOpen(false)
+      setSelectedPrescription(null)
+    } catch (error) {
+      console.error('Error dispensing prescription:', error)
+    }
+  }
+
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    const statusOption = statusOptions.find(opt => opt.value === status)
+    return statusOption || { label: status, color: 'bg-gray-100 text-gray-700' }
+  }
+
+  // Get priority badge
+  const getPriorityBadge = (priority: string) => {
+    const priorityOption = priorityOptions.find(opt => opt.value === priority)
+    return priorityOption || { label: priority, color: 'bg-gray-100 text-gray-700' }
+  }
+
+  // Get status icon
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-600" />
+      case 'partially_dispensed':
+        return <Clock className="h-4 w-4 text-blue-600" />
+      case 'dispensed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'cancelled':
+        return <XCircle className="h-4 w-4 text-red-600" />
+      default:
+        return <Clock className="h-4 w-4 text-gray-600" />
+    }
   }
 
   return (
@@ -142,359 +120,342 @@ export default function PrescriptionsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link href="/pharmacy" className="flex items-center space-x-2 text-gray-600 hover:text-pink-500 transition-colors">
-                <ArrowLeft className="h-5 w-5" />
-                <span>Back to Pharmacy</span>
+              <Link href="/pharmacy" className="flex items-center space-x-2">
+                <ArrowLeft className="h-5 w-5 text-gray-600" />
+              </Link>
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
+                  <Heart className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-xl font-bold text-gray-800">आरोग्य अस्पताल</span>
               </Link>
               <div className="h-6 w-px bg-gray-300"></div>
               <div className="flex items-center space-x-2">
                 <FileText className="h-5 w-5 text-pink-500" />
-                <span className="text-lg font-semibold text-gray-700">Prescription Management</span>
+                <span className="text-lg font-semibold text-gray-700">Prescriptions</span>
               </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refetchPrescriptions}
+                disabled={prescriptionsLoading}
+                className="text-gray-600 hover:text-pink-500"
+              >
+                {prescriptionsLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title and Stats */}
+        {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Prescription Management</h1>
-          <p className="text-gray-600 mb-6">Review and fulfill patient prescriptions</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-pink-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Prescriptions</p>
-                    <p className="text-2xl font-bold text-gray-900">{prescriptionData.length}</p>
-                  </div>
-                  <FileText className="h-8 w-8 text-pink-500" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-pink-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {prescriptionData.filter(p => p.status === "pending").length}
-                    </p>
-                  </div>
-                  <Clock className="h-8 w-8 text-yellow-500" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-pink-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">High Priority</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {prescriptionData.filter(p => p.priority === "high").length}
-                    </p>
-                  </div>
-                  <AlertCircle className="h-8 w-8 text-red-500" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-pink-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Today's Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      ₹{prescriptionData.filter(p => p.status === "fulfilled").reduce((sum, p) => sum + p.totalAmount, 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <Check className="h-8 w-8 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <p className="text-gray-600">Review and dispense patient prescriptions</p>
         </div>
 
-        {/* Filters and Search */}
-        <Card className="border-pink-100 mb-6">
+        {/* Error Alert */}
+        {prescriptionsError && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-700">
+              {prescriptionsError}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Filters */}
+        <Card className="mb-6">
           <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-4 items-center w-full lg:w-auto">
-                <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search prescriptions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
-                  />
-                </div>
-                
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-full sm:w-48 border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map(status => (
-                      <SelectItem key={status} value={status}>
-                        {status.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                  <SelectTrigger className="w-full sm:w-48 border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {priorityOptions.map(priority => (
-                      <SelectItem key={priority} value={priority}>
-                        {priority.replace(/\b\w/g, l => l.toUpperCase())}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search prescriptions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                />
+              </div>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Status</SelectItem>
+                  {statusOptions.map(status => (
+                    <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex justify-end">
+                <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                  <Filter className="h-4 w-4 mr-2" />
+                  More Filters
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Prescriptions Table */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Prescriptions ({filteredData.length})</CardTitle>
-            <CardDescription>Review and manage patient prescriptions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Prescription ID</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredData.map((prescription) => (
-                    <TableRow key={prescription.id} className="hover:bg-pink-50">
-                      <TableCell>
-                        <p className="font-semibold text-gray-900">{prescription.id}</p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="font-medium text-gray-900">{prescription.patientName}</p>
-                            <p className="text-sm text-gray-500">{prescription.patientId}</p>
+        {/* Prescriptions List */}
+        <div className="space-y-4">
+          {prescriptionsLoading ? (
+            // Loading skeletons
+            Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i} className="border-pink-100">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-1" />
+                          <Skeleton className="h-5 w-32" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-1" />
+                          <Skeleton className="h-5 w-28" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-1" />
+                          <Skeleton className="h-5 w-24" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-16 w-full" />
+                    </div>
+                    <div className="ml-6">
+                      <Skeleton className="h-9 w-24" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : prescriptions.length > 0 ? (
+            prescriptions.map((prescription) => {
+              const statusBadge = getStatusBadge(prescription.status)
+              const priorityBadge = getPriorityBadge(prescription.priority)
+              
+              return (
+                <Card key={prescription._id} className="border-pink-100 hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {/* Header */}
+                        <div className="flex items-center space-x-3 mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {prescription.prescriptionId}
+                          </h3>
+                          <Badge className={statusBadge.color}>
+                            {getStatusIcon(prescription.status)}
+                            <span className="ml-1">{statusBadge.label}</span>
+                          </Badge>
+                          <Badge className={priorityBadge.color}>
+                            {priorityBadge.label}
+                          </Badge>
+                        </div>
+
+                        {/* Patient and Doctor Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <div>
+                              <p className="text-sm text-gray-500">Patient</p>
+                              <p className="font-medium text-gray-900">{prescription.patientName}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <div>
+                              <p className="text-sm text-gray-500">Doctor</p>
+                              <p className="font-medium text-gray-900">{prescription.doctorName}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <div>
+                              <p className="text-sm text-gray-500">Date</p>
+                              <p className="font-medium text-gray-900">
+                                {new Date(prescription.prescriptionDate).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Stethoscope className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="font-medium text-gray-900">{prescription.doctorName}</p>
-                            <p className="text-sm text-gray-500">{prescription.department}</p>
+
+                        {/* Medicines */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Pill className="h-4 w-4 text-gray-500" />
+                            <p className="text-sm font-medium text-gray-700">Prescribed Medicines</p>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <p className="text-sm text-gray-600">
-                            {new Date(prescription.prescriptionDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(prescription.status)}
-                      </TableCell>
-                      <TableCell>
-                        {getPriorityBadge(prescription.priority)}
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium text-gray-900">₹{prescription.totalAmount.toFixed(2)}</p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                                onClick={() => setSelectedPrescription(prescription)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Prescription Details - {selectedPrescription?.id}</DialogTitle>
-                                <DialogDescription>
-                                  Review prescription details and fulfill if needed
-                                </DialogDescription>
-                              </DialogHeader>
-                              
-                              {selectedPrescription && (
-                                <div className="space-y-6">
-                                  {/* Patient and Doctor Info */}
-                                  <div className="grid md:grid-cols-2 gap-6">
-                                    <Card className="border-pink-100">
-                                      <CardHeader className="pb-3">
-                                        <CardTitle className="text-lg flex items-center">
-                                          <User className="h-5 w-5 mr-2 text-pink-500" />
-                                          Patient Information
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <div className="space-y-2">
-                                          <p><span className="font-medium">Name:</span> {selectedPrescription.patientName}</p>
-                                          <p><span className="font-medium">Patient ID:</span> {selectedPrescription.patientId}</p>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                    
-                                    <Card className="border-pink-100">
-                                      <CardHeader className="pb-3">
-                                        <CardTitle className="text-lg flex items-center">
-                                          <Stethoscope className="h-5 w-5 mr-2 text-pink-500" />
-                                          Doctor Information
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <div className="space-y-2">
-                                          <p><span className="font-medium">Doctor:</span> {selectedPrescription.doctorName}</p>
-                                          <p><span className="font-medium">Department:</span> {selectedPrescription.department}</p>
-                                          <p><span className="font-medium">Date:</span> {new Date(selectedPrescription.prescriptionDate).toLocaleDateString()}</p>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  </div>
-                                  
-                                  {/* Medicines */}
-                                  <Card className="border-pink-100">
-                                    <CardHeader>
-                                      <CardTitle className="text-lg">Prescribed Medicines</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <div className="overflow-x-auto">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead>Medicine</TableHead>
-                                              <TableHead>Dosage</TableHead>
-                                              <TableHead>Frequency</TableHead>
-                                              <TableHead>Duration</TableHead>
-                                              <TableHead>Quantity</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {selectedPrescription.medicines.map((medicine: any, index: number) => (
-                                              <TableRow key={index}>
-                                                <TableCell className="font-medium">{medicine.name}</TableCell>
-                                                <TableCell>{medicine.dosage}</TableCell>
-                                                <TableCell>{medicine.frequency}</TableCell>
-                                                <TableCell>{medicine.duration}</TableCell>
-                                                <TableCell>{medicine.quantity}</TableCell>
-                                              </TableRow>
-                                            ))}
-                                          </TableBody>
-                                        </Table>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                  
-                                  {/* Notes */}
-                                  <Card className="border-pink-100">
-                                    <CardHeader>
-                                      <CardTitle className="text-lg">Doctor's Notes</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <p className="text-gray-700">{selectedPrescription.notes}</p>
-                                    </CardContent>
-                                  </Card>
-                                  
-                                  {/* Fulfillment Section */}
-                                  {selectedPrescription.status === "pending" && (
-                                    <Card className="border-pink-100">
-                                      <CardHeader>
-                                        <CardTitle className="text-lg">Fulfill Prescription</CardTitle>
-                                      </CardHeader>
-                                      <CardContent className="space-y-4">
-                                        <Textarea
-                                          placeholder="Add fulfillment notes..."
-                                          value={fulfillmentNotes}
-                                          onChange={(e) => setFulfillmentNotes(e.target.value)}
-                                          className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                                        />
-                                        <div className="flex space-x-3">
-                                          <Button 
-                                            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white"
-                                            onClick={() => handleFulfillPrescription(selectedPrescription.id)}
-                                          >
-                                            <Check className="h-4 w-4 mr-2" />
-                                            Fulfill Prescription
-                                          </Button>
-                                          <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
-                                            <X className="h-4 w-4 mr-2" />
-                                            Cancel Prescription
-                                          </Button>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  )}
-                                  
-                                  {/* Fulfillment Info for completed prescriptions */}
-                                  {selectedPrescription.status === "fulfilled" && (
-                                    <Card className="border-green-100 bg-green-50">
-                                      <CardHeader>
-                                        <CardTitle className="text-lg text-green-800">Fulfillment Information</CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <div className="space-y-2">
-                                          <p><span className="font-medium">Fulfilled Date:</span> {selectedPrescription.fulfilledDate}</p>
-                                          <p><span className="font-medium">Fulfilled By:</span> {selectedPrescription.fulfilledBy}</p>
-                                          <p><span className="font-medium">Total Amount:</span> ₹{selectedPrescription.totalAmount.toFixed(2)}</p>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
+                          <div className="space-y-2">
+                            {prescription.medicines.map((medicine: any, index: number) => (
+                              <div key={index} className="flex items-center justify-between bg-white rounded p-3">
+                                <div className="flex-1">
+                                  <p className="font-medium text-gray-900">{medicine.medicineName}</p>
+                                  <p className="text-sm text-gray-600">
+                                    {medicine.dosage} • {medicine.frequency} • {medicine.duration}
+                                  </p>
+                                  {medicine.instructions && (
+                                    <p className="text-xs text-gray-500 mt-1">{medicine.instructions}</p>
                                   )}
                                 </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
-                          
-                          {prescription.status === "pending" && (
-                            <Button 
-                              size="sm" 
-                              className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white"
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Fulfill
-                            </Button>
-                          )}
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900">Qty: {medicine.quantity}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="ml-6 flex flex-col space-y-2">
+                        {prescription.status === 'pending' && (
+                          <Button
+                            onClick={() => {
+                              setSelectedPrescription(prescription)
+                              setIsDispenseDialogOpen(true)
+                            }}
+                            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white"
+                          >
+                            Dispense
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
+          ) : (
+            <Card className="border-pink-100">
+              <CardContent className="p-12">
+                <div className="text-center">
+                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No prescriptions found</h3>
+                  <p className="text-gray-600">Try adjusting your search or filter criteria</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex justify-between items-center mt-8">
+            <p className="text-sm text-gray-600">
+              Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+            </p>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page === pagination.totalPages}
+              >
+                Next
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Dispense Dialog */}
+        <Dialog open={isDispenseDialogOpen} onOpenChange={setIsDispenseDialogOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Dispense Prescription</DialogTitle>
+              <DialogDescription>
+                Review and dispense prescription {selectedPrescription?.prescriptionId}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedPrescription && (
+              <div className="space-y-6">
+                {/* Patient Info */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Patient Information</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Patient Name</p>
+                      <p className="font-medium">{selectedPrescription.patientName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Doctor</p>
+                      <p className="font-medium">{selectedPrescription.doctorName}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medicines to Dispense */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Medicines to Dispense</h4>
+                  <div className="space-y-3">
+                    {selectedPrescription.medicines.map((medicine: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">{medicine.medicineName}</p>
+                            <p className="text-sm text-gray-600">
+                              {medicine.dosage} • {medicine.frequency} • {medicine.duration}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">Qty: {medicine.quantity}</p>
+                            <Badge className="bg-green-100 text-green-700 mt-1">
+                              Available
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDispenseDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleDispensePrescription(selectedPrescription)}
+                    className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white"
+                  >
+                    Confirm Dispensing
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

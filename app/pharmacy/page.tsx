@@ -1,61 +1,107 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Heart, Package, AlertTriangle, TrendingUp, Search, Plus, Pill, FileText, BarChart3, Bell, Filter, Download } from 'lucide-react'
-
-// Mock data
-const inventoryStats = {
-  totalMedicines: 1247,
-  lowStock: 23,
-  expiringSoon: 8,
-  totalValue: 125000
-}
-
-const recentPrescriptions = [
-  {
-    id: "RX001",
-    patientName: "Sarah Johnson",
-    doctor: "Dr. Smith",
-    medicines: ["Amoxicillin 500mg", "Paracetamol 650mg"],
-    status: "pending",
-    date: "2024-01-15",
-    priority: "high"
-  },
-  {
-    id: "RX002",
-    patientName: "Michael Brown",
-    doctor: "Dr. Davis",
-    medicines: ["Metformin 500mg", "Lisinopril 10mg"],
-    status: "fulfilled",
-    date: "2024-01-15",
-    priority: "normal"
-  },
-  {
-    id: "RX003",
-    patientName: "Emily Wilson",
-    doctor: "Dr. Johnson",
-    medicines: ["Ibuprofen 400mg"],
-    status: "pending",
-    date: "2024-01-14",
-    priority: "normal"
-  }
-]
-
-const lowStockItems = [
-  { name: "Amoxicillin 500mg", currentStock: 15, minStock: 50, category: "Antibiotic" },
-  { name: "Insulin Glargine", currentStock: 8, minStock: 25, category: "Diabetes" },
-  { name: "Salbutamol Inhaler", currentStock: 12, minStock: 30, category: "Respiratory" },
-  { name: "Paracetamol 650mg", currentStock: 45, minStock: 100, category: "Analgesic" }
-]
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Heart, Package, AlertTriangle, TrendingUp, Search, Plus, Pill, FileText, BarChart3, Bell, Filter, Download, RefreshCw, Loader2 } from 'lucide-react'
+import { usePharmacyStats, usePrescriptions, usePharmacyAlerts } from "@/hooks/usePharmacy"
+import { toast } from "sonner"
 
 export default function PharmacyDashboard() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [activeTab, setActiveTab] = useState("overview")
+
+  // API hooks
+  const { 
+    totalMedicines, 
+    lowStock, 
+    expiringSoon, 
+    totalValue, 
+    loading: statsLoading, 
+    error: statsError,
+    refetch: refetchStats 
+  } = usePharmacyStats()
+
+  const { 
+    prescriptions, 
+    loading: prescriptionsLoading, 
+    error: prescriptionsError,
+    refetch: refetchPrescriptions,
+    dispensePrescription 
+  } = usePrescriptions({ 
+    limit: 5, 
+    status: 'pending' 
+  })
+
+  const { 
+    alerts, 
+    summary: alertSummary, 
+    loading: alertsLoading, 
+    error: alertsError,
+    refetch: refetchAlerts,
+    markAlertsResolved 
+  } = usePharmacyAlerts()
+
+  // Handle prescription dispensing
+  const handleDispensePrescription = async (prescriptionId: string) => {
+    try {
+      await dispensePrescription(prescriptionId, {
+        dispensedBy: 'current-user', // This should come from session
+        dispensingNotes: 'Dispensed as prescribed'
+      })
+    } catch (error) {
+      console.error('Error dispensing prescription:', error)
+    }
+  }
+
+  // Handle alert resolution
+  const handleResolveAlert = async (medicineIds: string[], alertType: string) => {
+    try {
+      await markAlertsResolved(medicineIds)
+      toast.success(`${alertType} alerts resolved successfully`)
+    } catch (error) {
+      console.error('Error resolving alerts:', error)
+    }
+  }
+
+  // Refresh all data
+  const refreshAllData = async () => {
+    try {
+      await Promise.all([
+        refetchStats(),
+        refetchPrescriptions(),
+        refetchAlerts()
+      ])
+      toast.success('Data refreshed successfully')
+    } catch (error) {
+      toast.error('Failed to refresh data')
+    }
+  }
+
+  // Get recent prescriptions (limit to 3 for display)
+  const recentPrescriptions = prescriptions.slice(0, 3).map(prescription => ({
+    id: prescription.prescriptionId,
+    patientName: prescription.patientName,
+    doctor: prescription.doctorName,
+    medicines: prescription.medicines.map(m => `${m.medicineName} ${m.dosage}`),
+    status: prescription.status === 'pending' ? 'pending' : 'fulfilled',
+    date: new Date(prescription.prescriptionDate).toLocaleDateString(),
+    priority: prescription.priority
+  }))
+
+  // Get low stock items from alerts
+  const lowStockItems = [...alerts.lowStock, ...alerts.outOfStock].slice(0, 4).map(item => ({
+    name: item.medicineName,
+    currentStock: item.inventory.currentStock,
+    minStock: item.inventory.reorderLevel,
+    category: item.category
+  }))
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white">
@@ -78,10 +124,23 @@ export default function PharmacyDashboard() {
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshAllData}
+                disabled={statsLoading || prescriptionsLoading || alertsLoading}
+                className="text-gray-600 hover:text-pink-500"
+              >
+                {statsLoading || prescriptionsLoading || alertsLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
               <div className="relative">
                 <Bell className="h-6 w-6 text-gray-600 cursor-pointer hover:text-pink-500 transition-colors" />
                 <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {lowStockItems.length}
+                  {alertsLoading ? '...' : alertSummary.totalAlerts}
                 </div>
               </div>
               <div className="h-8 w-8 bg-gradient-to-r from-pink-400 to-pink-500 rounded-full flex items-center justify-center">
@@ -99,6 +158,16 @@ export default function PharmacyDashboard() {
           <p className="text-gray-600">Manage inventory, prescriptions, and pharmacy operations</p>
         </div>
 
+        {/* Error Alert */}
+        {(statsError || prescriptionsError || alertsError) && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-700">
+              {statsError || prescriptionsError || alertsError}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
@@ -106,7 +175,11 @@ export default function PharmacyDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Medicines</p>
-                  <p className="text-3xl font-bold text-gray-900">{inventoryStats.totalMedicines}</p>
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-16 mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold text-gray-900">{totalMedicines.toLocaleString()}</p>
+                  )}
                 </div>
                 <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
                   <Package className="h-6 w-6 text-white" />
@@ -120,7 +193,11 @@ export default function PharmacyDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                  <p className="text-3xl font-bold text-red-600">{inventoryStats.lowStock}</p>
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-16 mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold text-red-600">{lowStock}</p>
+                  )}
                 </div>
                 <div className="bg-red-500 p-3 rounded-xl">
                   <AlertTriangle className="h-6 w-6 text-white" />
@@ -134,7 +211,11 @@ export default function PharmacyDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
-                  <p className="text-3xl font-bold text-orange-600">{inventoryStats.expiringSoon}</p>
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-16 mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold text-orange-600">{expiringSoon}</p>
+                  )}
                 </div>
                 <div className="bg-orange-500 p-3 rounded-xl">
                   <AlertTriangle className="h-6 w-6 text-white" />
@@ -148,7 +229,11 @@ export default function PharmacyDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Value</p>
-                  <p className="text-3xl font-bold text-green-600">₹{inventoryStats.totalValue.toLocaleString()}</p>
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-20 mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold text-green-600">₹{totalValue.toLocaleString()}</p>
+                  )}
                 </div>
                 <div className="bg-green-500 p-3 rounded-xl">
                   <TrendingUp className="h-6 w-6 text-white" />
@@ -159,7 +244,7 @@ export default function PharmacyDashboard() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <TabsList className="grid w-full sm:w-auto grid-cols-4 bg-pink-50 border border-pink-100">
               <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-pink-600">
@@ -209,34 +294,71 @@ export default function PharmacyDashboard() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentPrescriptions.map((prescription) => (
-                      <div key={prescription.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-semibold text-gray-900">{prescription.id}</span>
-                            <Badge 
-                              variant={prescription.priority === "high" ? "destructive" : "secondary"}
-                              className={prescription.priority === "high" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}
-                            >
-                              {prescription.priority}
-                            </Badge>
+                  {prescriptionsLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="p-4 bg-gray-50 rounded-xl">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <Skeleton className="h-4 w-20 mb-2" />
+                              <Skeleton className="h-3 w-32 mb-1" />
+                              <Skeleton className="h-3 w-48" />
+                            </div>
+                            <div className="text-right">
+                              <Skeleton className="h-6 w-16 mb-1" />
+                              <Skeleton className="h-3 w-12" />
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600">{prescription.patientName} • {prescription.doctor}</p>
-                          <p className="text-xs text-gray-500">{prescription.medicines.join(", ")}</p>
                         </div>
-                        <div className="text-right">
-                          <Badge 
-                            variant={prescription.status === "fulfilled" ? "default" : "secondary"}
-                            className={prescription.status === "fulfilled" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}
-                          >
-                            {prescription.status}
-                          </Badge>
-                          <p className="text-xs text-gray-500 mt-1">{prescription.date}</p>
+                      ))}
+                    </div>
+                  ) : recentPrescriptions.length > 0 ? (
+                    <div className="space-y-4">
+                      {recentPrescriptions.map((prescription) => (
+                        <div key={prescription.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="font-semibold text-gray-900">{prescription.id}</span>
+                              <Badge 
+                                variant={prescription.priority === "high" ? "destructive" : "secondary"}
+                                className={prescription.priority === "high" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}
+                              >
+                                {prescription.priority}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600">{prescription.patientName} • {prescription.doctor}</p>
+                            <p className="text-xs text-gray-500">{prescription.medicines.join(", ")}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <Badge 
+                                variant={prescription.status === "fulfilled" ? "default" : "secondary"}
+                                className={prescription.status === "fulfilled" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}
+                              >
+                                {prescription.status}
+                              </Badge>
+                              {prescription.status === "pending" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDispensePrescription(prescription.id)}
+                                  className="text-xs px-2 py-1 h-6"
+                                >
+                                  Dispense
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500">{prescription.date}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500">No recent prescriptions</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -250,29 +372,68 @@ export default function PharmacyDashboard() {
                     </CardTitle>
                     <CardDescription>Items requiring immediate attention</CardDescription>
                   </div>
-                  <Link href="/pharmacy/inventory">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      Manage Stock
-                    </Button>
-                  </Link>
+                  <div className="flex items-center space-x-2">
+                    {lowStockItems.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResolveAlert(
+                          [...alerts.lowStock, ...alerts.outOfStock].map(item => item._id),
+                          'Low Stock'
+                        )}
+                        className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+                      >
+                        Mark Resolved
+                      </Button>
+                    )}
+                    <Link href="/pharmacy/inventory">
+                      <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                        Manage Stock
+                      </Button>
+                    </Link>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {lowStockItems.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{item.name}</p>
-                          <p className="text-sm text-gray-600">{item.category}</p>
+                  {alertsLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="p-4 bg-red-50 rounded-xl border border-red-100">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <Skeleton className="h-4 w-32 mb-1" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                            <div className="text-right">
+                              <Skeleton className="h-4 w-16 mb-1" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-red-600">
-                            {item.currentStock} / {item.minStock}
-                          </p>
-                          <p className="text-xs text-gray-500">Current / Min</p>
+                      ))}
+                    </div>
+                  ) : lowStockItems.length > 0 ? (
+                    <div className="space-y-4">
+                      {lowStockItems.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{item.name}</p>
+                            <p className="text-sm text-gray-600">{item.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-red-600">
+                              {item.currentStock} / {item.minStock}
+                            </p>
+                            <p className="text-xs text-gray-500">Current / Min</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500">All items are well stocked</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

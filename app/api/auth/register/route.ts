@@ -1,196 +1,336 @@
-import { NextRequest, NextResponse } from 'next/server'
-import connectToMongoose from '@/lib/mongoose'
-import bcrypt from 'bcryptjs'
-import { getClientIP } from '@/lib/auth-middleware'
-const { User, AuditLog } = require('@/models')
+import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { connectDB } from '@/lib/mongoose';
+import User from '@/models/User';
+import AuditLog from '@/models/AuditLog';
+import { z } from 'zod';
+
+// Validation schema
+const registerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+           'Password must contain uppercase, lowercase, number and special character'),
+  confirmPassword: z.string(),
+  contactNumber: z.string().regex(/^[+]?[1-9][\d]{0,15}$/, 'Invalid phone number'),
+  role: z.enum(['doctor', 'staff', 'receptionist', 'patient']),
+  department: z.string().optional(),
+  specialization: z.string().optional(),
+  licenseNumber: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  address: z.object({
+    street: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
+    country: z.string().default('India')
+  }).optional(),
+  emergencyContact: z.object({
+    name: z.string().optional(),
+    relationship: z.string().optional(),
+    contactNumber: z.string().optional()
+  }).optional(),
+  acceptTerms: z.boolean().refine(val => val === true, 'You must accept terms and conditions')
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
 
 export async function POST(request: NextRequest) {
+  let body: any = {};
+  
   try {
-    await connectToMongoose()
+    await connectDB();
 
-    const body = await request.json()
-    const { name, email, password, phone, role, department, address } = body
-
-    // Validate required fields
-    if (!name || !email || !password || !phone || !role) {
+    body = await request.json();
+    
+    // Validate input
+    const validation = registerSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, email, password, phone, role' },
+        { 
+          success: false,
+          error: 'Validation failed',
+          details: validation.error.errors
+        },
         { status: 400 }
-      )
+      );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
-    }
-
-    // Validate password strength
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters long' },
-        { status: 400 }
-      )
-    }
-
-    // Validate phone number
-    const phoneRegex = /^[+]?[1-9][\d]{0,15}$/
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-      return NextResponse.json(
-        { error: 'Invalid phone number format' },
-        { status: 400 }
-      )
-    }
-
-    // Validate role
-    const validRoles = ['patient', 'doctor', 'staff', 'receptionist']
-    if (!validRoles.includes(role)) {
-      return NextResponse.json(
-        { error: 'Invalid role. Must be one of: patient, doctor, staff, receptionist' },
-        { status: 400 }
-      )
-    }
-
-    // Import User model dynamically
-    const mongoose = require('mongoose')
-    const User = mongoose.models.User || require('@/models/User.js')
+    const {
+      name,
+      email,
+      password,
+      contactNumber,
+      role,
+      department,
+      specialization,
+      licenseNumber,
+      dateOfBirth,
+      gender,
+      address,
+      emergencyContact
+    } = validation.data;
 
     // Check if user already exists
     const existingUser = await User.findOne({ 
       $or: [
         { email: email.toLowerCase() },
-        { contactNumber: phone.replace(/\s/g, '') }
+        { contactNumber }
       ]
-    })
+    });
 
     if (existingUser) {
-      if (existingUser.email === email.toLowerCase()) {
-        return NextResponse.json(
-          { error: 'User with this email already exists' },
-          { status: 409 }
-        )
-      } else {
-        return NextResponse.json(
-          { error: 'User with this phone number already exists' },
-          { status: 409 }
-        )
-      }
+      return NextResponse.json(
+        { 
+          success: false,
+          error: existingUser.email === email.toLowerCase() 
+            ? 'Email already registered' 
+            : 'Phone number already registered'
+        },
+        { status: 409 }
+      );
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 12)
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Generate unique user ID
+    const userCount = await User.countDocuments();
+    const userId = `USR${String(userCount + 1).padStart(6, '0')}`;
 
     // Create user object
     const userData = {
+      userId,
       name: name.trim(),
       email: email.toLowerCase().trim(),
       passwordHash,
+      contactNumber,
       role,
-      contactNumber: phone.replace(/\s/g, ''),
-      isActive: role === 'patient' ? true : false, // Patients are auto-approved, staff needs approval
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-
-    // Add role-specific fields
-    if (['doctor', 'staff', 'receptionist'].includes(role)) {
-      if (department) {
-        userData.department = department.trim()
+      department: department || getDefaultDepartment(role),
+      specialization,
+      licenseNumber,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      gender,
+      address,
+      emergencyContact,
+      isActive: role === 'patient' ? true : false, // Patients auto-active, staff needs approval
+      isEmailVerified: false,
+      isPhoneVerified: false,
+      registrationDate: new Date(),
+      lastLogin: null,
+      loginCount: 0,
+      permissions: getDefaultPermissions(role),
+      preferences: {
+        language: 'english',
+        theme: 'light',
+        notifications: {
+          email: true,
+          sms: false,
+          push: true
+        }
       }
-    }
+    };
 
-    if (address) {
-      userData.address = {
-        street: address.trim(),
-        city: '',
-        state: '',
-        pincode: ''
-      }
+    // Add role-specific required fields
+    if (role === 'doctor') {
+      userData.experience = 0; // Default to 0 years, can be updated later
+      userData.workSchedule = {
+        consultationFee: 500, // Default consultation fee
+        maxPatientsPerDay: 20,
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+      };
+      userData.employment = {
+        salary: 50000, // Default salary, can be updated later
+        employmentType: 'full-time'
+      };
+    } else if (['staff', 'admin', 'receptionist'].includes(role)) {
+      userData.employment = {
+        salary: 25000, // Default salary for staff roles
+        employmentType: 'full-time'
+      };
     }
 
     // Create user
-    const newUser = await User.create(userData)
+    const user = new User(userData);
+    await user.save();
 
-    // Log registration in audit log
-    try {
-      const AuditLog = mongoose.models.AuditLog || require('@/models/AuditLog.js')
-      await AuditLog.create({
-        userId: newUser._id,
-        userRole: role,
-        userName: name,
-        action: `User registered: ${email} (${role})`,
-        actionType: 'CREATE',
-        resourceType: 'User',
-        resourceId: newUser._id.toString(),
-        ipAddress: getClientIP(request),
-        deviceInfo: {
-          userAgent: request.headers.get('user-agent') || 'unknown'
-        },
-        riskLevel: 'LOW'
-      })
-    } catch (auditError) {
-      console.error('Audit logging failed:', auditError)
-    }
+    // Generate JWT token for immediate login (if patient) or verification
+    const token = jwt.sign(
+      { 
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        name: user.name
+      },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '24h' }
+    );
 
-    // Return success response (don't include sensitive data)
-    return NextResponse.json({
+    // Log registration
+    const logCount = await AuditLog.countDocuments();
+    const logId = `LOG${String(logCount + 1).padStart(8, '0')}`;
+    
+    await AuditLog.create({
+      logId,
+      userId: user._id,
+      userRole: user.role,
+      userName: user.name,
+      action: `User registered: ${user.email}`,
+      actionType: 'CREATE',
+      resourceType: 'User',
+      resourceId: user._id.toString(),
+      ipAddress: getClientIP(request),
+      deviceInfo: {
+        userAgent: request.headers.get('user-agent') || 'unknown'
+      },
+      riskLevel: 'LOW'
+    });
+
+    // Send welcome email (mock for now)
+    await sendWelcomeEmail(user);
+
+    // Prepare response
+    const responseData = {
       success: true,
       message: role === 'patient' 
-        ? 'Registration successful! You can now login.' 
-        : 'Registration successful! Your account is pending approval from the administrator.',
+        ? 'Registration successful! You can now login.'
+        : 'Registration successful! Your account is pending approval.',
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        isActive: newUser.isActive,
-        needsApproval: !newUser.isActive
+        id: user._id,
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        isActive: user.isActive,
+        needsApproval: !user.isActive
       }
-    }, { status: 201 })
+    };
 
-  } catch (error) {
-    console.error('Registration error:', error)
+    const response = NextResponse.json(responseData, { status: 201 });
 
-    // Log failed registration attempt
-    try {
-      const mongoose = require('mongoose')
-      const AuditLog = mongoose.models.AuditLog || require('@/models/AuditLog.js')
-      await AuditLog.create({
-        userId: null,
-        userRole: 'unknown',
-        userName: 'Failed Registration Attempt',
-        action: `Failed registration attempt for email: ${email || 'unknown'}`,
-        actionType: 'CREATE',
-        resourceType: 'User',
-        ipAddress: getClientIP(request),
-        deviceInfo: {
-          userAgent: request.headers.get('user-agent') || 'unknown'
-        },
-        riskLevel: 'MEDIUM',
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          severity: 'ERROR'
-        }
-      })
-    } catch (auditError) {
-      console.error('Audit logging failed:', auditError)
+    // Set auth cookie if user is active (patients)
+    if (user.isActive) {
+      response.cookies.set('auth-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
     }
 
-    // Handle specific MongoDB errors
+    return response;
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    console.error('Error details:', {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack
+    });
+
+    // TODO: Implement system audit logging for failed registrations
+    // Currently skipped due to userId requirement in AuditLog model
+
     if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0]
       return NextResponse.json(
-        { error: `User with this ${field} already exists` },
+        { 
+          success: false,
+          error: 'Email or phone number already exists'
+        },
         { status: 409 }
-      )
+      );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error during registration' },
+      { 
+        success: false,
+        error: 'Registration failed. Please try again.'
+      },
       { status: 500 }
-    )
+    );
+  }
+}
+
+// Helper functions
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIP = request.headers.get('x-real-ip');
+  
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  if (realIP) {
+    return realIP;
+  }
+  
+  return 'unknown';
+}
+
+function getDefaultDepartment(role: string): string {
+  const departmentMap: Record<string, string> = {
+    'doctor': 'General Medicine',
+    'staff': 'Administration',
+    'receptionist': 'Front Desk',
+    'patient': 'N/A'
+  };
+  
+  return departmentMap[role] || 'General';
+}
+
+function getDefaultPermissions(role: string) {
+  const permissionMap: Record<string, any[]> = {
+    'doctor': [
+      { module: 'patients', actions: ['create', 'read', 'update'] },
+      { module: 'appointments', actions: ['read', 'update'] },
+      { module: 'billing', actions: ['read'] },
+      { module: 'reports', actions: ['read'] }
+    ],
+    'staff': [
+      { module: 'patients', actions: ['create', 'read', 'update'] },
+      { module: 'appointments', actions: ['create', 'read', 'update'] },
+      { module: 'billing', actions: ['create', 'read', 'update'] },
+      { module: 'inventory', actions: ['read', 'update'] }
+    ],
+    'receptionist': [
+      { module: 'patients', actions: ['create', 'read', 'update'] },
+      { module: 'appointments', actions: ['create', 'read', 'update', 'delete'] },
+      { module: 'billing', actions: ['create', 'read'] }
+    ],
+    'patient': [
+      { module: 'appointments', actions: ['create', 'read'] },
+      { module: 'billing', actions: ['read'] }
+    ]
+  };
+  
+  return permissionMap[role] || [];
+}
+
+async function sendWelcomeEmail(user: any): Promise<void> {
+  // Mock email sending - in production, integrate with actual email service
+  console.log(`Welcome email sent to ${user.email}`);
+  
+  // You can integrate with services like:
+  // - SendGrid
+  // - AWS SES
+  // - Nodemailer with SMTP
+  
+  try {
+    // Example with nodemailer (if configured)
+    // const transporter = nodemailer.createTransporter({...});
+    // await transporter.sendMail({
+    //   to: user.email,
+    //   subject: 'Welcome to आरोग्य अस्पताल',
+    //   html: generateWelcomeEmailTemplate(user)
+    // });
+  } catch (error) {
+    console.error('Failed to send welcome email:', error);
   }
 }

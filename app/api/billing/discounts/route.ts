@@ -5,15 +5,14 @@ import {
   discountApprovalSchema,
   discountQuerySchema 
 } from '@/lib/validations/billing';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
 const billingService = new BillingService();
 
 // GET /api/billing/discounts - Get discount history and pending approvals
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) {
 // POST /api/billing/discounts - Apply discount to invoice
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -175,7 +174,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/billing/discounts - Approve or reject discount request
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -250,7 +249,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/billing/discounts - Remove discount from invoice
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(request);
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
