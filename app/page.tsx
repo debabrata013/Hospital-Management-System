@@ -5,33 +5,238 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { ImageCarousel } from "@/components/ui/image-carousel"
-import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap } from 'lucide-react'
+import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap, Star, GraduationCap, Stethoscope, User, CalendarDays, Send, CheckCircle, Bell, RefreshCw } from 'lucide-react'
 
 export default function LandingPage() {
   const [language, setLanguage] = useState('english')
+  const [appointmentForm, setAppointmentForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    doctor: '',
+    department: '',
+    date: '',
+    time: '',
+    reason: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState('')
+
+  const handleAppointmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitMessage('')
+    
+    try {
+      const response = await fetch('/api/appointments/book', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentForm),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setSubmitMessage('✅ ' + result.message)
+        // Reset form
+        setAppointmentForm({
+          name: '',
+          phone: '',
+          email: '',
+          doctor: '',
+          department: '',
+          date: '',
+          time: '',
+          reason: ''
+        })
+      } else {
+        setSubmitMessage('❌ ' + result.message)
+      }
+    } catch (error) {
+      setSubmitMessage('❌ Failed to book appointment. Please try again.')
+      console.error('Appointment booking error:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Sample doctors data - in real app, this would come from API
+  const doctors = [
+    {
+      id: 1,
+      name: "Dr. Rajesh Kumar",
+      specialization: "Cardiologist",
+      experience: "15 years",
+      qualification: "MBBS, MD (Cardiology)",
+      image: "/doctors/doctor1.jpg",
+      rating: 4.8,
+      patients: "2000+",
+      availability: "Mon-Sat",
+      languages: ["Hindi", "English"],
+      about: "Expert in heart diseases, cardiac surgery, and preventive cardiology with over 15 years of experience."
+    },
+    {
+      id: 2,
+      name: "Dr. Priya Sharma",
+      specialization: "Gynecologist",
+      experience: "12 years",
+      qualification: "MBBS, MS (Gynecology)",
+      image: "/doctors/doctor2.jpg",
+      rating: 4.9,
+      patients: "1800+",
+      availability: "Mon-Fri",
+      languages: ["Hindi", "English"],
+      about: "Specialized in women's health, pregnancy care, and minimally invasive gynecological procedures."
+    },
+    {
+      id: 3,
+      name: "Dr. Amit Patel",
+      specialization: "Orthopedic Surgeon",
+      experience: "18 years",
+      qualification: "MBBS, MS (Orthopedics)",
+      image: "/doctors/doctor3.jpg",
+      rating: 4.7,
+      patients: "2200+",
+      availability: "Tue-Sun",
+      languages: ["Hindi", "English", "Gujarati"],
+      about: "Expert in joint replacement, sports injuries, and spine surgery with extensive surgical experience."
+    },
+    {
+      id: 4,
+      name: "Dr. Sunita Verma",
+      specialization: "Pediatrician",
+      experience: "10 years",
+      qualification: "MBBS, MD (Pediatrics)",
+      image: "/doctors/doctor4.jpg",
+      rating: 4.9,
+      patients: "1500+",
+      availability: "Mon-Sat",
+      languages: ["Hindi", "English"],
+      about: "Dedicated to child healthcare, vaccination, and developmental pediatrics with a gentle approach."
+    },
+    {
+      id: 5,
+      name: "Dr. Vikram Singh",
+      specialization: "General Physician",
+      experience: "20 years",
+      qualification: "MBBS, MD (Internal Medicine)",
+      image: "/doctors/doctor5.jpg",
+      rating: 4.6,
+      patients: "3000+",
+      availability: "Mon-Sun",
+      languages: ["Hindi", "English", "Punjabi"],
+      about: "Experienced in treating common illnesses, preventive care, and managing chronic conditions."
+    },
+    {
+      id: 6,
+      name: "Dr. Neha Gupta",
+      specialization: "Dermatologist",
+      experience: "8 years",
+      qualification: "MBBS, MD (Dermatology)",
+      image: "/doctors/doctor6.jpg",
+      rating: 4.8,
+      patients: "1200+",
+      availability: "Mon-Fri",
+      languages: ["Hindi", "English"],
+      about: "Specialist in skin diseases, cosmetic dermatology, and advanced skin treatments."
+    }
+  ]
+
+  const departments = [
+    "Cardiology",
+    "Gynecology", 
+    "Orthopedics",
+    "Pediatrics",
+    "General Medicine",
+    "Dermatology",
+    "Neurology",
+    "Gastroenterology"
+  ]
+
+  const timeSlots = [
+    "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+    "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM",
+    "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM"
+  ]
 
   const content = {
-    english: {
-      hospitalName: "Arogya Hospital",
+    hindi: {
+      hospitalName: "आरोग्य अस्पताल",
       nav: {
-        home: "Home",
-        about: "About Us", 
-        contact: "Contact",
-        login: "Login"
+        home: "मुख्य पृष्ठ",
+        about: "हमारे बारे में",
+        doctors: "हमारे डॉक्टर", 
+        appointment: "अपॉइंटमेंट बुक करें",
+        contact: "संपर्क करें",
+        login: "लॉगिन"
       },
       hero: {
-        badge: "Trusted by 50,000+ Patients",
-        title: "Your Health",
-        titleHighlight: "Journey",
-        titleEnd: "Our Priority",
-        description: "At Arogya Hospital, we make your healthcare simple, secure and convenient. From online appointments to digital reports, your health is now in your hands.",
-        getStarted: "Book Appointment",
-        bookDemo: "Meet Us",
+        badge: "50,000+ मरीज़ों का भरोसा",
+        title: "आपकी स्वास्थ्य",
+        titleHighlight: "यात्रा",
+        titleEnd: "हमारी प्राथमिकता",
+        description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
+        getStarted: "अपॉइंटमेंट बुक करें",
+        bookDemo: "हमसे मिलें",
         stats: {
-          hospitals: "Happy Patients",
-          patients: "Successful Treatments", 
-          uptime: "Satisfaction Rate"
+          hospitals: "खुश मरीज़",
+          patients: "सफल इलाज", 
+          uptime: "संतुष्टि दर"
+        }
+      },
+      doctors: {
+        title: "हमारे विशेषज्ञ डॉक्टरों से मिलें",
+        subtitle: "हमारी अनुभवी और योग्य डॉक्टरों की टीम आपको सर्वोत्तम स्वास्थ्य सेवा प्रदान करने के लिए यहाँ है",
+        viewProfile: "प्रोफाइल देखें",
+        bookAppointment: "अपॉइंटमेंट बुक करें",
+        experience: "अनुभव",
+        patients: "मरीज़ों का इलाज",
+        rating: "रेटिंग",
+        languages: "भाषाएं",
+        availability: "उपलब्ध"
+      },
+      appointment: {
+        title: "ऑनलाइन अपॉइंटमेंट बुक करें",
+        subtitle: "हमारे विशेषज्ञ डॉक्टरों के साथ अपनी मुलाकात का समय तय करें। अपना पसंदीदा समय चुनें और इंतज़ार से बचें।",
+        form: {
+          name: "पूरा नाम",
+          phone: "फोन नंबर",
+          email: "ईमेल पता",
+          department: "विभाग चुनें",
+          doctor: "डॉक्टर चुनें",
+          date: "पसंदीदा तारीख",
+          time: "पसंदीदा समय",
+          reason: "मुलाकात का कारण",
+          submit: "अपॉइंटमेंट बुक करें",
+          submitting: "बुक हो रहा है...",
+          success: "अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
+          error: "अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
+        },
+        benefits: {
+          title: "ऑनलाइन बुकिंग क्यों करें?",
+          noWaiting: {
+            title: "कोई इंतज़ार नहीं",
+            description: "कतार छोड़ें और अपने डॉक्टर से सीधे मिलें"
+          },
+          confirmation: {
+            title: "तुरंत पुष्टि",
+            description: "SMS और ईमेल के माध्यम से तुरंत पुष्टि प्राप्त करें"
+          },
+          reminder: {
+            title: "अपॉइंटमेंट रिमाइंडर",
+            description: "अपने अपॉइंटमेंट से पहले समय पर रिमाइंडर प्राप्त करें"
+          },
+          reschedule: {
+            title: "आसान रीशेड्यूलिंग",
+            description: "कुछ ही क्लिक में अपना अपॉइंटमेंट समय बदलें"
+          }
         }
       },
       features: {
@@ -148,6 +353,8 @@ export default function LandingPage() {
       nav: {
         home: "Home",
         about: "About",
+        doctors: "Our Doctors",
+        appointment: "Book Appointment",
         contact: "Contact", 
         login: "Login"
       },
@@ -163,6 +370,54 @@ export default function LandingPage() {
           hospitals: "Happy Patients",
           patients: "Successful Treatments", 
           uptime: "Satisfaction Rate"
+        }
+      },
+      doctors: {
+        title: "Meet Our Expert Doctors",
+        subtitle: "Our team of experienced and qualified doctors are here to provide you with the best healthcare",
+        viewProfile: "View Profile",
+        bookAppointment: "Book Appointment",
+        experience: "Experience",
+        patients: "Patients Treated",
+        rating: "Rating",
+        languages: "Languages",
+        availability: "Available"
+      },
+      appointment: {
+        title: "Book Your Appointment Online",
+        subtitle: "Schedule your visit with our expert doctors. Choose your preferred time and avoid waiting.",
+        form: {
+          name: "Full Name",
+          phone: "Phone Number",
+          email: "Email Address",
+          department: "Select Department",
+          doctor: "Select Doctor",
+          date: "Preferred Date",
+          time: "Preferred Time",
+          reason: "Reason for Visit",
+          submit: "Book Appointment",
+          submitting: "Booking...",
+          success: "Appointment booked successfully!",
+          error: "Failed to book appointment. Please try again."
+        },
+        benefits: {
+          title: "Why Book Online?",
+          noWaiting: {
+            title: "No Waiting",
+            description: "Skip the queue and get direct access to your doctor"
+          },
+          confirmation: {
+            title: "Instant Confirmation",
+            description: "Get immediate confirmation via SMS and email"
+          },
+          reminder: {
+            title: "Appointment Reminders",
+            description: "Receive timely reminders before your appointment"
+          },
+          reschedule: {
+            title: "Easy Rescheduling",
+            description: "Change your appointment time with just a few clicks"
+          }
         }
       },
       features: {
@@ -389,6 +644,350 @@ export default function LandingPage() {
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium text-gray-700">System Online</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Doctors Section */}
+      <section id="doctors" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {t.doctors.title}
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              {t.doctors.subtitle}
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {doctors.map((doctor) => (
+              <Card key={doctor.id} className="border-pink-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
+                <CardContent className="p-0">
+                  {/* Doctor Image */}
+                  <div className="relative h-64 bg-gradient-to-br from-pink-100 to-pink-200">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-8 rounded-full">
+                        <User className="h-16 w-16 text-white" />
+                      </div>
+                    </div>
+                    {/* Rating Badge */}
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center space-x-1">
+                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                      <span className="text-sm font-medium text-gray-700">{doctor.rating}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Doctor Info */}
+                  <div className="p-6">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">{doctor.name}</h3>
+                      <p className="text-pink-600 font-medium mb-2">{doctor.specialization}</p>
+                      <p className="text-gray-600 text-sm">{doctor.qualification}</p>
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="text-center bg-pink-50 p-3 rounded-lg">
+                        <div className="text-lg font-bold text-gray-900">{doctor.experience}</div>
+                        <div className="text-xs text-gray-600">{t.doctors.experience}</div>
+                      </div>
+                      <div className="text-center bg-blue-50 p-3 rounded-lg">
+                        <div className="text-lg font-bold text-gray-900">{doctor.patients}</div>
+                        <div className="text-xs text-gray-600">{t.doctors.patients}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Additional Info */}
+                    <div className="space-y-2 mb-6">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Clock className="h-4 w-4 mr-2 text-green-500" />
+                        <span>{t.doctors.availability}: {doctor.availability}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Globe className="h-4 w-4 mr-2 text-blue-500" />
+                        <span>{t.doctors.languages}: {doctor.languages.join(', ')}</span>
+                      </div>
+                    </div>
+                    
+                    {/* About */}
+                    <p className="text-gray-600 text-sm mb-6 line-clamp-3">{doctor.about}</p>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full"
+                        onClick={() => {
+                          setAppointmentForm(prev => ({ ...prev, doctor: doctor.name, department: doctor.specialization }))
+                          document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+                        }}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {t.doctors.bookAppointment}
+                      </Button>
+                      <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-4">
+                        <User className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Appointment Booking Section */}
+      <section id="appointment" className="py-20 bg-gradient-to-br from-pink-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {t.appointment.title}
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              {t.appointment.subtitle}
+            </p>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Appointment Form */}
+            <div className="bg-white rounded-3xl p-8 shadow-xl border border-pink-100">
+              <form onSubmit={handleAppointmentSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="name" className="text-gray-700 font-medium">
+                      {t.appointment.form.name} *
+                    </Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      required
+                      value={appointmentForm.name}
+                      onChange={(e) => setAppointmentForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="phone" className="text-gray-700 font-medium">
+                      {t.appointment.form.phone} *
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      required
+                      value={appointmentForm.phone}
+                      onChange={(e) => setAppointmentForm(prev => ({ ...prev, phone: e.target.value }))}
+                      className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                      placeholder="+91 98765 43210"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="email" className="text-gray-700 font-medium">
+                    {t.appointment.form.email}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={appointmentForm.email}
+                    onChange={(e) => setAppointmentForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="department" className="text-gray-700 font-medium">
+                      {t.appointment.form.department} *
+                    </Label>
+                    <Select 
+                      value={appointmentForm.department} 
+                      onValueChange={(value) => setAppointmentForm(prev => ({ ...prev, department: value, doctor: '' }))}
+                    >
+                      <SelectTrigger className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                        <SelectValue placeholder="Choose department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="doctor" className="text-gray-700 font-medium">
+                      {t.appointment.form.doctor} *
+                    </Label>
+                    <Select 
+                      value={appointmentForm.doctor} 
+                      onValueChange={(value) => setAppointmentForm(prev => ({ ...prev, doctor: value }))}
+                    >
+                      <SelectTrigger className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                        <SelectValue placeholder="Choose doctor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctors
+                          .filter(doc => !appointmentForm.department || doc.specialization === appointmentForm.department)
+                          .map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.name}>
+                              {doctor.name} - {doctor.specialization}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="date" className="text-gray-700 font-medium">
+                      {t.appointment.form.date} *
+                    </Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      required
+                      value={appointmentForm.date}
+                      onChange={(e) => setAppointmentForm(prev => ({ ...prev, date: e.target.value }))}
+                      className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="time" className="text-gray-700 font-medium">
+                      {t.appointment.form.time} *
+                    </Label>
+                    <Select 
+                      value={appointmentForm.time} 
+                      onValueChange={(value) => setAppointmentForm(prev => ({ ...prev, time: value }))}
+                    >
+                      <SelectTrigger className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                        <SelectValue placeholder="Choose time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeSlots.map((time) => (
+                          <SelectItem key={time} value={time}>{time}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="reason" className="text-gray-700 font-medium">
+                    {t.appointment.form.reason}
+                  </Label>
+                  <Textarea
+                    id="reason"
+                    value={appointmentForm.reason}
+                    onChange={(e) => setAppointmentForm(prev => ({ ...prev, reason: e.target.value }))}
+                    className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                    placeholder="Brief description of your health concern..."
+                    rows={3}
+                  />
+                </div>
+                
+                {submitMessage && (
+                  <div className={`p-4 rounded-lg text-center font-medium ${
+                    submitMessage.includes('✅') 
+                      ? 'bg-green-50 text-green-700 border border-green-200' 
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {submitMessage}
+                  </div>
+                )}
+                
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CalendarDays className="h-5 w-5 mr-2" />
+                  {isSubmitting ? t.appointment.form.submitting : t.appointment.form.submit}
+                </Button>
+              </form>
+            </div>
+            
+            {/* Benefits */}
+            <div className="space-y-8">
+              <div className="bg-white rounded-3xl p-8 shadow-xl border border-pink-100">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                  <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl mr-3">
+                    <Calendar className="h-6 w-6 text-white" />
+                  </div>
+                  {t.appointment.benefits.title}
+                </h3>
+                
+                <div className="space-y-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <Clock className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-2">{t.appointment.benefits.noWaiting.title}</h4>
+                      <p className="text-gray-600">{t.appointment.benefits.noWaiting.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-2">{t.appointment.benefits.confirmation.title}</h4>
+                      <p className="text-gray-600">{t.appointment.benefits.confirmation.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <Bell className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-2">{t.appointment.benefits.reminder.title}</h4>
+                      <p className="text-gray-600">{t.appointment.benefits.reminder.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-orange-100 p-2 rounded-lg">
+                      <RefreshCw className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-2">{t.appointment.benefits.reschedule.title}</h4>
+                      <p className="text-gray-600">{t.appointment.benefits.reschedule.description}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Emergency Contact */}
+              <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-3xl p-8 text-white">
+                <div className="flex items-center mb-4">
+                  <Zap className="h-8 w-8 mr-3" />
+                  <h3 className="text-2xl font-bold">Emergency?</h3>
+                </div>
+                <p className="mb-6 text-red-100">
+                  For medical emergencies, don't wait for an appointment. Call our emergency helpline immediately.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button className="bg-white text-red-600 hover:bg-red-50 rounded-full font-semibold">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call Emergency: +91 98765 43211
+                  </Button>
+                  <Button variant="outline" className="border-white text-white hover:bg-white hover:text-red-600 rounded-full">
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Get Directions
+                  </Button>
                 </div>
               </div>
             </div>

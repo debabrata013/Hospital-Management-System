@@ -157,7 +157,6 @@ export default function PatientQueue() {
     if (searchQuery) {
       filtered = filtered.filter(patient => 
         patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.nameHindi.includes(searchQuery) ||
         patient.tokenNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.phone.includes(searchQuery)
       )
@@ -247,7 +246,7 @@ export default function PatientQueue() {
 
   const callPatient = (patient: QueuePatient) => {
     // Implement patient calling system (could integrate with PA system)
-    alert(`${patient.nameHindi} (${patient.tokenNumber}) को बुलाया गया है`)
+    alert(`${patient.name} (${patient.tokenNumber}) has been called`)
     updatePatientStatus(patient.id, 'in-consultation')
   }
 
@@ -459,9 +458,8 @@ export default function PatientQueue() {
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="font-semibold text-gray-900">{patient.nameHindi}</p>
-                            <p className="text-sm text-gray-600">{patient.name}</p>
-                            <p className="text-xs text-gray-500">{patient.age} वर्ष, {patient.gender}</p>
+                            <p className="font-semibold text-gray-900">{patient.name}</p>
+                            <p className="text-xs text-gray-500">{patient.age} years, {patient.gender}</p>
                           </div>
                           
                           <div>
@@ -547,9 +545,9 @@ export default function PatientQueue() {
       <Dialog open={showPatientDialog} onOpenChange={setShowPatientDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>मरीज़ विवरण</DialogTitle>
+            <DialogTitle>Patient Details</DialogTitle>
             <DialogDescription>
-              {selectedPatient?.nameHindi} ({selectedPatient?.tokenNumber}) का पूरा विवरण
+              Complete details for {selectedPatient?.name} ({selectedPatient?.tokenNumber})
             </DialogDescription>
           </DialogHeader>
           
@@ -557,16 +555,12 @@ export default function PatientQueue() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>नाम (हिंदी)</Label>
-                  <p className="font-medium">{selectedPatient.nameHindi}</p>
-                </div>
-                <div>
-                  <Label>नाम (अंग्रेजी)</Label>
+                  <Label>Name</Label>
                   <p className="font-medium">{selectedPatient.name}</p>
                 </div>
                 <div>
-                  <Label>आयु</Label>
-                  <p>{selectedPatient.age} वर्ष</p>
+                  <Label>Age</Label>
+                  <p>{selectedPatient.age} years</p>
                 </div>
                 <div>
                   <Label>लिंग</Label>

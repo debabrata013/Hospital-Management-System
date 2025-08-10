@@ -153,7 +153,6 @@ export default function BillingManagement() {
     const newItem: BillItem = {
       id: `I${Date.now()}`,
       service: service.name,
-      serviceHindi: service.nameHindi,
       quantity: 1,
       rate: service.rate,
       amount: service.rate
@@ -205,7 +204,6 @@ export default function BillingManagement() {
       id: `B${Date.now()}`,
       patientId: `P${Date.now()}`,
       patientName: newBill.patientName,
-      patientNameHindi: newBill.patientNameHindi,
       phone: newBill.phone,
       billDate: new Date().toISOString().split('T')[0],
       items: newBill.items,
@@ -226,17 +224,16 @@ export default function BillingManagement() {
     // Reset form
     setNewBill({
       patientName: "",
-      patientNameHindi: "",
       phone: "",
       items: []
     })
 
-    alert('बिल सफलतापूर्वक जेनरेट हो गया!')
+    alert('Bill generated successfully!')
   }
 
   const processPayment = () => {
     if (!selectedBill || !paymentAmount || !paymentMethod) {
-      alert('कृपया सभी फील्ड भरें')
+      alert('Please fill all fields')
       return
     }
 
@@ -429,8 +426,7 @@ export default function BillingManagement() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <p className="font-semibold text-gray-900">{bill.patientNameHindi}</p>
-                          <p className="text-sm text-gray-600">{bill.patientName}</p>
+                          <p className="font-semibold text-gray-900">{bill.patientName}</p>
                           <p className="text-sm text-gray-600">📞 {bill.phone}</p>
                         </div>
                         
@@ -523,12 +519,12 @@ export default function BillingManagement() {
               </div>
               
               <div>
-                <Label htmlFor="patientNameHindi">मरीज़ का नाम (हिंदी)</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
-                  id="patientNameHindi"
-                  value={newBill.patientNameHindi}
-                  onChange={(e) => setNewBill(prev => ({ ...prev, patientNameHindi: e.target.value }))}
-                  placeholder="मरीज़ का नाम"
+                  id="phone"
+                  value={newBill.phone}
+                  onChange={(e) => setNewBill(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Patient phone number"
                 />
               </div>
               
@@ -575,8 +571,7 @@ export default function BillingManagement() {
                   {newBill.items.map((item) => (
                     <div key={item.id} className="grid grid-cols-5 gap-4 p-3 border-t">
                       <div>
-                        <p className="font-medium">{item.serviceHindi}</p>
-                        <p className="text-sm text-gray-600">{item.service}</p>
+                        <p className="font-medium">{item.service}</p>
                       </div>
                       <div>
                         <Input
@@ -646,9 +641,9 @@ export default function BillingManagement() {
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>भुगतान प्रोसेस करें</DialogTitle>
+            <DialogTitle>Process Payment</DialogTitle>
             <DialogDescription>
-              {selectedBill?.patientNameHindi} के लिए भुगतान विवरण
+              Payment details for {selectedBill?.patientName}
             </DialogDescription>
           </DialogHeader>
           

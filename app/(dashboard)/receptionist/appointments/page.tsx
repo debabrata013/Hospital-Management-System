@@ -168,7 +168,6 @@ export default function AppointmentBooking() {
     if (searchQuery) {
       filtered = filtered.filter(apt => 
         apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        apt.patientNameHindi.includes(searchQuery) ||
         apt.phone.includes(searchQuery) ||
         apt.doctorName.includes(searchQuery)
       )
@@ -258,7 +257,6 @@ export default function AppointmentBooking() {
       id: `A${Date.now()}`,
       patientId: newAppointment.patientId || `P${Date.now()}`,
       patientName: newAppointment.patientName,
-      patientNameHindi: newAppointment.patientNameHindi,
       phone: newAppointment.phone,
       doctorId: newAppointment.doctorId,
       doctorName: doctor.name,
@@ -401,12 +399,11 @@ export default function AppointmentBooking() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => date && setSelectedDate(date)}
-                locale={hi}
                 className="rounded-md border"
               />
               <div className="mt-4 text-sm text-gray-600">
-                <p>चयनित तिथि:</p>
-                <p className="font-medium">{format(selectedDate, "dd MMMM yyyy", { locale: hi })}</p>
+                <p>Selected Date:</p>
+                <p className="font-medium">{format(selectedDate, "dd MMMM yyyy")}</p>
               </div>
             </CardContent>
           </Card>
@@ -416,7 +413,7 @@ export default function AppointmentBooking() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>
-                  {format(selectedDate, "dd MMMM yyyy", { locale: hi })} के अपॉइंटमेंट
+                  Appointments for {format(selectedDate, "dd MMMM yyyy")}
                 </CardTitle>
                 <div className="flex items-center space-x-2">
                   <div className="relative">
@@ -464,16 +461,15 @@ export default function AppointmentBooking() {
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="font-semibold text-gray-900">{appointment.patientNameHindi}</p>
-                            <p className="text-sm text-gray-600">{appointment.patientName}</p>
+                            <p className="font-semibold text-gray-900">{appointment.patientName}</p>
                             <p className="text-sm text-gray-600">📞 {appointment.phone}</p>
                           </div>
                           
                           <div>
-                            <p className="text-sm text-gray-600">डॉक्टर: {appointment.doctorName}</p>
-                            <p className="text-sm text-gray-600">विभाग: {appointment.department}</p>
+                            <p className="text-sm text-gray-600">Doctor: {appointment.doctorName}</p>
+                            <p className="text-sm text-gray-600">Department: {appointment.department}</p>
                             {appointment.notes && (
-                              <p className="text-sm text-gray-500">टिप्पणी: {appointment.notes}</p>
+                              <p className="text-sm text-gray-500">Notes: {appointment.notes}</p>
                             )}
                           </div>
                         </div>
