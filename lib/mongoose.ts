@@ -31,29 +31,40 @@ if (!cached) {
 }
 
 async function connectToMongoose(): Promise<typeof mongoose> {
-  if (cached.conn) {
+  if (cached?.conn) {
     console.log('✅ Using existing Mongoose connection')
     return cached.conn
   }
 
-  if (!cached.promise) {
+  if (!cached?.promise) {
     console.log('🔄 Creating new Mongoose connection...')
+    
+    if (!cached) {
+      cached = global.mongoose = { conn: null, promise: null }
+    }
     
     cached.promise = mongoose.connect(MONGODB_URI, options).then((mongoose) => {
       console.log('✅ Connected to MongoDB via Mongoose successfully')
       return mongoose
     }).catch((error) => {
       console.error('❌ Mongoose connection error:', error)
-      cached.promise = null
+      if (cached) {
+        cached.promise = null
+      }
       throw error
     })
   }
 
   try {
-    cached.conn = await cached.promise
-    return cached.conn
+    if (cached?.promise) {
+      cached.conn = await cached.promise
+      return cached.conn
+    }
+    throw new Error('No connection promise available')
   } catch (e) {
-    cached.promise = null
+    if (cached) {
+      cached.promise = null
+    }
     throw e
   }
 }
@@ -82,7 +93,7 @@ export async function testMongooseConnection(): Promise<boolean> {
 // Close Mongoose connection
 export async function closeMongooseConnection(): Promise<void> {
   try {
-    if (cached.conn) {
+    if (cached?.conn) {
       await cached.conn.connection.close()
       cached.conn = null
       cached.promise = null
