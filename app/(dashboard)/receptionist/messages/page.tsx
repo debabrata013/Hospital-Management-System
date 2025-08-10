@@ -197,7 +197,7 @@ export default function InternalMessaging() {
     switch (priority) {
       case 'urgent': return 'bg-red-100 text-red-800 border-red-200'
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'normal': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'normal': return 'bg-pink-100 text-pink-800 border-pink-200'
       case 'low': return 'bg-gray-100 text-gray-800 border-gray-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -215,7 +215,7 @@ export default function InternalMessaging() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'unread': return <Bell className="h-4 w-4 text-blue-500" />
+      case 'unread': return <Bell className="h-4 w-4 text-pink-500" />
       case 'read': return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'replied': return <Reply className="h-4 w-4 text-purple-500" />
       case 'archived': return <Archive className="h-4 w-4 text-gray-500" />
@@ -225,7 +225,7 @@ export default function InternalMessaging() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'doctor': return <Stethoscope className="h-4 w-4 text-blue-500" />
+      case 'doctor': return <Stethoscope className="h-4 w-4 text-pink-500" />
       case 'admin': return <Shield className="h-4 w-4 text-purple-500" />
       case 'receptionist': return <User className="h-4 w-4 text-green-500" />
       case 'staff': return <Users className="h-4 w-4 text-orange-500" />
@@ -351,14 +351,14 @@ export default function InternalMessaging() {
       <div className="p-6">
         {/* Message Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">कुल संदेश</p>
+                  <p className="text-pink-100 text-sm">कुल संदेश</p>
                   <p className="text-2xl font-bold">{messageStats.total}</p>
                 </div>
-                <MessageSquare className="h-8 w-8 text-blue-200" />
+                <MessageSquare className="h-8 w-8 text-pink-200" />
               </div>
             </CardContent>
           </Card>
@@ -497,7 +497,7 @@ export default function InternalMessaging() {
                   <div 
                     key={message.id} 
                     className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                      message.status === 'unread' ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-gray-50'
+                      message.status === 'unread' ? 'bg-pink-50 border-pink-200' : 'bg-white hover:bg-gray-50'
                     }`}
                     onClick={() => {
                       setSelectedMessage(message)

@@ -134,7 +134,7 @@ export default function BillingManagement() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'partial': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'partial': return 'bg-pink-100 text-pink-800 border-pink-200'
       case 'paid': return 'bg-green-100 text-green-800 border-green-200'
       case 'overdue': return 'bg-red-100 text-red-800 border-red-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
@@ -311,14 +311,14 @@ export default function BillingManagement() {
       <div className="p-6">
         {/* Billing Stats */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">कुल बिल</p>
+                  <p className="text-pink-100 text-sm">कुल बिल</p>
                   <p className="text-2xl font-bold">{billStats.total}</p>
                 </div>
-                <Receipt className="h-8 w-8 text-blue-200" />
+                <Receipt className="h-8 w-8 text-pink-200" />
               </div>
             </CardContent>
           </Card>
@@ -335,14 +335,14 @@ export default function BillingManagement() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">आंशिक</p>
+                  <p className="text-pink-100 text-sm">आंशिक</p>
                   <p className="text-2xl font-bold">{billStats.partial}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-blue-200" />
+                <AlertTriangle className="h-8 w-8 text-pink-200" />
               </div>
             </CardContent>
           </Card>

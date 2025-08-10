@@ -182,7 +182,7 @@ export default function PatientQueue() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'waiting': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'in-consultation': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'in-consultation': return 'bg-pink-100 text-pink-800 border-pink-200'
       case 'emergency': return 'bg-red-100 text-red-800 border-red-200'
       case 'completed': return 'bg-green-100 text-green-800 border-green-200'
       case 'no-show': return 'bg-gray-100 text-gray-800 border-gray-200'
@@ -205,7 +205,7 @@ export default function PatientQueue() {
     switch (priority) {
       case 'urgent': return <AlertTriangle className="h-4 w-4 text-red-500" />
       case 'high': return <ArrowUp className="h-4 w-4 text-orange-500" />
-      case 'normal': return <Clock className="h-4 w-4 text-blue-500" />
+      case 'normal': return <Clock className="h-4 w-4 text-pink-500" />
       default: return <Clock className="h-4 w-4 text-gray-500" />
     }
   }
@@ -300,14 +300,14 @@ export default function PatientQueue() {
       <div className="p-6">
         {/* Queue Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">Total Patients</p>
+                  <p className="text-pink-100 text-sm">Total Patients</p>
                   <p className="text-2xl font-bold">{queueStats.total}</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-200" />
+                <Users className="h-8 w-8 text-pink-200" />
               </div>
             </CardContent>
           </Card>
@@ -526,7 +526,7 @@ export default function PatientQueue() {
                         <Button
                           size="sm"
                           onClick={() => updatePatientStatus(patient.id, 'completed')}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-pink-600 hover:bg-pink-700"
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           पूर्ण

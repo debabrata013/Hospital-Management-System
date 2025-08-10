@@ -245,7 +245,7 @@ export default function ReceptionistDashboard() {
       case 'waiting':
         return <Badge className="bg-yellow-100 text-yellow-700">Waiting</Badge>
       case 'in-consultation':
-        return <Badge className="bg-blue-100 text-blue-700">In Consultation</Badge>
+        return <Badge className="bg-pink-100 text-pink-700">In Consultation</Badge>
       case 'emergency':
         return <Badge className="bg-red-100 text-red-700">Emergency</Badge>
       case 'completed':
@@ -268,12 +268,12 @@ export default function ReceptionistDashboard() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
         {/* Sidebar */}
-        <Sidebar className="border-blue-100">
-          <SidebarHeader className="border-b border-blue-100 p-6">
+        <Sidebar className="border-pink-100">
+          <SidebarHeader className="border-b border-pink-100 p-6">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-2 rounded-xl">
+              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
                 <Heart className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -296,7 +296,7 @@ export default function ReceptionistDashboard() {
                         <SidebarMenuButton 
                           asChild 
                           isActive={item.isActive}
-                          className="w-full justify-start hover:bg-blue-50 data-[active=true]:bg-blue-100 data-[active=true]:text-blue-700"
+                          className="w-full justify-start hover:bg-pink-50 data-[active=true]:bg-pink-100 data-[active=true]:text-pink-700"
                         >
                           <Link href={item.url} className="flex items-center space-x-3 px-3 py-2 rounded-lg">
                             <item.icon className="h-5 w-5" />
@@ -311,11 +311,11 @@ export default function ReceptionistDashboard() {
             ))}
           </SidebarContent>
           
-          <SidebarFooter className="border-t border-blue-100 p-4">
+          <SidebarFooter className="border-t border-pink-100 p-4">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback className="bg-blue-100 text-blue-700">RC</AvatarFallback>
+                <AvatarFallback className="bg-pink-100 text-pink-700">RC</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">Receptionist</p>
@@ -337,10 +337,10 @@ export default function ReceptionistDashboard() {
         {/* Main Content */}
         <SidebarInset className="flex-1">
           {/* Top Navigation */}
-          <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50">
+          <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
             <div className="flex items-center justify-between h-16 px-6">
               <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-blue-500" />
+                <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Receptionist Dashboard</h1>
                   <p className="text-sm text-gray-500">Patient management and front desk operations</p>
@@ -366,7 +366,7 @@ export default function ReceptionistDashboard() {
                 {/* Quick Actions */}
                 <Button 
                   size="sm" 
-                  className="bg-blue-500 hover:bg-blue-600"
+                  className="bg-pink-500 hover:bg-pink-600"
                   onClick={() => setNewPatientDialog(true)}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
@@ -375,7 +375,7 @@ export default function ReceptionistDashboard() {
 
                 {/* Notifications */}
                 <div className="relative">
-                  <Button variant="ghost" size="sm" className="relative hover:bg-blue-50">
+                  <Button variant="ghost" size="sm" className="relative hover:bg-pink-50">
                     <Bell className="h-5 w-5 text-gray-600" />
                     {notifications > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -388,10 +388,10 @@ export default function ReceptionistDashboard() {
                 {/* Profile Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-blue-50">
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                        <AvatarFallback className="bg-blue-100 text-blue-700">RC</AvatarFallback>
+                        <AvatarFallback className="bg-pink-100 text-pink-700">RC</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
@@ -421,7 +421,7 @@ export default function ReceptionistDashboard() {
           <main className="flex-1 p-6 space-y-8">
             {/* Key Statistics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-              <Card className="border-blue-100 hover:shadow-lg transition-all duration-300">
+              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -432,7 +432,7 @@ export default function ReceptionistDashboard() {
                         +15% from yesterday
                       </p>
                     </div>
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
                       <UserPlus className="h-8 w-8 text-white" />
                     </div>
                   </div>
@@ -445,7 +445,7 @@ export default function ReceptionistDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Pending Appointments</p>
                       <p className="text-3xl font-bold text-gray-900">{receptionistStats.pendingAppointments}</p>
-                      <p className="text-sm text-blue-600 flex items-center mt-1">
+                      <p className="text-sm text-pink-600 flex items-center mt-1">
                         <Calendar className="h-4 w-4 mr-1" />
                         Next at 10:30 AM
                       </p>
@@ -533,7 +533,7 @@ export default function ReceptionistDashboard() {
             {/* Main Dashboard Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {/* Patient Queue */}
-              <Card className="border-blue-100">
+              <Card className="border-pink-100">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg font-semibold">Patient Queue</CardTitle>
@@ -708,7 +708,7 @@ export default function ReceptionistDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {recentMessages.map((message) => (
-                      <div key={message.id} className={`p-3 rounded-lg ${message.read ? 'bg-gray-50' : 'bg-blue-50 border-l-4 border-blue-500'}`}>
+                      <div key={message.id} className={`p-3 rounded-lg ${message.read ? 'bg-gray-50' : 'bg-pink-50 border-l-4 border-pink-500'}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
@@ -791,7 +791,7 @@ export default function ReceptionistDashboard() {
             <Button variant="outline" onClick={() => setNewPatientDialog(false)}>
               Cancel
             </Button>
-            <Button className="bg-blue-500 hover:bg-blue-600">
+            <Button className="bg-pink-500 hover:bg-pink-600">
               Register Patient
             </Button>
           </DialogFooter>

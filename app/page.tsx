@@ -9,45 +9,45 @@ import { ImageCarousel } from "@/components/ui/image-carousel"
 import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap } from 'lucide-react'
 
 export default function LandingPage() {
-  const [language, setLanguage] = useState('hindi')
+  const [language, setLanguage] = useState('english')
 
   const content = {
-    hindi: {
-      hospitalName: "आरोग्य अस्पताल",
+    english: {
+      hospitalName: "Arogya Hospital",
       nav: {
-        home: "मुख्य पृष्ठ",
-        about: "हमारे बारे में", 
-        contact: "संपर्क करें",
-        login: "लॉगिन"
+        home: "Home",
+        about: "About Us", 
+        contact: "Contact",
+        login: "Login"
       },
       hero: {
-        badge: "50,000+ मरीज़ों द्वारा विश्वसनीय",
-        title: "आपकी स्वास्थ्य",
-        titleHighlight: "यात्रा",
-        titleEnd: "हमारी प्राथमिकता",
-        description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट्स तक, आपका स्वास्थ्य अब आपकी मुट्ठी में।",
-        getStarted: "अपॉइंटमेंट बुक करें",
-        bookDemo: "हमसे मिलें",
+        badge: "Trusted by 50,000+ Patients",
+        title: "Your Health",
+        titleHighlight: "Journey",
+        titleEnd: "Our Priority",
+        description: "At Arogya Hospital, we make your healthcare simple, secure and convenient. From online appointments to digital reports, your health is now in your hands.",
+        getStarted: "Book Appointment",
+        bookDemo: "Meet Us",
         stats: {
-          hospitals: "खुश मरीज़",
-          patients: "सफल उपचार", 
-          uptime: "संतुष्टि दर"
+          hospitals: "Happy Patients",
+          patients: "Successful Treatments", 
+          uptime: "Satisfaction Rate"
         }
       },
       features: {
-        title: "आपकी स्वास्थ्य देखभाल के लिए आवश्यक सब कुछ",
-        subtitle: "हमारी आधुनिक सुविधाएं आपको बेहतर स्वास्थ्य अनुभव प्रदान करती हैं",
+        title: "Everything You Need for Your Healthcare",
+        subtitle: "Our modern facilities provide you with a better healthcare experience",
         patientManagement: {
-          title: "आसान अपॉइंटमेंट",
-          description: "घर बैठे ऑनलाइन अपॉइंटमेंट बुक करें, अपना समय चुनें और लंबी कतारों से बचें"
+          title: "Easy Appointments",
+          description: "Book online appointments from home, choose your time and avoid long queues"
         },
         doctorDashboard: {
-          title: "डिजिटल रिपोर्ट्स",
-          description: "अपनी सभी मेडिकल रिपोर्ट्स, टेस्ट रिजल्ट्स और प्रिस्क्रिप्शन ऑनलाइन देखें और डाउनलोड करें"
+          title: "Digital Reports",
+          description: "View and download all your medical reports, test results and prescriptions online"
         },
         pharmacySystem: {
-          title: "होम डिलीवरी",
-          description: "दवाइयां घर पर मंगवाएं। हमारी फार्मेसी से सीधे आपके दरवाजे तक डिलीवरी"
+          title: "Home Delivery",
+          description: "Get medicines delivered to your home. Direct delivery from our pharmacy to your doorstep"
         },
         appointmentBooking: {
           title: "24/7 सहायता",

@@ -216,7 +216,7 @@ export default function AppointmentBooking() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'scheduled': return 'bg-pink-100 text-pink-800 border-pink-200'
       case 'confirmed': return 'bg-green-100 text-green-800 border-green-200'
       case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
@@ -345,14 +345,14 @@ export default function AppointmentBooking() {
       <div className="p-6">
         {/* Today's Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">कुल अपॉइंटमेंट</p>
+                  <p className="text-pink-100 text-sm">कुल अपॉइंटमेंट</p>
                   <p className="text-2xl font-bold">{todayStats.total}</p>
                 </div>
-                <CalendarDays className="h-8 w-8 text-blue-200" />
+                <CalendarDays className="h-8 w-8 text-pink-200" />
               </div>
             </CardContent>
           </Card>
