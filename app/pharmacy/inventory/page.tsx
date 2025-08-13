@@ -35,8 +35,8 @@ import { toast } from "sonner"
 
 export default function InventoryManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("")
-  const [stockFilter, setStockFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [stockFilter, setStockFilter] = useState("all")
   const [selectedMedicine, setSelectedMedicine] = useState<any>(null)
   const [isAddBatchOpen, setIsAddBatchOpen] = useState(false)
   const [isStockMovementOpen, setIsStockMovementOpen] = useState(false)
@@ -71,8 +71,8 @@ export default function InventoryManagement() {
     page,
     limit: 20,
     search: searchTerm,
-    category: categoryFilter,
-    stockStatus: stockFilter
+    ...(categoryFilter !== "all" && { category: categoryFilter }),
+    ...(stockFilter !== "all" && { stockStatus: stockFilter })
   })
 
   const { 
@@ -279,7 +279,7 @@ export default function InventoryManagement() {
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map(category => (
                     <SelectItem key={category} value={category}>{category}</SelectItem>
                   ))}
@@ -291,7 +291,7 @@ export default function InventoryManagement() {
                   <SelectValue placeholder="Filter by stock status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Stock Status</SelectItem>
+                  <SelectItem value="all">All Stock Status</SelectItem>
                   {stockStatuses.map(status => (
                     <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                   ))}

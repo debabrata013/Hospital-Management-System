@@ -64,7 +64,8 @@ export async function PUT(
       salary,
       address,
       emergencyContact,
-      isActive
+      isActive,
+      permissions
     } = body
 
     // Find existing user
@@ -119,6 +120,21 @@ export async function PUT(
 
     if (address) updateData.address = address
     if (emergencyContact) updateData.emergencyContact = emergencyContact
+    
+    // Permissions update (RBAC)
+    if (permissions && Array.isArray(permissions)) {
+      // Basic shape validation to avoid arbitrary injection
+      const validModules = ['patients','appointments','billing','inventory','reports','users','messages','shifts']
+      const validActions = ['create','read','update','delete','approve']
+      const sanitized = permissions
+        .filter((p: any) => p && typeof p === 'object')
+        .map((p: any) => ({
+          module: validModules.includes(p.module) ? p.module : undefined,
+          actions: Array.isArray(p.actions) ? p.actions.filter((a: string) => validActions.includes(a)) : []
+        }))
+        .filter((p: any) => p.module && p.actions.length > 0)
+      updateData.permissions = sanitized
+    }
 
     // Update user
     const updatedUser = await User.findByIdAndUpdate(

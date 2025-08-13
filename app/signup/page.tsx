@@ -415,7 +415,7 @@ export default function SignupPage() {
                         <User className="h-4 w-4 mr-2 text-pink-500" />
                         I am a *
                       </Label>
-                      <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                      <Select value={formData.role || undefined} onValueChange={(value) => handleInputChange('role', value)}>
                         <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
                           errors.role ? 'border-red-500' : ''
                         }`}>
@@ -464,7 +464,7 @@ export default function SignupPage() {
                         {/* Department */}
                         <div className="space-y-2">
                           <Label htmlFor="department">Department *</Label>
-                          <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
+                          <Select value={formData.department || undefined} onValueChange={(value) => handleInputChange('department', value)}>
                             <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
                               errors.department ? 'border-red-500' : ''
                             }`}>
@@ -544,7 +544,7 @@ export default function SignupPage() {
                       {/* Gender */}
                       <div className="space-y-2">
                         <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                        <Select value={formData.gender || undefined} onValueChange={(value) => handleInputChange('gender', value)}>
                           <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
                             <SelectValue placeholder="Select gender" />
                           </SelectTrigger>

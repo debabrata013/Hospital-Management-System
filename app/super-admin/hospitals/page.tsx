@@ -1,9 +1,15 @@
 "use client"
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { toast } from 'sonner'
 import { 
   Building2, 
   Plus, 
@@ -17,7 +23,8 @@ import {
   Mail,
   Users,
   Activity,
-  Star
+  Star,
+  X
 } from 'lucide-react'
 
 // Mock hospital data
@@ -73,6 +80,21 @@ const mockHospitals = [
 ]
 
 export default function HospitalsPage() {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [hospitals, setHospitals] = useState(mockHospitals)
+  const [formData, setFormData] = useState({
+    name: '',
+    location: '',
+    address: '',
+    phone: '',
+    email: '',
+    type: '',
+    beds: '',
+    doctors: '',
+    staff: '',
+    established: ''
+  })
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -99,6 +121,86 @@ export default function HospitalsPage() {
     }
   }
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate required fields
+    if (!formData.name || !formData.location || !formData.address || !formData.phone || !formData.email || !formData.type) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    // Create new hospital object
+    const newHospital = {
+      id: hospitals.length + 1,
+      name: formData.name,
+      location: formData.location,
+      address: formData.address,
+      phone: formData.phone,
+      email: formData.email,
+      type: formData.type,
+      beds: parseInt(formData.beds) || 0,
+      doctors: parseInt(formData.doctors) || 0,
+      staff: parseInt(formData.staff) || 0,
+      status: "active",
+      rating: 0,
+      established: formData.established || new Date().getFullYear().toString(),
+      lastUpdate: "Just now"
+    }
+
+    // Add to hospitals list
+    setHospitals(prev => [newHospital, ...prev])
+    
+    // Reset form
+    setFormData({
+      name: '',
+      location: '',
+      address: '',
+      phone: '',
+      email: '',
+      type: '',
+      beds: '',
+      doctors: '',
+      staff: '',
+      established: ''
+    })
+    
+    // Close modal
+    setIsAddModalOpen(false)
+    
+    // Show success message
+    toast.success('Hospital added successfully!')
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      location: '',
+      address: '',
+      phone: '',
+      email: '',
+      type: '',
+      beds: '',
+      doctors: '',
+      staff: '',
+      established: ''
+    })
+  }
+
+  const handleDeleteHospital = (hospitalId: number) => {
+    if (confirm('Are you sure you want to delete this hospital? This action cannot be undone.')) {
+      setHospitals(prev => prev.filter(h => h.id !== hospitalId))
+      toast.success('Hospital deleted successfully!')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
@@ -111,10 +213,179 @@ export default function HospitalsPage() {
             </h1>
             <p className="text-gray-600 mt-2">Manage hospital network, locations, and facilities</p>
           </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Hospital
-          </Button>
+          
+          {/* Add Hospital Modal */}
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600"
+                onClick={() => setIsAddModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Hospital
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center">
+                  <Building2 className="h-5 w-5 mr-2 text-pink-500" />
+                  Add New Hospital
+                </DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to add a new hospital to the network.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Hospital Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Enter hospital name"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Hospital Type *</Label>
+                    <Select value={formData.type || undefined} onValueChange={(value) => handleInputChange('type', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select hospital type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Multi-Specialty">Multi-Specialty</SelectItem>
+                        <SelectItem value="General Hospital">General Hospital</SelectItem>
+                        <SelectItem value="Specialty Clinic">Specialty Clinic</SelectItem>
+                        <SelectItem value="Emergency Center">Emergency Center</SelectItem>
+                        <SelectItem value="Rehabilitation Center">Rehabilitation Center</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location *</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      placeholder="City, State"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="established">Established Year</Label>
+                    <Input
+                      id="established"
+                      type="number"
+                      value={formData.established}
+                      onChange={(e) => handleInputChange('established', e.target.value)}
+                      placeholder="e.g., 2020"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Full Address *</Label>
+                  <Textarea
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="Enter complete address"
+                    rows={3}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number *</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="+91 123 456 7890"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="info@hospital.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="beds">Number of Beds</Label>
+                    <Input
+                      id="beds"
+                      type="number"
+                      value={formData.beds}
+                      onChange={(e) => handleInputChange('beds', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="doctors">Number of Doctors</Label>
+                    <Input
+                      id="doctors"
+                      type="number"
+                      value={formData.doctors}
+                      onChange={(e) => handleInputChange('doctors', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="staff">Number of Staff</Label>
+                    <Input
+                      id="staff"
+                      type="number"
+                      value={formData.staff}
+                      onChange={(e) => handleInputChange('staff', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      resetForm()
+                      setIsAddModalOpen(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Hospital
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -125,7 +396,7 @@ export default function HospitalsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Hospitals</p>
-                <p className="text-2xl font-bold text-gray-900">127</p>
+                <p className="text-2xl font-bold text-gray-900">{hospitals.length}</p>
               </div>
               <Building2 className="h-8 w-8 text-pink-500" />
             </div>
@@ -137,7 +408,7 @@ export default function HospitalsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Hospitals</p>
-                <p className="text-2xl font-bold text-green-600">118</p>
+                <p className="text-2xl font-bold text-green-600">{hospitals.filter(h => h.status === 'active').length}</p>
               </div>
               <Activity className="h-8 w-8 text-green-500" />
             </div>
@@ -149,7 +420,7 @@ export default function HospitalsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Beds</p>
-                <p className="text-2xl font-bold text-blue-600">15,420</p>
+                <p className="text-2xl font-bold text-blue-600">{hospitals.reduce((sum, h) => sum + h.beds, 0).toLocaleString()}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
@@ -161,7 +432,9 @@ export default function HospitalsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                <p className="text-2xl font-bold text-yellow-600">4.6</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {(hospitals.reduce((sum, h) => sum + h.rating, 0) / hospitals.length).toFixed(1)}
+                </p>
               </div>
               <Star className="h-8 w-8 text-yellow-500" />
             </div>
@@ -197,7 +470,7 @@ export default function HospitalsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {mockHospitals.map((hospital) => (
+            {hospitals.map((hospital) => (
               <div key={hospital.id} className="p-6 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
@@ -269,9 +542,14 @@ export default function HospitalsPage() {
                     <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                                          <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteHospital(hospital.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                   </div>
                 </div>
               </div>
