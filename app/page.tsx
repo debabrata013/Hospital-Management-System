@@ -1,153 +1,488 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { ImageCarousel } from "@/components/ui/image-carousel"
-import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap, Star, GraduationCap, Stethoscope, User, CalendarDays, Send, CheckCircle, Bell, RefreshCw } from 'lucide-react'
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageCarousel } from "@/components/ui/image-carousel";
+import { Navbar } from '@/components/landing/Navbar';
+import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap, Star, GraduationCap, Stethoscope, User, CalendarDays, Send, CheckCircle, Bell, RefreshCw, MenuIcon } from 'lucide-react';
+
+const content = {
+  hindi: {
+    hospitalName: "आरोग्य अस्पताल",
+    nav: {
+      home: "मुख्य पृष्ठ",
+      about: "हमारे बारे में",
+      doctors: "हमारे डॉक्टर",
+      appointment: "अपॉइंटमेंट बुक करें",
+      contact: "संपर्क करें",
+      login: "लॉगिन"
+    },
+    hero: {
+      badge: "50,000+ मरीज़ों का भरोसा",
+      title: "आपकी स्वास्थ्य",
+      titleHighlight: "यात्रा",
+      titleEnd: "हमारी प्राथमिकता",
+      description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
+      getStarted: "अपॉइंटमेंट बुक करें",
+      bookDemo: "हमसे मिलें",
+      stats: {
+        hospitals: "खुश मरीज़",
+        patients: "सफल इलाज",
+        uptime: "संतुष्टि दर"
+      }
+    },
+    doctors: {
+      title: "हमारे विशेषज्ञ डॉक्टरों से मिलें",
+      subtitle: "हमारी अनुभवी और योग्य डॉक्टरों की टीम आपको सर्वोत्तम स्वास्थ्य सेवा प्रदान करने के लिए यहाँ है",
+      viewProfile: "प्रोफाइल देखें",
+      bookAppointment: "अपॉइंटमेंट बुक करें",
+      experience: "अनुभव",
+      patients: "मरीज़ों का इलाज",
+      rating: "रेटिंग",
+      languages: "भाषाएं",
+      availability: "उपलब्ध"
+    },
+    appointment: {
+      title: "ऑनलाइन अपॉइंटमेंट बुक करें",
+      subtitle: "हमारे विशेषज्ञ डॉक्टरों के साथ अपनी मुलाकात का समय तय करें। अपना पसंदीदा समय चुनें और इंतज़ार से बचें।",
+      form: {
+        name: "पूरा नाम",
+        phone: "फोन नंबर",
+        email: "ईमेल पता",
+        department: "विभाग चुनें",
+        doctor: "डॉक्टर चुनें",
+        date: "पसंदीदा तारीख",
+        time: "पसंदीदा समय",
+        reason: "मुलाकात का कारण",
+        submit: "अपॉइंटमेंट बुक करें",
+        submitting: "बुक हो रहा है...",
+        success: "अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
+        error: "अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
+      },
+      benefits: {
+        title: "ऑनलाइन बुकिंग क्यों करें?",
+        noWaiting: {
+          title: "कोई इंतज़ार नहीं",
+          description: "कतार छोड़ें और अपने डॉक्टर से सीधे मिलें"
+        },
+        confirmation: {
+          title: "तुरंत पुष्टि",
+          description: "SMS और ईमेल के माध्यम से तुरंत पुष्टि प्राप्त करें"
+        },
+        reminder: {
+          title: "अपॉइंटमेंट रिमाइंडर",
+          description: "अपने अपॉइंटमेंट से पहले समय पर रिमाइंडर प्राप्त करें"
+        },
+        reschedule: {
+          title: "आसान रीशेड्यूलिंग",
+          description: "कुछ ही क्लिक में अपना अपॉइंटमेंट समय बदलें"
+        }
+      }
+    },
+    features: {
+      title: "Everything You Need for Your Healthcare",
+      subtitle: "Our modern facilities provide you with a better healthcare experience",
+      patientManagement: {
+        title: "Easy Appointments",
+        description: "Book online appointments from home, choose your time and avoid long queues"
+      },
+      doctorDashboard: {
+        title: "Digital Reports",
+        description: "View and download all your medical reports, test results and prescriptions online"
+      },
+      pharmacySystem: {
+        title: "Home Delivery",
+        description: "Get medicines delivered to your home. Direct delivery from our pharmacy to your doorstep"
+      },
+      appointmentBooking: {
+        title: "24/7 सहायता",
+        description: "किसी भी समय हमारी हेल्पलाइन पर कॉल करें या चैट करें। आपातकालीन सेवाएं हमेशा उपलब्ध"
+      }
+    },
+    about: {
+      title: "आरोग्य अस्पताल आपके लिए क्यों सबसे अच्छा है?",
+      description: "हम समझते हैं कि हर मरीज़ अलग है। इसीलिए हमने आपकी सुविधा को ध्यान में रखते हुए अपनी सेवाएं डिज़ाइन की हैं। आपका स्वास्थ्य, आपकी सुविधा, हमारी जिम्मेदारी।",
+      support247: {
+        title: "तुरंत सेवा",
+        description: "कोई लंबा इंतज़ार नहीं। अपॉइंटमेंट के समय पर मिलें डॉक्टर से और पाएं तुरंत इलाज"
+      },
+      compliance: {
+        title: "सुरक्षित और निजी",
+        description: "आपकी व्यक्तिगत जानकारी पूरी तरह सुरक्षित। भारतीय मेडिकल नियमों के अनुसार डेटा सुरक्षा"
+      },
+      awardWinning: {
+        title: "विशेषज्ञ डॉक्टर्स",
+        description: "अनुभवी और योग्य डॉक्टर्स जो आपकी हर स्वास्थ्य समस्या का बेहतरीन समाधान देते हैं"
+      }
+    },
+    cta: {
+      title: "आज ही शुरू करें अपनी बेहतर स्वास्थ्य की शुरुआत",
+      subtitle: "50,000+ संतुष्ट मरीज़ों का भरोसा। आपकी स्वास्थ्य देखभाल अब और भी आसान।",
+      startTrial: "तुरंत अपॉइंटमेंट बुक करें",
+      scheduleDemo: "निःशुल्क सलाह लें"
+    },
+    contact: {
+      title: "हमसे जुड़ें",
+      subtitle: "कोई सवाल है? हम आपकी मदद के लिए हमेशा तैयार हैं",
+      getInTouch: "संपर्क करें",
+      visitUs: "हमसे मिलें",
+      callUs: "कॉल करें",
+      phone: "+91 98765 43210",
+      email: "ईमेल करें",
+      emailAddress: "care@arogyahospital.com",
+      address: "पता",
+      fullAddress: "123, स्वास्थ्य नगर, कनॉट प्लेस के पास, नई दिल्ली - 110001",
+      supportHours: "सेवा समय",
+      available: "24/7 उपलब्ध",
+      emergency: "आपातकाल",
+      emergencyPhone: "+91 98765 43211",
+      directions: "दिशा निर्देश पाएं",
+      bookAppointment: "अपॉइंटमेंट बुक करें",
+      liveChat: "लाइव चैट",
+      whatsapp: "व्हाट्सऐप पर संदेश"
+    },
+    footer: {
+      hospitalName: "आरोग्य अस्पताल",
+      tagline: "आपकी स्वास्थ्य देखभाल में आपका विश्वसनीय साथी",
+      quickLinks: {
+        title: "त्वरित लिंक",
+        home: "मुख्य पृष्ठ",
+        about: "हमारे बारे में",
+        services: "सेवाएं",
+        doctors: "डॉक्टर्स",
+        contact: "संपर्क करें",
+        emergency: "आपातकाल"
+      },
+      services: {
+        title: "हमारी सेवाएं",
+        generalMedicine: "सामान्य चिकित्सा",
+        cardiology: "हृदय रोग",
+        orthopedics: "हड्डी रोग",
+        pediatrics: "बाल रोग",
+        gynecology: "स्त्री रोग",
+        pharmacy: "फार्मेसी"
+      },
+      contact: {
+        title: "संपर्क जानकारी",
+        address: "123, स्वास्थ्य नगर, नई दिल्ली - 110001",
+        phone: "+91 98765 43210",
+        email: "care@arogyahospital.com",
+        emergency: "आपातकाल: +91 98765 43211"
+      },
+      hours: {
+        title: "समय सारणी",
+        opd: "OPD: सुबह 8:00 - शाम 8:00",
+        emergency: "आपातकाल: 24/7 उपलब्ध",
+        pharmacy: "फार्मेसी: सुबह 7:00 - रात 11:00"
+      },
+      social: {
+        title: "हमसे जुड़ें",
+        facebook: "Facebook",
+        twitter: "Twitter",
+        instagram: "Instagram",
+        youtube: "YouTube"
+      },
+      copyright: "© 2024 आरोग्य अस्पताल। सभी अधिकार सुरक्षित।",
+      privacy: "गोपनीयता नीति",
+      terms: "नियम और शर्तें",
+      disclaimer: "अस्वीकरण"
+    }
+  },
+  english: {
+    hospitalName: "Arogya Hospital",
+    nav: {
+      home: "Home",
+      about: "About",
+      doctors: "Our Doctors",
+      appointment: "Book Appointment",
+      contact: "Contact",
+      login: "Login"
+    },
+    hero: {
+      badge: "Trusted by 50,000+ Patients",
+      title: "Your Health",
+      titleHighlight: "Journey",
+      titleEnd: "Our Priority",
+      description: "At Arogya Hospital, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
+      getStarted: "Book Appointment",
+      bookDemo: "Meet Our Team",
+      stats: {
+        hospitals: "Happy Patients",
+        patients: "Successful Treatments",
+        uptime: "Satisfaction Rate"
+      }
+    },
+    doctors: {
+      title: "Meet Our Expert Doctors",
+      subtitle: "Our team of experienced and qualified doctors are here to provide you with the best healthcare",
+      viewProfile: "View Profile",
+      bookAppointment: "Book Appointment",
+      experience: "Experience",
+      patients: "Patients Treated",
+      rating: "Rating",
+      languages: "Languages",
+      availability: "Available"
+    },
+    appointment: {
+      title: "Book Your Appointment Online",
+      subtitle: "Schedule your visit with our expert doctors. Choose your preferred time and avoid waiting.",
+      form: {
+        name: "Full Name",
+        phone: "Phone Number",
+        email: "Email Address",
+        department: "Select Department",
+        doctor: "Select Doctor",
+        date: "Preferred Date",
+        time: "Preferred Time",
+        reason: "Reason for Visit",
+        submit: "Book Appointment",
+        submitting: "Booking...",
+        success: "Appointment booked successfully!",
+        error: "Failed to book appointment. Please try again."
+      },
+      benefits: {
+        title: "Why Book Online?",
+        noWaiting: {
+          title: "No Waiting",
+          description: "Skip the queue and get direct access to your doctor"
+        },
+        confirmation: {
+          title: "Instant Confirmation",
+          description: "Get immediate confirmation via SMS and email"
+        },
+        reminder: {
+          title: "Appointment Reminders",
+          description: "Receive timely reminders before your appointment"
+        },
+        reschedule: {
+          title: "Easy Rescheduling",
+          description: "Change your appointment time with just a few clicks"
+        }
+      }
+    },
+    features: {
+      title: "Everything You Need for Your Healthcare",
+      subtitle: "Our modern facilities provide you with an exceptional healthcare experience",
+      patientManagement: {
+        title: "Easy Appointments",
+        description: "Book appointments online from home, choose your preferred time, and avoid long queues"
+      },
+      doctorDashboard: {
+        title: "Digital Reports",
+        description: "View and download all your medical reports, test results, and prescriptions online anytime"
+      },
+      pharmacySystem: {
+        title: "Home Delivery",
+        description: "Get medicines delivered to your doorstep. Direct delivery from our pharmacy to your home"
+      },
+      appointmentBooking: {
+        title: "24/7 Support",
+        description: "Call or chat with our helpline anytime. Emergency services are always available for you"
+      }
+    },
+    about: {
+      title: "Why Arogya Hospital is Best for You?",
+      description: "We understand that every patient is unique. That's why we've designed our services keeping your convenience in mind. Your health, your comfort, our responsibility.",
+      support247: {
+        title: "Instant Service",
+        description: "No long waits. Meet doctors on time for your appointment and get immediate treatment"
+      },
+      compliance: {
+        title: "Safe & Private",
+        description: "Your personal information is completely secure. Data protection as per Indian medical regulations"
+      },
+      awardWinning: {
+        title: "Expert Doctors",
+        description: "Experienced and qualified doctors who provide the best solutions for all your health problems"
+      }
+    },
+    cta: {
+      title: "Start Your Better Health Journey Today",
+      subtitle: "Trusted by 50,000+ satisfied patients. Your healthcare is now easier than ever.",
+      startTrial: "Book Appointment Now",
+      scheduleDemo: "Get Free Consultation"
+    },
+    contact: {
+      title: "Connect with Us",
+      subtitle: "Have questions? We're always ready to help you",
+      getInTouch: "Get in Touch",
+      visitUs: "Visit Us",
+      callUs: "Call Us",
+      phone: "+91 98765 43210",
+      email: "Email Us",
+      emailAddress: "care@arogyahospital.com",
+      address: "Address",
+      fullAddress: "123, Health Nagar, Near Connaught Place, New Delhi - 110001",
+      supportHours: "Service Hours",
+      available: "24/7 Available",
+      emergency: "Emergency",
+      emergencyPhone: "+91 98765 43211",
+      directions: "Get Directions",
+      bookAppointment: "Book Appointment",
+      liveChat: "Live Chat",
+      whatsapp: "WhatsApp Message"
+    },
+    footer: {
+      hospitalName: "Arogya Hospital",
+      tagline: "Your trusted partner in healthcare",
+      quickLinks: {
+        title: "Quick Links",
+        home: "Home",
+        about: "About Us",
+        services: "Services",
+        doctors: "Doctors",
+        contact: "Contact",
+        emergency: "Emergency"
+      },
+      services: {
+        title: "Our Services",
+        generalMedicine: "General Medicine",
+        cardiology: "Cardiology",
+        orthopedics: "Orthopedics",
+        pediatrics: "Pediatrics",
+        gynecology: "Gynecology",
+        pharmacy: "Pharmacy"
+      },
+      contact: {
+        title: "Contact Info",
+        address: "123, Health Nagar, New Delhi - 110001",
+        phone: "+91 98765 43210",
+        email: "care@arogyahospital.com",
+        emergency: "Emergency: +91 98765 43211"
+      },
+      hours: {
+        title: "Working Hours",
+        opd: "OPD: 8:00 AM - 8:00 PM",
+        emergency: "Emergency: 24/7 Available",
+        pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
+      },
+      social: {
+        title: "Follow Us",
+        facebook: "Facebook",
+        twitter: "Twitter",
+        instagram: "Instagram",
+        youtube: "YouTube"
+      },
+      copyright: " 2024 Arogya Hospital. All rights reserved.",
+      privacy: "Privacy Policy",
+      terms: "Terms & Conditions",
+      disclaimer: "Disclaimer"
+    }
+  }
+} as const;
+
+type ContentType = typeof content;
+type Language = keyof ContentType;
 
 export default function LandingPage() {
-  const [language, setLanguage] = useState('english')
+  const { authState, logout } = useAuth();
+  const [language, setLanguage] = useState<Language>('english');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const [appointmentForm, setAppointmentForm] = useState({
     name: '',
     phone: '',
     email: '',
-    doctor: '',
     department: '',
+    doctor: '',
     date: '',
     time: '',
-    reason: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitMessage, setSubmitMessage] = useState('')
+    reason: '',
+  });
 
-  const handleAppointmentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitMessage('')
-    
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
+
+  const t = content[language];
+
+  const toggleLanguage = () => {
+    setLanguage(prev => prev === 'english' ? 'hindi' : 'english');
+  };
+
+  const handleAppointmentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
     try {
-      const response = await fetch('/api/appointments/book', {
+      // Replace with your actual API endpoint
+      const response = await fetch('/api/book-appointment', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appointmentForm),
-      })
-      
-      const result = await response.json()
-      
-      if (result.success) {
-        setSubmitMessage('✅ ' + result.message)
-        // Reset form
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setSubmitMessage(' ' + result.message);
         setAppointmentForm({
           name: '',
           phone: '',
           email: '',
-          doctor: '',
           department: '',
+          doctor: '',
           date: '',
           time: '',
-          reason: ''
-        })
+          reason: '',
+        });
       } else {
-        setSubmitMessage('❌ ' + result.message)
+        setSubmitMessage(` ${result.message || 'An unexpected error occurred.'}`);
       }
     } catch (error) {
-      setSubmitMessage('❌ Failed to book appointment. Please try again.')
+      setSubmitMessage(' Failed to book appointment. Please try again.')
       console.error('Appointment booking error:', error)
     } finally {
       setIsSubmitting(false)
     }
-  }
+  };
 
-  // Sample doctors data - in real app, this would come from API
   const doctors = [
     {
       id: 1,
-      name: "Dr. Rajesh Kumar",
-      specialization: "Cardiologist",
-      experience: "15 years",
-      qualification: "MBBS, MD (Cardiology)",
-      image: "/doctors/doctor1.jpg",
-      rating: 4.8,
-      patients: "2000+",
-      availability: "Mon-Sat",
-      languages: ["Hindi", "English"],
-      about: "Expert in heart diseases, cardiac surgery, and preventive cardiology with over 15 years of experience."
+      name: 'Dr. Anjali Sharma',
+      specialization: 'Cardiology',
+      qualification: 'MD, DM (Cardiology)',
+      experience: '15+ Years',
+      patients: '5k+',
+      rating: 4.9,
+      availability: 'Mon-Fri, 10am-1pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Sharma is a renowned cardiologist known for her patient-centric approach and expertise in complex cardiac procedures.'
     },
     {
       id: 2,
-      name: "Dr. Priya Sharma",
-      specialization: "Gynecologist",
-      experience: "12 years",
-      qualification: "MBBS, MS (Gynecology)",
-      image: "/doctors/doctor2.jpg",
-      rating: 4.9,
-      patients: "1800+",
-      availability: "Mon-Fri",
-      languages: ["Hindi", "English"],
-      about: "Specialized in women's health, pregnancy care, and minimally invasive gynecological procedures."
+      name: 'Dr. Vikram Singh',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '12+ Years',
+      patients: '4k+',
+      rating: 4.8,
+      availability: 'Mon-Sat, 9am-12pm',
+      languages: ['Hindi', 'English', 'Punjabi'],
+      about: 'Dr. Singh specializes in joint replacement surgeries and sports injuries, helping patients regain mobility and live pain-free.'
     },
     {
       id: 3,
-      name: "Dr. Amit Patel",
-      specialization: "Orthopedic Surgeon",
-      experience: "18 years",
-      qualification: "MBBS, MS (Orthopedics)",
-      image: "/doctors/doctor3.jpg",
-      rating: 4.7,
-      patients: "2200+",
-      availability: "Tue-Sun",
-      languages: ["Hindi", "English", "Gujarati"],
-      about: "Expert in joint replacement, sports injuries, and spine surgery with extensive surgical experience."
-    },
-    {
-      id: 4,
-      name: "Dr. Sunita Verma",
-      specialization: "Pediatrician",
-      experience: "10 years",
-      qualification: "MBBS, MD (Pediatrics)",
-      image: "/doctors/doctor4.jpg",
+      name: 'Dr. Priya Desai',
+      specialization: 'Gynecology',
+      qualification: 'MD, DGO',
+      experience: '18+ Years',
+      patients: '7k+',
       rating: 4.9,
-      patients: "1500+",
-      availability: "Mon-Sat",
-      languages: ["Hindi", "English"],
-      about: "Dedicated to child healthcare, vaccination, and developmental pediatrics with a gentle approach."
-    },
-    {
-      id: 5,
-      name: "Dr. Vikram Singh",
-      specialization: "General Physician",
-      experience: "20 years",
-      qualification: "MBBS, MD (Internal Medicine)",
-      image: "/doctors/doctor5.jpg",
-      rating: 4.6,
-      patients: "3000+",
-      availability: "Mon-Sun",
-      languages: ["Hindi", "English", "Punjabi"],
-      about: "Experienced in treating common illnesses, preventive care, and managing chronic conditions."
-    },
-    {
-      id: 6,
-      name: "Dr. Neha Gupta",
-      specialization: "Dermatologist",
-      experience: "8 years",
-      qualification: "MBBS, MD (Dermatology)",
-      image: "/doctors/doctor6.jpg",
-      rating: 4.8,
-      patients: "1200+",
-      availability: "Mon-Fri",
-      languages: ["Hindi", "English"],
-      about: "Specialist in skin diseases, cosmetic dermatology, and advanced skin treatments."
+      availability: 'Tue-Sat, 2pm-5pm',
+      languages: ['Hindi', 'English', 'Gujarati'],
+      about: 'Dr. Desai is a leading gynecologist with extensive experience in high-risk pregnancies and minimally invasive surgeries.'
     }
-  ]
+  ];
 
   const departments = [
     "Cardiology",
@@ -158,426 +493,23 @@ export default function LandingPage() {
     "Dermatology",
     "Neurology",
     "Gastroenterology"
-  ]
+  ];
 
   const timeSlots = [
     "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
     "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM",
     "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM"
-  ]
-
-  const content = {
-    hindi: {
-      hospitalName: "आरोग्य अस्पताल",
-      nav: {
-        home: "मुख्य पृष्ठ",
-        about: "हमारे बारे में",
-        doctors: "हमारे डॉक्टर", 
-        appointment: "अपॉइंटमेंट बुक करें",
-        contact: "संपर्क करें",
-        login: "लॉगिन"
-      },
-      hero: {
-        badge: "50,000+ मरीज़ों का भरोसा",
-        title: "आपकी स्वास्थ्य",
-        titleHighlight: "यात्रा",
-        titleEnd: "हमारी प्राथमिकता",
-        description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
-        getStarted: "अपॉइंटमेंट बुक करें",
-        bookDemo: "हमसे मिलें",
-        stats: {
-          hospitals: "खुश मरीज़",
-          patients: "सफल इलाज", 
-          uptime: "संतुष्टि दर"
-        }
-      },
-      doctors: {
-        title: "हमारे विशेषज्ञ डॉक्टरों से मिलें",
-        subtitle: "हमारी अनुभवी और योग्य डॉक्टरों की टीम आपको सर्वोत्तम स्वास्थ्य सेवा प्रदान करने के लिए यहाँ है",
-        viewProfile: "प्रोफाइल देखें",
-        bookAppointment: "अपॉइंटमेंट बुक करें",
-        experience: "अनुभव",
-        patients: "मरीज़ों का इलाज",
-        rating: "रेटिंग",
-        languages: "भाषाएं",
-        availability: "उपलब्ध"
-      },
-      appointment: {
-        title: "ऑनलाइन अपॉइंटमेंट बुक करें",
-        subtitle: "हमारे विशेषज्ञ डॉक्टरों के साथ अपनी मुलाकात का समय तय करें। अपना पसंदीदा समय चुनें और इंतज़ार से बचें।",
-        form: {
-          name: "पूरा नाम",
-          phone: "फोन नंबर",
-          email: "ईमेल पता",
-          department: "विभाग चुनें",
-          doctor: "डॉक्टर चुनें",
-          date: "पसंदीदा तारीख",
-          time: "पसंदीदा समय",
-          reason: "मुलाकात का कारण",
-          submit: "अपॉइंटमेंट बुक करें",
-          submitting: "बुक हो रहा है...",
-          success: "अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
-          error: "अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
-        },
-        benefits: {
-          title: "ऑनलाइन बुकिंग क्यों करें?",
-          noWaiting: {
-            title: "कोई इंतज़ार नहीं",
-            description: "कतार छोड़ें और अपने डॉक्टर से सीधे मिलें"
-          },
-          confirmation: {
-            title: "तुरंत पुष्टि",
-            description: "SMS और ईमेल के माध्यम से तुरंत पुष्टि प्राप्त करें"
-          },
-          reminder: {
-            title: "अपॉइंटमेंट रिमाइंडर",
-            description: "अपने अपॉइंटमेंट से पहले समय पर रिमाइंडर प्राप्त करें"
-          },
-          reschedule: {
-            title: "आसान रीशेड्यूलिंग",
-            description: "कुछ ही क्लिक में अपना अपॉइंटमेंट समय बदलें"
-          }
-        }
-      },
-      features: {
-        title: "Everything You Need for Your Healthcare",
-        subtitle: "Our modern facilities provide you with a better healthcare experience",
-        patientManagement: {
-          title: "Easy Appointments",
-          description: "Book online appointments from home, choose your time and avoid long queues"
-        },
-        doctorDashboard: {
-          title: "Digital Reports",
-          description: "View and download all your medical reports, test results and prescriptions online"
-        },
-        pharmacySystem: {
-          title: "Home Delivery",
-          description: "Get medicines delivered to your home. Direct delivery from our pharmacy to your doorstep"
-        },
-        appointmentBooking: {
-          title: "24/7 सहायता",
-          description: "किसी भी समय हमारी हेल्पलाइन पर कॉल करें या चैट करें। आपातकालीन सेवाएं हमेशा उपलब्ध"
-        }
-      },
-      about: {
-        title: "आरोग्य अस्पताल आपके लिए क्यों सबसे अच्छा है?",
-        description: "हम समझते हैं कि हर मरीज़ अलग है। इसीलिए हमने आपकी सुविधा को ध्यान में रखते हुए अपनी सेवाएं डिज़ाइन की हैं। आपका स्वास्थ्य, आपकी सुविधा, हमारी जिम्मेदारी।",
-        support247: {
-          title: "तुरंत सेवा",
-          description: "कोई लंबा इंतज़ार नहीं। अपॉइंटमेंट के समय पर मिलें डॉक्टर से और पाएं तुरंत इलाज"
-        },
-        compliance: {
-          title: "सुरक्षित और निजी",
-          description: "आपकी व्यक्तिगत जानकारी पूरी तरह सुरक्षित। भारतीय मेडिकल नियमों के अनुसार डेटा सुरक्षा"
-        },
-        awardWinning: {
-          title: "विशेषज्ञ डॉक्टर्स",
-          description: "अनुभवी और योग्य डॉक्टर्स जो आपकी हर स्वास्थ्य समस्या का बेहतरीन समाधान देते हैं"
-        }
-      },
-      cta: {
-        title: "आज ही शुरू करें अपनी बेहतर स्वास्थ्य की शुरुआत",
-        subtitle: "50,000+ संतुष्ट मरीज़ों का भरोसा। आपकी स्वास्थ्य देखभाल अब और भी आसान।",
-        startTrial: "तुरंत अपॉइंटमेंट बुक करें",
-        scheduleDemo: "निःशुल्क सलाह लें"
-      },
-      contact: {
-        title: "हमसे जुड़ें",
-        subtitle: "कोई सवाल है? हम आपकी मदद के लिए हमेशा तैयार हैं",
-        getInTouch: "संपर्क करें",
-        visitUs: "हमसे मिलें",
-        callUs: "कॉल करें",
-        phone: "+91 98765 43210",
-        email: "ईमेल करें",
-        emailAddress: "care@arogyahospital.com",
-        address: "पता",
-        fullAddress: "123, स्वास्थ्य नगर, कनॉट प्लेस के पास, नई दिल्ली - 110001",
-        supportHours: "सेवा समय",
-        available: "24/7 उपलब्ध",
-        emergency: "आपातकाल",
-        emergencyPhone: "+91 98765 43211",
-        directions: "दिशा निर्देश पाएं",
-        bookAppointment: "अपॉइंटमेंट बुक करें",
-        liveChat: "लाइव चैट",
-        whatsapp: "व्हाट्सऐप पर संदेश"
-      },
-      footer: {
-        hospitalName: "आरोग्य अस्पताल",
-        tagline: "आपकी स्वास्थ्य देखभाल में आपका विश्वसनीय साथी",
-        quickLinks: {
-          title: "त्वरित लिंक",
-          home: "मुख्य पृष्ठ",
-          about: "हमारे बारे में",
-          services: "सेवाएं",
-          doctors: "डॉक्टर्स",
-          contact: "संपर्क करें",
-          emergency: "आपातकाल"
-        },
-        services: {
-          title: "हमारी सेवाएं",
-          generalMedicine: "सामान्य चिकित्सा",
-          cardiology: "हृदय रोग",
-          orthopedics: "हड्डी रोग",
-          pediatrics: "बाल रोग",
-          gynecology: "स्त्री रोग",
-          pharmacy: "फार्मेसी"
-        },
-        contact: {
-          title: "संपर्क जानकारी",
-          address: "123, स्वास्थ्य नगर, नई दिल्ली - 110001",
-          phone: "+91 98765 43210",
-          email: "care@arogyahospital.com",
-          emergency: "आपातकाल: +91 98765 43211"
-        },
-        hours: {
-          title: "समय सारणी",
-          opd: "OPD: सुबह 8:00 - शाम 8:00",
-          emergency: "आपातकाल: 24/7 उपलब्ध",
-          pharmacy: "फार्मेसी: सुबह 7:00 - रात 11:00"
-        },
-        social: {
-          title: "हमसे जुड़ें",
-          facebook: "Facebook",
-          twitter: "Twitter",
-          instagram: "Instagram",
-          youtube: "YouTube"
-        },
-        copyright: "© 2024 आरोग्य अस्पताल। सभी अधिकार सुरक्षित।",
-        privacy: "गोपनीयता नीति",
-        terms: "नियम और शर्तें",
-        disclaimer: "अस्वीकरण"
-      }
-    },
-    english: {
-      hospitalName: "Arogya Hospital",
-      nav: {
-        home: "Home",
-        about: "About",
-        doctors: "Our Doctors",
-        appointment: "Book Appointment",
-        contact: "Contact", 
-        login: "Login"
-      },
-      hero: {
-        badge: "Trusted by 50,000+ Patients",
-        title: "Your Health",
-        titleHighlight: "Journey",
-        titleEnd: "Our Priority",
-        description: "At Arogya Hospital, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
-        getStarted: "Book Appointment",
-        bookDemo: "Meet Our Team",
-        stats: {
-          hospitals: "Happy Patients",
-          patients: "Successful Treatments", 
-          uptime: "Satisfaction Rate"
-        }
-      },
-      doctors: {
-        title: "Meet Our Expert Doctors",
-        subtitle: "Our team of experienced and qualified doctors are here to provide you with the best healthcare",
-        viewProfile: "View Profile",
-        bookAppointment: "Book Appointment",
-        experience: "Experience",
-        patients: "Patients Treated",
-        rating: "Rating",
-        languages: "Languages",
-        availability: "Available"
-      },
-      appointment: {
-        title: "Book Your Appointment Online",
-        subtitle: "Schedule your visit with our expert doctors. Choose your preferred time and avoid waiting.",
-        form: {
-          name: "Full Name",
-          phone: "Phone Number",
-          email: "Email Address",
-          department: "Select Department",
-          doctor: "Select Doctor",
-          date: "Preferred Date",
-          time: "Preferred Time",
-          reason: "Reason for Visit",
-          submit: "Book Appointment",
-          submitting: "Booking...",
-          success: "Appointment booked successfully!",
-          error: "Failed to book appointment. Please try again."
-        },
-        benefits: {
-          title: "Why Book Online?",
-          noWaiting: {
-            title: "No Waiting",
-            description: "Skip the queue and get direct access to your doctor"
-          },
-          confirmation: {
-            title: "Instant Confirmation",
-            description: "Get immediate confirmation via SMS and email"
-          },
-          reminder: {
-            title: "Appointment Reminders",
-            description: "Receive timely reminders before your appointment"
-          },
-          reschedule: {
-            title: "Easy Rescheduling",
-            description: "Change your appointment time with just a few clicks"
-          }
-        }
-      },
-      features: {
-        title: "Everything You Need for Your Healthcare",
-        subtitle: "Our modern facilities provide you with an exceptional healthcare experience",
-        patientManagement: {
-          title: "Easy Appointments",
-          description: "Book appointments online from home, choose your preferred time, and avoid long queues"
-        },
-        doctorDashboard: {
-          title: "Digital Reports",
-          description: "View and download all your medical reports, test results, and prescriptions online anytime"
-        },
-        pharmacySystem: {
-          title: "Home Delivery",
-          description: "Get medicines delivered to your doorstep. Direct delivery from our pharmacy to your home"
-        },
-        appointmentBooking: {
-          title: "24/7 Support",
-          description: "Call or chat with our helpline anytime. Emergency services are always available for you"
-        }
-      },
-      about: {
-        title: "Why Arogya Hospital is Best for You?",
-        description: "We understand that every patient is unique. That's why we've designed our services keeping your convenience in mind. Your health, your comfort, our responsibility.",
-        support247: {
-          title: "Instant Service",
-          description: "No long waits. Meet doctors on time for your appointment and get immediate treatment"
-        },
-        compliance: {
-          title: "Safe & Private",
-          description: "Your personal information is completely secure. Data protection as per Indian medical regulations"
-        },
-        awardWinning: {
-          title: "Expert Doctors",
-          description: "Experienced and qualified doctors who provide the best solutions for all your health problems"
-        }
-      },
-      cta: {
-        title: "Start Your Better Health Journey Today",
-        subtitle: "Trusted by 50,000+ satisfied patients. Your healthcare is now easier than ever.",
-        startTrial: "Book Appointment Now",
-        scheduleDemo: "Get Free Consultation"
-      },
-      contact: {
-        title: "Connect with Us",
-        subtitle: "Have questions? We're always ready to help you",
-        getInTouch: "Get in Touch",
-        visitUs: "Visit Us",
-        callUs: "Call Us",
-        phone: "+91 98765 43210",
-        email: "Email Us",
-        emailAddress: "care@arogyahospital.com",
-        address: "Address",
-        fullAddress: "123, Health Nagar, Near Connaught Place, New Delhi - 110001",
-        supportHours: "Service Hours",
-        available: "24/7 Available",
-        emergency: "Emergency",
-        emergencyPhone: "+91 98765 43211",
-        directions: "Get Directions",
-        bookAppointment: "Book Appointment",
-        liveChat: "Live Chat",
-        whatsapp: "WhatsApp Message"
-      },
-      footer: {
-        hospitalName: "Arogya Hospital",
-        tagline: "Your trusted partner in healthcare",
-        quickLinks: {
-          title: "Quick Links",
-          home: "Home",
-          about: "About Us",
-          services: "Services",
-          doctors: "Doctors",
-          contact: "Contact",
-          emergency: "Emergency"
-        },
-        services: {
-          title: "Our Services",
-          generalMedicine: "General Medicine",
-          cardiology: "Cardiology",
-          orthopedics: "Orthopedics",
-          pediatrics: "Pediatrics",
-          gynecology: "Gynecology",
-          pharmacy: "Pharmacy"
-        },
-        contact: {
-          title: "Contact Info",
-          address: "123, Health Nagar, New Delhi - 110001",
-          phone: "+91 98765 43210",
-          email: "care@arogyahospital.com",
-          emergency: "Emergency: +91 98765 43211"
-        },
-        hours: {
-          title: "Working Hours",
-          opd: "OPD: 8:00 AM - 8:00 PM",
-          emergency: "Emergency: 24/7 Available",
-          pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
-        },
-        social: {
-          title: "Follow Us",
-          facebook: "Facebook",
-          twitter: "Twitter",
-          instagram: "Instagram",
-          youtube: "YouTube"
-        },
-        copyright: "© 2024 Arogya Hospital. All rights reserved.",
-        privacy: "Privacy Policy",
-        terms: "Terms & Conditions",
-        disclaimer: "Disclaimer"
-      }
-    }
-  }
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'hindi' ? 'english' : 'hindi')
-  }
-
-  const t = content[language]
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-800">{t.hospitalName}</span>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="#" className="text-gray-700 hover:text-pink-500 transition-colors font-medium">
-                {t.nav.home}
-              </Link>
-              <Link href="#about" className="text-gray-700 hover:text-pink-500 transition-colors font-medium">
-                {t.nav.about}
-              </Link>
-              <Link href="#contact" className="text-gray-700 hover:text-pink-500 transition-colors font-medium">
-                {t.nav.contact}
-              </Link>
-              <Button 
-                onClick={toggleLanguage}
-                variant="outline" 
-                size="sm"
-                className="border-pink-200 text-pink-600 hover:bg-pink-50"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                {language === 'hindi' ? 'English' : 'हिंदी'}
-              </Button>
-              <Link href="/login">
-                <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full px-6 shadow-lg hover:shadow-xl transition-all duration-300">
-                  {t.nav.login}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        t={t}
+        language={language}
+        toggleLanguage={toggleLanguage}
+        authState={authState}
+        logout={logout}
+      />
 
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
@@ -898,7 +830,7 @@ export default function LandingPage() {
                 
                 {submitMessage && (
                   <div className={`p-4 rounded-lg text-center font-medium ${
-                    submitMessage.includes('✅') 
+                    submitMessage.includes(' ') 
                       ? 'bg-green-50 text-green-700 border border-green-200' 
                       : 'bg-red-50 text-red-700 border border-red-200'
                   }`}>
@@ -1276,7 +1208,7 @@ export default function LandingPage() {
                     width="100%"
                     height="300"
                     style={{ border: 0 }}
-                    allowFullScreen=""
+                    allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     className="rounded-2xl"
