@@ -31,7 +31,7 @@ import { toast } from "sonner"
 
 export default function PrescriptionsManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(1)
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
   const [isDispenseDialogOpen, setIsDispenseDialogOpen] = useState(false)
@@ -48,7 +48,7 @@ export default function PrescriptionsManagement() {
     page,
     limit: 20,
     search: searchTerm,
-    status: statusFilter
+            ...(statusFilter !== "all" && { status: statusFilter })
   })
 
   const statusOptions = [
@@ -191,7 +191,7 @@ export default function PrescriptionsManagement() {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   {statusOptions.map(status => (
                     <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                   ))}

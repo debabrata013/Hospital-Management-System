@@ -35,6 +35,7 @@ interface User {
   isActive: boolean
   createdAt: string
   lastLogin?: string
+    permissions?: { module: string; actions: string[] }[]
 }
 
 interface UserFormData {
@@ -66,13 +67,20 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
+  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [roleStats, setRoleStats] = useState<Record<string, number>>({})
+
+  const [permissionsState, setPermissionsState] = useState<Record<string, Set<string>>>({})
+  const [notifyForm, setNotifyForm] = useState<{ subject: string; message: string; priority: 'LOW'|'MEDIUM'|'HIGH'|'URGENT'; emails: string }>(
+    { subject: '', message: '', priority: 'LOW', emails: '' }
+  )
 
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
@@ -110,7 +118,7 @@ export default function UserManagement() {
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
-        ...(roleFilter && { role: roleFilter })
+        ...(roleFilter && roleFilter !== 'all' && { role: roleFilter })
       })
 
       const response = await fetch(`/api/admin/users?${params}`)
@@ -256,6 +264,86 @@ export default function UserManagement() {
     setIsEditDialogOpen(true)
   }
 
+  const openPermissionsDialog = (user: User) => {
+    setSelectedUser(user)
+    // Convert existing permissions array to state map
+    const map: Record<string, Set<string>> = {}
+    ;(user.permissions || []).forEach(p => {
+      map[p.module] = new Set(p.actions)
+    })
+    setPermissionsState(map)
+    setIsPermissionsDialogOpen(true)
+  }
+
+  const togglePermission = (moduleName: string, action: string) => {
+    setPermissionsState(prev => {
+      const next = { ...prev }
+      if (!next[moduleName]) next[moduleName] = new Set<string>()
+      if (next[moduleName].has(action)) next[moduleName].delete(action)
+      else next[moduleName].add(action)
+      return next
+    })
+  }
+
+  const handleSavePermissions = async () => {
+    if (!selectedUser) return
+    const permissions = Object.entries(permissionsState).map(([module, actionsSet]) => ({
+      module,
+      actions: Array.from(actionsSet)
+    })).filter(p => p.actions.length > 0)
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions })
+      })
+      if (res.ok) {
+        toast.success('Permissions updated')
+        setIsPermissionsDialogOpen(false)
+        fetchUsers()
+      } else {
+        const err = await res.json(); toast.error(err.error || 'Failed to update permissions')
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Error updating permissions')
+    }
+  }
+
+  const openNotifyDialog = (user: User) => {
+    setSelectedUser(user)
+    setNotifyForm({ subject: '', message: '', priority: 'LOW', emails: user.email })
+    setIsNotifyDialogOpen(true)
+  }
+
+  const handleSendNotification = async () => {
+    try {
+      const emails = notifyForm.emails.split(',').map(e => e.trim()).filter(Boolean)
+      const res = await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipients: emails,
+          subject: notifyForm.subject,
+          message: notifyForm.message,
+          priority: notifyForm.priority,
+          category: 'SYSTEM',
+          type: 'EMAIL'
+        })
+      })
+      if (res.ok) {
+        toast.success('Notification sent')
+        setIsNotifyDialogOpen(false)
+        setNotifyForm({ subject: '', message: '', priority: 'LOW', emails: '' })
+      } else {
+        const err = await res.json(); toast.error(err.error || 'Failed to send notification')
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Error sending notification')
+    }
+  }
+
   const getRoleBadgeColor = (role: string) => {
     const colors = {
       'super-admin': 'bg-red-100 text-red-800',
@@ -334,7 +422,7 @@ export default function UserManagement() {
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Roles</SelectItem>
+                <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="super-admin">Super Admin</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="doctor">Doctor</SelectItem>
@@ -401,6 +489,22 @@ export default function UserManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => openPermissionsDialog(user)}
+                            title="Manage Permissions"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openNotifyDialog(user)}
+                            title="Send Notification"
+                          >
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDeleteUser(user._id)}
                             className="text-red-600 hover:text-red-700"
                           >
@@ -454,6 +558,80 @@ export default function UserManagement() {
             onSubmit={handleEditUser}
             isEdit={true}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Permissions Dialog */}
+      <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Permissions {selectedUser ? `- ${selectedUser.name}` : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {['patients','appointments','billing','inventory','reports','users','messages','shifts'].map(moduleName => (
+              <div key={moduleName} className="border rounded-md p-3">
+                <div className="font-medium capitalize mb-2">{moduleName}</div>
+                <div className="flex flex-wrap gap-2">
+                  {['create','read','update','delete','approve'].map(action => {
+                    const checked = !!permissionsState[moduleName]?.has(action)
+                    return (
+                      <label key={action} className={`inline-flex items-center gap-2 px-3 py-1 rounded-md border cursor-pointer ${checked ? 'bg-pink-50 border-pink-300' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => togglePermission(moduleName, action)}
+                        />
+                        <span className="capitalize text-sm">{action}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsPermissionsDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSavePermissions}>Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notification Dialog */}
+      <Dialog open={isNotifyDialogOpen} onOpenChange={setIsNotifyDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Send Notification {selectedUser ? `to ${selectedUser.name}` : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="emails">Recipient Emails (comma separated)</Label>
+              <Input id="emails" value={notifyForm.emails} onChange={(e) => setNotifyForm({ ...notifyForm, emails: e.target.value })} placeholder="admin1@hospital.com, admin2@hospital.com" />
+            </div>
+            <div>
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" value={notifyForm.subject} onChange={(e) => setNotifyForm({ ...notifyForm, subject: e.target.value })} placeholder="Subject" />
+            </div>
+            <div>
+              <Label htmlFor="message">Message</Label>
+              <Textarea id="message" value={notifyForm.message} onChange={(e) => setNotifyForm({ ...notifyForm, message: e.target.value })} placeholder="Write your message..." rows={5} />
+            </div>
+            <div>
+              <Label>Priority</Label>
+              <Select value={notifyForm.priority} onValueChange={(v) => setNotifyForm({ ...notifyForm, priority: v as any })}>
+                <SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="URGENT">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsNotifyDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSendNotification}>Send</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -521,7 +699,7 @@ function UserForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="role">Role *</Label>
-          <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+          <Select value={formData.role || undefined} onValueChange={(value) => setFormData({ ...formData, role: value })}>
             <SelectTrigger>
               <SelectValue placeholder="Select role" />
             </SelectTrigger>

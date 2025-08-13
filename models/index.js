@@ -3,8 +3,6 @@
 
 // Import all models
 const User = require('./User.js');
-const Patient = require('./Patient.js');
-const MedicalRecord = require('./MedicalRecord.js');
 const Appointment = require('./Appointment.js');
 const Billing = require('./Billing.js');
 const Prescription = require('./Prescription.js');
@@ -14,12 +12,15 @@ const AfterCareInstruction = require('./AfterCareInstruction.js');
 const Medicine = require('./Medicine.js');
 const Message = require('./Message.js');
 const AuditLog = require('./AuditLog.js');
+const StaffProfile = require('./StaffProfile.js');
+const StaffShift = require('./StaffShift.js');
+const LeaveRequest = require('./LeaveRequest.js');
+const PurchaseOrder = require('./PurchaseOrder.js');
+const Vendor = require('./Vendor.js');
 
 // Export all models (CommonJS)
 const models = {
   User,
-  Patient,
-  MedicalRecord,
   Appointment,
   Billing,
   Prescription,
@@ -28,7 +29,12 @@ const models = {
   AfterCareInstruction,
   Medicine,
   Message,
-  AuditLog
+  AuditLog,
+  StaffProfile,
+  StaffShift,
+  LeaveRequest,
+  PurchaseOrder,
+  Vendor
 };
 
 module.exports = models;
@@ -36,8 +42,6 @@ module.exports = models;
 // For ES6 imports - export as default and named exports
 module.exports.default = models;
 module.exports.User = User;
-module.exports.Patient = Patient;
-module.exports.MedicalRecord = MedicalRecord;
 module.exports.Appointment = Appointment;
 module.exports.Billing = Billing;
 module.exports.Prescription = Prescription;
@@ -47,12 +51,15 @@ module.exports.AfterCareInstruction = AfterCareInstruction;
 module.exports.Medicine = Medicine;
 module.exports.Message = Message;
 module.exports.AuditLog = AuditLog;
+module.exports.StaffProfile = StaffProfile;
+module.exports.StaffShift = StaffShift;
+module.exports.LeaveRequest = LeaveRequest;
+module.exports.PurchaseOrder = PurchaseOrder;
+module.exports.Vendor = Vendor;
 
 // Model names for reference
 module.exports.ModelNames = {
   USER: 'User',
-  PATIENT: 'Patient',
-  MEDICAL_RECORD: 'MedicalRecord',
   APPOINTMENT: 'Appointment',
   BILLING: 'Billing',
   PRESCRIPTION: 'Prescription',
@@ -61,14 +68,17 @@ module.exports.ModelNames = {
   AFTER_CARE_INSTRUCTION: 'AfterCareInstruction',
   MEDICINE: 'Medicine',
   MESSAGE: 'Message',
-  AUDIT_LOG: 'AuditLog'
+  AUDIT_LOG: 'AuditLog',
+  STAFF_PROFILE: 'StaffProfile',
+  STAFF_SHIFT: 'StaffShift',
+  LEAVE_REQUEST: 'LeaveRequest',
+  PURCHASE_ORDER: 'PurchaseOrder',
+  VENDOR: 'Vendor'
 };
 
 // Collection names for direct database operations
 module.exports.CollectionNames = {
   USERS: 'users',
-  PATIENTS: 'patients',
-  MEDICAL_RECORDS: 'medicalrecords',
   APPOINTMENTS: 'appointments',
   BILLING: 'billings',
   PRESCRIPTIONS: 'prescriptions',
@@ -77,108 +87,94 @@ module.exports.CollectionNames = {
   AFTER_CARE_INSTRUCTIONS: 'aftercareinstructions',
   MEDICINES: 'medicines',
   MESSAGES: 'messages',
-  AUDIT_LOGS: 'auditlogs'
-};
-
-// Patient Portal accessible models
-module.exports.PatientPortalModels = {
-  MEDICAL_RECORD: 'MedicalRecord',
-  PRESCRIPTION: 'Prescription',
-  TEST_REPORT: 'TestReport',
-  DISCHARGE_SUMMARY: 'DischargeSummary',
-  AFTER_CARE_INSTRUCTION: 'AfterCareInstruction',
-  APPOINTMENT: 'Appointment',
-  BILLING: 'Billing'
+  AUDIT_LOGS: 'auditlogs',
+  STAFF_PROFILES: 'staffprofiles',
+  STAFF_SHIFTS: 'staffshifts',
+  LEAVE_REQUESTS: 'leaverequests',
+  PURCHASE_ORDERS: 'purchaseorders',
+  VENDORS: 'vendors'
 };
 
 // Role-based model access permissions
 module.exports.RolePermissions = {
   'super-admin': ['*'], // All models
   'admin': [
-    'User', 'Patient', 'MedicalRecord', 'Appointment', 'Billing', 
+    'User', 'Appointment', 'Billing', 
     'Prescription', 'TestReport', 'DischargeSummary', 'Medicine', 
-    'Message', 'AuditLog'
+    'Message', 'AuditLog', 'StaffProfile', 'StaffShift', 'LeaveRequest'
   ],
   'doctor': [
-    'Patient', 'MedicalRecord', 'Appointment', 'Prescription', 
+    'Appointment', 'Prescription', 
     'TestReport', 'DischargeSummary', 'AfterCareInstruction', 
     'Medicine', 'Message'
   ],
   'staff': [
-    'Patient', 'MedicalRecord', 'Appointment', 'TestReport', 
-    'AfterCareInstruction', 'Message'
+    'Appointment', 'TestReport', 
+    'AfterCareInstruction', 'Message', 'StaffShift', 'LeaveRequest'
   ],
   'receptionist': [
-    'Patient', 'Appointment', 'Billing', 'Message'
+    'Appointment', 'Billing', 'Message'
   ],
   'patient': [
-    'MedicalRecord', 'Prescription', 'TestReport', 'DischargeSummary', 
+    'Prescription', 'TestReport', 'DischargeSummary', 
     'AfterCareInstruction', 'Appointment'
   ]
 };
 
 // Database relationship mappings
 module.exports.Relationships = {
-  Patient: {
-    hasMany: ['MedicalRecord', 'Appointment', 'Billing', 'Prescription', 'TestReport', 'DischargeSummary', 'AfterCareInstruction'],
-    belongsTo: ['User'] // for portal access
-  },
   User: {
-    hasMany: ['MedicalRecord', 'Appointment', 'Prescription', 'TestReport', 'DischargeSummary', 'AfterCareInstruction', 'Message', 'AuditLog'],
+    hasMany: ['Appointment', 'Prescription', 'TestReport', 'DischargeSummary', 'AfterCareInstruction', 'Message', 'AuditLog', 'StaffShift', 'LeaveRequest'],
     belongsTo: []
   },
-  MedicalRecord: {
-    belongsTo: ['Patient', 'User'],
-    hasMany: ['Prescription', 'TestReport'],
-    hasOne: ['Appointment']
-  },
   Appointment: {
-    belongsTo: ['Patient', 'User'],
-    hasOne: ['MedicalRecord', 'Billing']
+    belongsTo: ['User'],
+    hasOne: ['Billing']
   },
   Prescription: {
-    belongsTo: ['Patient', 'User', 'MedicalRecord', 'Appointment']
+    belongsTo: ['User', 'Appointment']
   },
   TestReport: {
-    belongsTo: ['Patient', 'User', 'MedicalRecord', 'Appointment']
+    belongsTo: ['User', 'Appointment']
   },
   DischargeSummary: {
-    belongsTo: ['Patient', 'User'],
+    belongsTo: ['User'],
     hasMany: ['AfterCareInstruction']
   },
   AfterCareInstruction: {
-    belongsTo: ['Patient', 'User', 'MedicalRecord', 'DischargeSummary']
+    belongsTo: ['User', 'DischargeSummary']
   },
   Billing: {
-    belongsTo: ['Patient', 'Appointment']
+    belongsTo: ['Appointment']
+  },
+  StaffProfile: {
+    belongsTo: ['User']
+  },
+  StaffShift: {
+    belongsTo: ['User']
+  },
+  LeaveRequest: {
+    belongsTo: ['User']
   }
 };
 
 // Validation schemas for common operations
 module.exports.ValidationSchemas = {
-  patientRegistration: [
-    'name', 'dob', 'gender', 'contactNumber', 'address'
-  ],
   appointmentBooking: [
-    'patientId', 'doctorId', 'appointmentDate', 'appointmentTime', 'reason'
-  ],
-  medicalRecordCreation: [
-    'patientId', 'doctorId', 'chiefComplaint', 'diagnosis'
+    'doctorId', 'appointmentDate', 'appointmentTime', 'reason'
   ],
   prescriptionCreation: [
-    'patientId', 'doctorId', 'medications'
+    'doctorId', 'medications'
   ],
   billingCreation: [
-    'patientId', 'items', 'totalAmount'
+    'items', 'totalAmount'
   ]
 };
 
 // Search indexes configuration
 module.exports.SearchIndexes = {
-  Patient: ['name', 'patientId', 'contactNumber', 'email'],
   User: ['name', 'email', 'employeeId'],
-  MedicalRecord: ['diagnosis.primary.condition'],
-  Appointment: ['patientId', 'doctorId', 'appointmentDate'],
+  Appointment: ['doctorId', 'appointmentDate'],
   Prescription: ['medications.medicineName'],
   TestReport: ['testName', 'testCategory'],
   Medicine: ['name', 'genericName']
@@ -187,7 +183,7 @@ module.exports.SearchIndexes = {
 // Audit configuration
 module.exports.AuditConfig = {
   auditableModels: [
-    'User', 'Patient', 'MedicalRecord', 'Prescription', 
+    'User', 'Prescription', 
     'TestReport', 'DischargeSummary', 'Billing'
   ],
   auditActions: [

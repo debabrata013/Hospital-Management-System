@@ -8,7 +8,6 @@ export interface AuthenticatedUser {
   email: string;
   name: string;
   role: string;
-  patientId?: string; // For patient users
   employeeId?: string; // For staff users
 }
 
@@ -52,12 +51,6 @@ function extractToken(request: NextRequest): string | null {
   const tokenCookie = request.cookies.get('auth-token');
   if (tokenCookie) {
     return tokenCookie.value;
-  }
-  
-  // Check patient-specific token
-  const patientTokenCookie = request.cookies.get('patient-auth-token');
-  if (patientTokenCookie) {
-    return patientTokenCookie.value;
   }
   
   return null;
@@ -122,16 +115,6 @@ export async function authenticateUser(request: NextRequest): Promise<AuthResult
       role: user.role,
       employeeId: user.employeeId
     };
-    
-    // Add patient ID for patient users
-    if (user.role === 'patient') {
-      // For patient users, we need to find their patient record
-      const { Patient } = await import('@/models');
-      const patient = await Patient.findOne({ 'portalAccess.userId': user._id });
-      if (patient) {
-        authenticatedUser.patientId = patient._id.toString();
-      }
-    }
     
     return { user: authenticatedUser };
     
@@ -215,31 +198,6 @@ export function requirePermission(module: string, action: string) {
     
     return auth;
   };
-}
-
-// Patient-specific authentication
-export async function authenticatePatient(request: NextRequest): Promise<AuthResult | NextResponse> {
-  const auth = await authenticateUser(request);
-  
-  if (auth instanceof NextResponse) {
-    return auth;
-  }
-  
-  if (auth.user.role !== 'patient') {
-    return NextResponse.json(
-      { error: 'Patient access required' },
-      { status: 403 }
-    );
-  }
-  
-  if (!auth.user.patientId) {
-    return NextResponse.json(
-      { error: 'Patient record not found' },
-      { status: 404 }
-    );
-  }
-  
-  return auth;
 }
 
 // Doctor-specific authentication
@@ -408,7 +366,6 @@ export function rateLimit(maxRequests: number, windowMs: number) {
 
 export default {
   authenticateUser,
-  authenticatePatient,
   authenticateDoctor,
   authenticateStaff,
   authenticateAdmin,
