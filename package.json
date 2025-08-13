@@ -5,8 +5,13 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "export": "next build",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "deploy": "npm install --legacy-peer-deps && npm run build && npm start",
+    "pm2:start": "pm2 start npm --name 'arogya-hospital' -- start",
+    "pm2:stop": "pm2 stop arogya-hospital",
+    "pm2:restart": "pm2 restart arogya-hospital"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
