@@ -20,6 +20,7 @@ import {
   FileText,
   LogOut
 } from 'lucide-react'
+// import { useRouter } from 'next/navigation'
 
 // Mock admission data
 const mockAdmissions = [
@@ -79,7 +80,7 @@ const mockAdmissions = [
   }
 ]
 
-export default function AdminAdmissionsPage() {
+  // const router = useRouter();
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'stable':
@@ -115,6 +116,7 @@ export default function AdminAdmissionsPage() {
     return 'bg-gray-100 text-gray-700'
   }
 
+export default function AdmissionsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
@@ -127,7 +129,10 @@ export default function AdminAdmissionsPage() {
             </h1>
             <p className="text-gray-600 mt-2">Manage patient admissions, room assignments, and discharge processes</p>
           </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+          <Button
+            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600"
+            // onClick={() => router.push('/admin/admissions/new')}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Admission
           </Button>
@@ -344,7 +349,11 @@ export default function AdminAdmissionsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
+            <Button
+              variant="outline"
+              className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2"
+              // onClick={() => router.push('/admin/admissions/new')}
+            >
               <Plus className="h-6 w-6" />
               <span>New Admission</span>
             </Button>

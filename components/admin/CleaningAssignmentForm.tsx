@@ -58,16 +58,43 @@ export default function CleaningAssignmentForm({ room, onAssignmentComplete }: C
     try {
       const response = await fetch('/api/admin/cleaning', {
         credentials: 'include'
-      })
-      const result = await response.json()
-      
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      let result = null;
+
+      if (contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Unexpected response from server. Please try again later.',
+          variant: 'destructive'
+        });
+        setCleaningStaff([]);
+        return;
+      }
+
       if (response.ok && result.data?.staff) {
-        setCleaningStaff(result.data.staff)
+        setCleaningStaff(result.data.staff);
+      } else {
+        toast({
+          title: 'Error',
+          description: result?.error || 'Failed to fetch cleaning staff',
+          variant: 'destructive'
+        });
+        setCleaningStaff([]);
       }
     } catch (error) {
-      console.error('Error fetching cleaning staff:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to fetch cleaning staff',
+        variant: 'destructive'
+      });
+      setCleaningStaff([]);
     }
-  }
+  };
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -114,6 +141,7 @@ export default function CleaningAssignmentForm({ room, onAssignmentComplete }: C
         scheduledTime: formData.scheduledTime
       }
 
+
       const response = await fetch('/api/admin/cleaning', {
         method: 'POST',
         headers: {
@@ -126,10 +154,17 @@ export default function CleaningAssignmentForm({ room, onAssignmentComplete }: C
         credentials: 'include'
       })
 
-      const result = await response.json()
+      let result = null;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // Not JSON, likely an error page
+        throw new Error('Unexpected response format');
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to assign cleaning task')
+        throw new Error(result?.error || 'Failed to assign cleaning task')
       }
 
       toast({
@@ -188,11 +223,11 @@ export default function CleaningAssignmentForm({ room, onAssignmentComplete }: C
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-                          <Sparkles className="mr-1 h-3 w-3" />
+          <Sparkles className="mr-1 h-3 w-3" />
           Assign Cleaning
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Cleaning Task</DialogTitle>
           <DialogDescription>
@@ -352,7 +387,7 @@ export default function CleaningAssignmentForm({ room, onAssignmentComplete }: C
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge 
+                      <Badge
                         variant={staff.isAvailable ? "default" : "secondary"}
                         className="flex items-center space-x-1"
                       >

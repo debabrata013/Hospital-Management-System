@@ -17,6 +17,7 @@ import CleaningAssignmentForm from '@/components/admin/CleaningAssignmentForm'
 
 interface Room {
   id: string
+  name: string
   roomNumber: string
   type: 'General' | 'Semi-Private' | 'Private' | 'ICU' | 'Emergency'
   floor: number
@@ -53,7 +54,57 @@ interface CleaningTask {
 }
 
 export default function RoomManagementPage() {
+  const [showCleaning, setShowCleaning] = useState(false)
+  const [showAdmission, setShowAdmission] = useState(false)
+  const [admitRoom, setAdmitRoom] = useState<Room | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
+  const [showAddRoom, setShowAddRoom] = useState(false)
+  const [newRoom, setNewRoom] = useState<Partial<Room>>({
+    name: '',
+    roomNumber: '',
+    type: 'General',
+    floor: 1,
+    capacity: 1,
+    currentOccupancy: 0,
+    status: 'Available',
+    lastCleaned: '',
+    nextCleaningDue: ''
+  })
+  const handleAddRoom = () => {
+    if (!newRoom.name || !newRoom.roomNumber || !newRoom.type || !newRoom.floor || !newRoom.capacity) {
+      toast({ title: 'All fields are required', variant: 'destructive' })
+      return
+    }
+    const id = (rooms.length + 1).toString()
+    setRooms([
+      ...rooms,
+      {
+        id,
+        name: newRoom.name!,
+        roomNumber: newRoom.roomNumber!,
+        type: newRoom.type as Room['type'],
+        floor: Number(newRoom.floor),
+        capacity: Number(newRoom.capacity),
+        currentOccupancy: 0,
+        status: newRoom.status as Room['status'],
+        lastCleaned: newRoom.lastCleaned || '',
+        nextCleaningDue: newRoom.nextCleaningDue || ''
+      }
+    ])
+    setShowAddRoom(false)
+    setNewRoom({
+      name: '',
+      roomNumber: '',
+      type: 'General',
+      floor: 1,
+      capacity: 1,
+      currentOccupancy: 0,
+      status: 'Available',
+      lastCleaned: '',
+      nextCleaningDue: ''
+    })
+    toast({ title: 'Room added successfully!' })
+  }
   const [patients, setPatients] = useState<Patient[]>([])
   const [cleaningTasks, setCleaningTasks] = useState<CleaningTask[]>([])
   const [selectedTab, setSelectedTab] = useState('overview')
@@ -217,10 +268,55 @@ export default function RoomManagementPage() {
             Manage patient admissions, room allocations, and cleaning schedules
           </p>
         </div>
-        <Button>
-          <Bed className="mr-2 h-4 w-4" />
-          Add New Room
-        </Button>
+        <Dialog open={showAddRoom} onOpenChange={setShowAddRoom}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setShowAddRoom(true)}>
+              <Bed className="mr-2 h-4 w-4" />
+              Add New Room
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Room</DialogTitle>
+              <DialogDescription>Enter details for the new room.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input placeholder="Room Name" value={newRoom.name} onChange={e => setNewRoom({ ...newRoom, name: e.target.value })} />
+              <Input placeholder="Room Number" value={newRoom.roomNumber} onChange={e => setNewRoom({ ...newRoom, roomNumber: e.target.value })} />
+              <Select value={newRoom.type} onValueChange={val => setNewRoom({ ...newRoom, type: val as Room['type'] })}>
+                <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="General">General</SelectItem>
+                  <SelectItem value="Semi-Private">Semi-Private</SelectItem>
+                  <SelectItem value="Private">Private</SelectItem>
+                  <SelectItem value="ICU">ICU</SelectItem>
+                  <SelectItem value="Emergency">Emergency</SelectItem>
+                </SelectContent>
+              </Select>
+              <div>
+                <label className="block text-sm font-medium mb-1">Floor</label>
+                <Input type="number" placeholder="Floor" value={newRoom.floor} onChange={e => setNewRoom({ ...newRoom, floor: Number(e.target.value) })} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Capacity</label>
+                <Input type="number" placeholder="Capacity" value={newRoom.capacity} onChange={e => setNewRoom({ ...newRoom, capacity: Number(e.target.value) })} />
+              </div>
+              <Select value={newRoom.status} onValueChange={val => setNewRoom({ ...newRoom, status: val as Room['status'] })}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Occupied">Occupied</SelectItem>
+                  <SelectItem value="Under Maintenance">Under Maintenance</SelectItem>
+                  <SelectItem value="Cleaning Required">Cleaning Required</SelectItem>
+                  <SelectItem value="Cleaning In Progress">Cleaning In Progress</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input placeholder="Last Cleaned (YYYY-MM-DD)" value={newRoom.lastCleaned} onChange={e => setNewRoom({ ...newRoom, lastCleaned: e.target.value })} />
+              <Input placeholder="Next Cleaning Due (YYYY-MM-DD)" value={newRoom.nextCleaningDue} onChange={e => setNewRoom({ ...newRoom, nextCleaningDue: e.target.value })} />
+              <Button onClick={handleAddRoom}>Add Room</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}
@@ -437,10 +533,24 @@ export default function RoomManagementPage() {
         <TabsContent value="patients" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Patient Admissions</h3>
-            <Button>
-              <User className="mr-2 h-4 w-4" />
-              New Admission
-            </Button>
+            <Dialog open={showAdmission} onOpenChange={setShowAdmission}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setShowAdmission(true)}>
+                  <User className="mr-2 h-4 w-4" />
+                  New Admission
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New Patient Admission</DialogTitle>
+                  <DialogDescription>Admit a new patient to a room.</DialogDescription>
+                </DialogHeader>
+                <PatientAdmissionForm 
+                  room={null} 
+                  onAdmissionComplete={() => { setShowAdmission(false); refreshData(); }} 
+                />
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="space-y-4">
@@ -513,50 +623,74 @@ export default function RoomManagementPage() {
         <TabsContent value="cleaning" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Cleaning Management</h3>
-            <Button>
-              <Sparkles className="mr-2 h-4 w-4" />
-              New Cleaning Task
-            </Button>
+            <Dialog open={showCleaning} onOpenChange={setShowCleaning}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setShowCleaning(true)}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  New Cleaning Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New Cleaning Task</DialogTitle>
+                  <DialogDescription>Assign a new cleaning task to a room.</DialogDescription>
+                </DialogHeader>
+                <CleaningAssignmentForm 
+                  room={null} 
+                  onAssignmentComplete={() => { setShowCleaning(false); refreshData(); }} 
+                />
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {cleaningTasks.map(task => {
               const room = rooms.find(r => r.id === task.roomId)
               return (
-                <Card key={task.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Room {task.roomNumber}</CardTitle>
+                <Card key={task.id} className="border-2 border-gray-200 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Bed className="h-5 w-5 text-blue-500" />
+                        <CardTitle className="text-lg">Room {task.roomNumber}</CardTitle>
+                      </div>
                       <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
                     </div>
-                    <CardDescription>
-                      Assigned to {task.assignedTo}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-sm space-y-1">
-                      <p><strong>Assigned:</strong> {task.assignedDate}</p>
-                      {task.completedDate && (
-                        <p><strong>Completed:</strong> {task.completedDate}</p>
-                      )}
-                      <p><strong>Status:</strong> {task.status}</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <User className="h-4 w-4" />
+                      <span>Assigned to:</span>
+                      <span className="font-medium text-gray-900">{task.assignedTo}</span>
                     </div>
-
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div>
+                        <span className="font-semibold">Assigned:</span> {task.assignedDate}
+                      </div>
+                      {task.completedDate && (
+                        <div>
+                          <span className="font-semibold">Completed:</span> {task.completedDate}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-semibold">Status:</span> 
+                        <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
+                      </div>
+                    </div>
                     {task.notes && (
-                      <div className="p-2 bg-gray-50 rounded text-sm">
-                        {task.notes}
+                      <div className="p-2 bg-gray-50 rounded text-sm border border-gray-200">
+                        <span className="font-semibold">Notes:</span> {task.notes}
                       </div>
                     )}
-
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2 mt-2">
                       {task.status === 'Pending' && (
-                        <Button size="sm" className="flex-1">
+                        <Button size="sm" className="flex-1" variant="secondary">
                           <Sparkles className="mr-1 h-3 w-3" />
                           Start Cleaning
                         </Button>
                       )}
                       {task.status === 'In Progress' && (
-                        <Button size="sm" className="flex-1">
+                        <Button size="sm" className="flex-1" variant="success">
                           <CheckCircle className="mr-1 h-3 w-3" />
                           Mark Complete
                         </Button>

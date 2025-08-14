@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
+<<<<<<< HEAD
 import { DatabaseUtils } from './db-utils';
 import { User } from '@/models/User';
+=======
+import User from '@/models/User';
+>>>>>>> 1d81179 (updated)
 
 // Helper function to get server session (for API routes)
 export async function getServerSession(request: NextRequest) {
