@@ -26,7 +26,7 @@ const content = {
       login: "लॉगिन"
     },
     hero: {
-      badge: "50,000+ मरीज़ों का भरोसा",
+      badge: "1M+ मरीज़ों का भरोसा • 5K+ बच्चों का सुरक्षित प्रसव",
       title: "आपकी स्वास्थ्य",
       titleHighlight: "यात्रा",
       titleEnd: "हमारी प्राथमिकता",
@@ -35,7 +35,7 @@ const content = {
       bookDemo: "हमसे मिलें",
       stats: {
         hospitals: "खुश मरीज़",
-        patients: "सफल इलाज",
+        babies: "बच्चों का प्रसव",
         uptime: "संतुष्टि दर"
       }
     },
@@ -123,9 +123,47 @@ const content = {
         description: "अनुभवी और योग्य डॉक्टर्स जो आपकी हर स्वास्थ्य समस्या का बेहतरीन समाधान देते हैं"
       }
     },
+    gynecology: {
+      badge: "मातृत्व और महिला स्वास्थ्य विशेषज्ञ",
+      title: "नए जीवन का स्वागत",
+      titleHighlight: "विशेषज्ञ देखभाल",
+      titleEnd: "के साथ",
+      description: "डॉ. निहारिका नायक ने 10+ वर्षों की स्त्री रोग और प्रसूति विज्ञान में अपनी विशेषज्ञता के साथ 5,000 से अधिक बच्चों का सफल प्रसव कराया है। वह सुरक्षित प्रसव और मातृ कल्याण पर ध्यान देने के साथ व्यापक महिला स्वास्थ्य सेवा प्रदान करती हैं, जिससे हजारों खुश माता-पिता को खुशी मिली है।",
+      stats: {
+        deliveries: "सुरक्षित प्रसव",
+        experience: "वर्षों का अनुभव",
+        mothers: "खुश माता-पिता",
+        rating: "मरीज़ रेटिंग"
+      },
+      bookConsultation: "परामर्श बुक करें",
+      emergencyMaternity: "आपातकालीन मातृत्व",
+      achievementBadge: "5000+ सुरक्षित प्रसव"
+    },
+    founder: {
+      badge: "अस्पताल संस्थापक और मुख्य आर्थोपेडिक सर्जन",
+      title: "हमारे",
+      titleHighlight: "संस्थापक",
+      titleEnd: "से मिलें",
+      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 40 से अधिक वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
+      qualifications: {
+        title: "विशेषज्ञ योग्यताएं",
+        description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 40+ वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
+      },
+      vision: {
+        title: "रोगी-केंद्रित दृष्टि",
+        description: "सभी को सुलभ, गुणवत्तापूर्ण स्वास्थ्य सेवा प्रदान करने के मिशन के साथ आरोग्य अस्पताल की स्थापना की"
+      },
+      excellence: {
+        title: "चिकित्सा उत्कृष्टता",
+        description: "सफल आर्थोपेडिक प्रक्रियाओं और उपचारों के साथ 7,00,000+ से अधिक रोगियों का इलाज किया"
+      },
+      meetFounder: "संस्थापक से मिलें",
+      orthopedicConsultation: "आर्थोपेडिक परामर्श",
+      founderBadge: "अस्पताल संस्थापक"
+    },
     cta: {
       title: "आज ही शुरू करें अपनी बेहतर स्वास्थ्य की शुरुआत",
-      subtitle: "50,000+ संतुष्ट मरीज़ों का भरोसा। आपकी स्वास्थ्य देखभाल अब और भी आसान।",
+      subtitle: "1M+ संतुष्ट मरीज़ों का भरोसा। 5K+ बच्चों का सुरक्षित प्रसव। आपकी स्वास्थ्य देखभाल अब और भी आसान।",
       startTrial: "तुरंत अपॉइंटमेंट बुक करें",
       scheduleDemo: "निःशुल्क सलाह लें"
     },
@@ -207,7 +245,7 @@ const content = {
       login: "Login"
     },
     hero: {
-      badge: "Trusted by 50,000+ Patients",
+      badge: "Trusted by 1M+ Patients • 5K+ Babies Delivered Safely",
       title: "Your Health",
       titleHighlight: "Journey",
       titleEnd: "Our Priority",
@@ -216,7 +254,7 @@ const content = {
       bookDemo: "Meet Our Team",
       stats: {
         hospitals: "Happy Patients",
-        patients: "Successful Treatments",
+        babies: "Babies Delivered",
         uptime: "Satisfaction Rate"
       }
     },
@@ -304,9 +342,47 @@ const content = {
         description: "Experienced and qualified doctors who provide the best solutions for all your health problems"
       }
     },
+    gynecology: {
+      badge: "Maternity & Women's Health Expert",
+      title: "Bringing New Life with",
+      titleHighlight: "Expert Care",
+      titleEnd: "",
+      description: "Dr. Niharika Nayak has successfully delivered over 5,000 babies with her 10+ years of expertise in gynecology and obstetrics. She provides comprehensive women's healthcare with a focus on safe deliveries and maternal wellness, bringing joy to thousands of happy parents.",
+      stats: {
+        deliveries: "Safe Deliveries",
+        experience: "Years Experience",
+        mothers: "Happy Parents",
+        rating: "Patient Rating"
+      },
+      bookConsultation: "Book Consultation",
+      emergencyMaternity: "Emergency Maternity",
+      achievementBadge: "5000+ Safe Deliveries"
+    },
+    founder: {
+      badge: "Hospital Founder & Chief Orthopedic Surgeon",
+      title: "Meet Our",
+      titleHighlight: "Founder",
+      titleEnd: "",
+      description: "Dr. G K Nayak, the visionary founder of Arogya Hospital, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      qualifications: {
+        title: "Expert Qualifications",
+        description: "MS (Orthopedics) with 40+ years of specialized experience in joint replacement and trauma surgery"
+      },
+      vision: {
+        title: "Patient-Centric Vision",
+        description: "Founded Arogya Hospital with the mission to provide accessible, quality healthcare to all"
+      },
+      excellence: {
+        title: "Medical Excellence",
+        description: "Treated over 700,000+ patients with successful orthopedic procedures and treatments"
+      },
+      meetFounder: "Meet the Founder",
+      orthopedicConsultation: "Orthopedic Consultation",
+      founderBadge: "Hospital Founder"
+    },
     cta: {
       title: "Start Your Better Health Journey Today",
-      subtitle: "Trusted by 50,000+ satisfied patients. Your healthcare is now easier than ever.",
+      subtitle: "Trusted by 1M+ satisfied patients. 5K+ babies delivered safely. Your healthcare is now easier than ever.",
       startTrial: "Book Appointment Now",
       scheduleDemo: "Get Free Consultation"
     },
@@ -448,46 +524,147 @@ export default function LandingPage() {
   const doctors = [
     {
       id: 1,
-      name: 'Dr. Anjali Sharma',
-      specialization: 'Cardiology',
-      qualification: 'MD, DM (Cardiology)',
-      experience: '15+ Years',
-      patients: '5k+',
+      name: 'Dr G K Nayak',
+      specialization: 'Orthopedics (Founder)',
+      qualification: 'MS (Ortho), Founder',
+      experience: '40+ Years',
+      patients: '700K+',
       rating: 4.9,
-      availability: 'Mon-Fri, 10am-1pm',
+      availability: 'Mon-Sat, 9am-1pm',
       languages: ['Hindi', 'English'],
-      about: 'Dr. Sharma is a renowned cardiologist known for her patient-centric approach and expertise in complex cardiac procedures.'
+      about: 'Dr. G K Nayak is the founder of Arogya Hospital and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
+      isFounder: true
     },
     {
       id: 2,
-      name: 'Dr. Vikram Singh',
-      specialization: 'Orthopedics',
-      qualification: 'MS (Ortho)',
-      experience: '12+ Years',
-      patients: '4k+',
-      rating: 4.8,
-      availability: 'Mon-Sat, 9am-12pm',
-      languages: ['Hindi', 'English', 'Punjabi'],
-      about: 'Dr. Singh specializes in joint replacement surgeries and sports injuries, helping patients regain mobility and live pain-free.'
+      name: 'Dr Niharika Nayak',
+      specialization: 'Gynecology',
+      qualification: 'MD, DGO',
+      experience: '10+ Years',
+      patients: '15K+',
+      rating: 4.9,
+      availability: 'Tue-Sat, 2pm-5pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Niharika Nayak is a leading gynecologist with 10+ years of experience in gynecology and obstetrics. She has successfully delivered over 5000 babies, bringing joy to thousands of happy parents.',
+      isGynecologist: true
     },
     {
       id: 3,
-      name: 'Dr. Priya Desai',
-      specialization: 'Gynecology',
-      qualification: 'MD, DGO',
-      experience: '18+ Years',
+      name: 'Dr Vinod Paliwal',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '15+ Years',
+      patients: '5k+',
+      rating: 4.8,
+      availability: 'Mon-Fri, 10am-1pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Vinod Paliwal specializes in orthopedic surgery with expertise in joint replacement and sports injury treatment.'
+    },
+    {
+      id: 4,
+      name: 'Dr K D Singh',
+      specialization: 'Anesthetics',
+      qualification: 'MD (Anesthesia)',
+      experience: '12+ Years',
+      patients: '8k+',
+      rating: 4.8,
+      availability: 'Mon-Sat, 8am-6pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. K D Singh is an experienced anesthetist ensuring safe and comfortable surgical procedures for all patients.'
+    },
+    {
+      id: 5,
+      name: 'Dr Ramakant Dewangan',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '10+ Years',
+      patients: '4k+',
+      rating: 4.7,
+      availability: 'Tue-Sat, 9am-12pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Ramakant Dewangan specializes in orthopedic treatments with focus on bone and joint disorders.'
+    },
+    {
+      id: 6,
+      name: 'Dr Shreyansh Shukla',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '8+ Years',
+      patients: '3k+',
+      rating: 4.7,
+      availability: 'Mon-Fri, 2pm-5pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Shreyansh Shukla is a skilled orthopedic surgeon with expertise in minimally invasive procedures.'
+    },
+    {
+      id: 7,
+      name: 'Dr Punit Mohanty',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '12+ Years',
+      patients: '4.5k+',
+      rating: 4.8,
+      availability: 'Mon-Sat, 10am-1pm',
+      languages: ['Hindi', 'English', 'Odia'],
+      about: 'Dr. Punit Mohanty specializes in orthopedic surgery with particular expertise in spine and joint treatments.'
+    },
+    {
+      id: 8,
+      name: 'Dr Ajay Rathore',
+      specialization: 'BAMS (Ayurveda)',
+      qualification: 'BAMS',
+      experience: '15+ Years',
+      patients: '6k+',
+      rating: 4.8,
+      availability: 'Mon-Sat, 9am-2pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Ajay Rathore is an experienced Ayurvedic physician providing holistic treatment approaches for various health conditions.'
+    },
+    {
+      id: 9,
+      name: 'Dr Payal Rathore',
+      specialization: 'Visiting Anesthetist',
+      qualification: 'MD (Anesthesia)',
+      experience: '10+ Years',
+      patients: '3k+',
+      rating: 4.7,
+      availability: 'On Call',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Payal Rathore is a visiting anesthetist providing specialized anesthesia services for complex procedures.'
+    },
+    {
+      id: 10,
+      name: 'Dr Shubham Gupta',
+      specialization: 'Visiting Surgeon',
+      qualification: 'MS (Surgery)',
+      experience: '12+ Years',
+      patients: '4k+',
+      rating: 4.8,
+      availability: 'On Call',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Shubham Gupta is a visiting surgeon with expertise in general and laparoscopic surgical procedures.'
+    },
+    {
+      id: 11,
+      name: 'Dr R K Chandra',
+      specialization: 'Visiting Surgeon',
+      qualification: 'MS (Surgery)',
+      experience: '20+ Years',
       patients: '7k+',
       rating: 4.9,
-      availability: 'Tue-Sat, 2pm-5pm',
-      languages: ['Hindi', 'English', 'Gujarati'],
-      about: 'Dr. Desai is a leading gynecologist with extensive experience in high-risk pregnancies and minimally invasive surgeries.'
+      availability: 'On Call',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. R K Chandra is a senior visiting surgeon with extensive experience in complex surgical procedures and patient care.'
     }
   ];
 
   const departments = [
-    "Cardiology",
-    "Gynecology", 
     "Orthopedics",
+    "Gynecology", 
+    "Anesthetics",
+    "BAMS (Ayurveda)",
+    "General Surgery",
+    "Cardiology",
     "Pediatrics",
     "General Medicine",
     "Dermatology",
@@ -544,12 +721,12 @@ export default function LandingPage() {
               
               <div className="grid grid-cols-3 gap-8 pt-8">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">50K+</div>
+                  <div className="text-3xl font-bold text-gray-900">1M+</div>
                   <div className="text-gray-600">{t.hero.stats.hospitals}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">1L+</div>
-                  <div className="text-gray-600">{t.hero.stats.patients}</div>
+                  <div className="text-3xl font-bold text-gray-900">5K+</div>
+                  <div className="text-gray-600">{t.hero.stats.babies}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-gray-900">98%</div>
@@ -563,7 +740,8 @@ export default function LandingPage() {
                 <ImageCarousel
                   images={[
                     "/landingpage/pic1.jpeg",
-                    "/landingpage/pic2.jpeg"
+                    "/landingpage/pic2.jpeg",
+                    "/landingpage/founder.jpeg"
                   ]}
                   autoRotate={true}
                   rotationInterval={5000}
@@ -596,16 +774,40 @@ export default function LandingPage() {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {doctors.map((doctor) => (
+            {doctors.slice(0, 6).map((doctor) => (
               <Card key={doctor.id} className="border-pink-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 <CardContent className="p-0">
                   {/* Doctor Image */}
-                  <div className="relative h-64 bg-gradient-to-br from-pink-100 to-pink-200">
+                  <div className={`relative h-64 ${doctor.isFounder ? 'bg-gradient-to-br from-yellow-100 to-yellow-200' : doctor.isGynecologist ? 'bg-gradient-to-br from-purple-100 to-purple-200' : 'bg-gradient-to-br from-pink-100 to-pink-200'}`}>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-8 rounded-full">
-                        <User className="h-16 w-16 text-white" />
-                      </div>
+                      {doctor.isGynecologist ? (
+                        <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-8 rounded-full relative">
+                          <User className="h-16 w-16 text-white" />
+                          {/* Baby icon overlay for gynecologist */}
+                          <div className="absolute -bottom-2 -right-2 bg-pink-400 p-2 rounded-full">
+                            <Heart className="h-6 w-6 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`${doctor.isFounder ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 'bg-gradient-to-r from-pink-400 to-pink-500'} p-8 rounded-full`}>
+                          <User className="h-16 w-16 text-white" />
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Special Badges */}
+                    {doctor.isFounder && (
+                      <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        FOUNDER
+                      </div>
+                    )}
+                    {doctor.isGynecologist && (
+                      <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center">
+                        <Heart className="h-3 w-3 mr-1" />
+                        5000+ BABIES
+                      </div>
+                    )}
+                    
                     {/* Rating Badge */}
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center space-x-1">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
@@ -617,13 +819,13 @@ export default function LandingPage() {
                   <div className="p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold text-gray-900 mb-1">{doctor.name}</h3>
-                      <p className="text-pink-600 font-medium mb-2">{doctor.specialization}</p>
+                      <p className={`${doctor.isFounder ? 'text-yellow-600' : doctor.isGynecologist ? 'text-purple-600' : 'text-pink-600'} font-medium mb-2`}>{doctor.specialization}</p>
                       <p className="text-gray-600 text-sm">{doctor.qualification}</p>
                     </div>
                     
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="text-center bg-pink-50 p-3 rounded-lg">
+                      <div className={`text-center ${doctor.isFounder ? 'bg-yellow-50' : doctor.isGynecologist ? 'bg-purple-50' : 'bg-pink-50'} p-3 rounded-lg`}>
                         <div className="text-lg font-bold text-gray-900">{doctor.experience}</div>
                         <div className="text-xs text-gray-600">{t.doctors.experience}</div>
                       </div>
@@ -651,7 +853,7 @@ export default function LandingPage() {
                     {/* Action Buttons */}
                     <div className="flex gap-3">
                       <Button 
-                        className="flex-1 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full"
+                        className={`flex-1 ${doctor.isFounder ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600' : doctor.isGynecologist ? 'bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600' : 'bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600'} text-white rounded-full`}
                         onClick={() => {
                           setAppointmentForm(prev => ({ ...prev, doctor: doctor.name, department: doctor.specialization }))
                           document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
@@ -660,7 +862,7 @@ export default function LandingPage() {
                         <Calendar className="h-4 w-4 mr-2" />
                         {t.doctors.bookAppointment}
                       </Button>
-                      <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-4">
+                      <Button variant="outline" className={`${doctor.isFounder ? 'border-yellow-200 text-yellow-600 hover:bg-yellow-50' : doctor.isGynecologist ? 'border-purple-200 text-purple-600 hover:bg-purple-50' : 'border-pink-200 text-pink-600 hover:bg-pink-50'} rounded-full px-4`}>
                         <User className="h-4 w-4" />
                       </Button>
                     </div>
@@ -668,6 +870,205 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+          
+          {/* Show More Doctors Button */}
+          <div className="text-center mt-12">
+            <Button 
+              variant="outline" 
+              className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-8 py-3 text-lg"
+              onClick={() => {
+                // You can implement a modal or expand functionality here
+                alert('View all doctors functionality can be implemented here')
+              }}
+            >
+              View All {doctors.length} Doctors
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Special Gynecology Section */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="relative">
+              <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-3xl p-8 shadow-2xl">
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-12 rounded-full mb-6 relative">
+                      <User className="h-20 w-20 text-white" />
+                      {/* Baby icon overlay */}
+                      <div className="absolute -bottom-2 -right-2 bg-pink-400 p-3 rounded-full">
+                        <Heart className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr Niharika Nayak</h3>
+                    <p className="text-purple-600 font-medium">Gynecologist</p>
+                  </div>
+                </div>
+              </div>
+              {/* Achievement Badge */}
+              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-2xl shadow-lg border border-purple-100">
+                <div className="flex items-center space-x-2">
+                  <Heart className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700">{t.gynecology.achievementBadge}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="inline-flex items-center bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <Heart className="h-4 w-4 mr-2" />
+                {t.gynecology.badge}
+              </div>
+              
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                {t.gynecology.title} 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"> {t.gynecology.titleHighlight}</span>
+                {t.gynecology.titleEnd}
+              </h2>
+              
+              <p className="text-xl text-gray-600 mb-8">
+                {t.gynecology.description}
+              </p>
+              
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
+                  <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
+                  <div className="text-3xl font-bold text-pink-600 mb-2">10+</div>
+                  <div className="text-gray-600">{t.gynecology.stats.experience}</div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
+                  <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
+                  <div className="text-3xl font-bold text-pink-600 mb-2">4.9★</div>
+                  <div className="text-gray-600">{t.gynecology.stats.rating}</div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => {
+                    setAppointmentForm(prev => ({ ...prev, doctor: 'Dr Niharika Nayak', department: 'Gynecology' }))
+                    document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  {t.gynecology.bookConsultation}
+                </Button>
+                <Button size="lg" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-full px-8 py-4 text-lg">
+                  <Phone className="h-5 w-5 mr-2" />
+                  {t.gynecology.emergencyMaternity}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Founder Section */}
+      <section className="py-20 bg-gradient-to-br from-yellow-50 to-orange-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <Award className="h-4 w-4 mr-2" />
+                {t.founder.badge}
+              </div>
+              
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                {t.founder.title} 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-600"> {t.founder.titleHighlight}</span>
+                {t.founder.titleEnd}
+              </h2>
+              
+              <p className="text-xl text-gray-600 mb-8">
+                {t.founder.description}
+              </p>
+              
+              <div className="space-y-6 mb-8">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <GraduationCap className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.founder.qualifications.title}</h3>
+                    <p className="text-gray-600">{t.founder.qualifications.description}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <Users className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.founder.vision.title}</h3>
+                    <p className="text-gray-600">{t.founder.vision.description}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <Award className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.founder.excellence.title}</h3>
+                    <p className="text-gray-600">{t.founder.excellence.description}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => {
+                    setAppointmentForm(prev => ({ ...prev, doctor: 'Dr G K Nayak', department: 'Orthopedics (Founder)' }))
+                    document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  {t.founder.meetFounder}
+                </Button>
+                <Button size="lg" variant="outline" className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full px-8 py-4 text-lg">
+                  <Stethoscope className="h-5 w-5 mr-2" />
+                  {t.founder.orthopedicConsultation}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-3xl p-8 shadow-2xl">
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-12 rounded-full mb-6 relative">
+                      <User className="h-20 w-20 text-white" />
+                      {/* Founder crown icon */}
+                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-orange-400 p-2 rounded-full">
+                        <Award className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr G K Nayak</h3>
+                    <p className="text-yellow-600 font-medium">Founder & Chief Orthopedic Surgeon</p>
+                  </div>
+                </div>
+              </div>
+              {/* Founder Badge */}
+              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-2xl shadow-lg border border-yellow-100">
+                <div className="flex items-center space-x-2">
+                  <Award className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium text-gray-700">{t.founder.founderBadge}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
