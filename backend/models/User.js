@@ -2,6 +2,22 @@ import { DataTypes } from 'sequelize';
 
 const defineUserModel = (sequelize) => {
   const User = sequelize.define('User', {
+  firstName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  phoneNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -19,10 +35,7 @@ const defineUserModel = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
+
     role: {
       type: DataTypes.ENUM('patient', 'doctor', 'admin', 'super-admin', 'hr_manager', 'department_head'),
       allowNull: false

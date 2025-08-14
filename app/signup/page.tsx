@@ -96,52 +96,96 @@ export default function SignupPage() {
     "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
   ]
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
-      return
+    const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate all fields on final submission
+    if (!validateForm(true)) {
+      toast.error("Please fill out all required fields.")
+      return;
     }
+
+    // Transform formData to match the backend API schema
+    const [firstName, ...lastNameParts] = formData.name.split(' ');
+    const lastName = lastNameParts.join(' ');
+
+    const apiPayload = {
+      ...formData, // Pass all other existing form data
+      firstName: firstName || '',
+      lastName: lastName || '',
+      phoneNumber: formData.contactNumber,
+      address: [
+        formData.address.street,
+        formData.address.city,
+        formData.address.state,
+        formData.address.zipCode,
+        formData.address.country,
+      ].filter(Boolean).join(', '),
+    };
 
     try {
-      await register(formData)
+      await register(apiPayload);
     } catch (error) {
-      console.error('Registration error:', error)
+      console.error('Registration error:', error);
     }
-  }
+  };
 
-  const validateForm = (): boolean => {
+  const validateForm = (isFinalSubmission = false): boolean => {
     const newErrors: Record<string, string> = {}
-
-    // Basic validation
-    if (!formData.name.trim()) newErrors.name = "Name is required"
-    if (!formData.email.trim()) newErrors.email = "Email is required"
-    if (!formData.password) newErrors.password = "Password is required"
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords don't match"
-    }
-    if (!formData.contactNumber.trim()) newErrors.contactNumber = "Phone number is required"
-    if (!formData.role) newErrors.role = "Role is required"
-    if (!formData.acceptTerms) newErrors.acceptTerms = "You must accept the terms and conditions"
-
-    // Password strength validation
-    if (formData.password && formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters"
-    }
-
-    // Professional info validation for non-patients
-    if (formData.role && formData.role !== 'patient') {
-      if (!formData.department) newErrors.department = "Department is required"
-      if (formData.role === 'doctor' && !formData.licenseNumber) {
-        newErrors.licenseNumber = "License number is required for doctors"
+    const stepValidations = {
+      1: () => {
+        if (!formData.name.trim()) newErrors.name = "Name is required"
+        if (!formData.email.trim()) newErrors.email = "Email is required"
+        if (!formData.password) newErrors.password = "Password is required"
+        if (formData.password !== formData.confirmPassword) {
+          newErrors.confirmPassword = "Passwords don't match"
+        }
+        if (formData.password && formData.password.length < 8) {
+          newErrors.password = "Password must be at least 8 characters"
+        }
+        if (!formData.contactNumber.trim()) newErrors.contactNumber = "Phone number is required"
+        if (!formData.role) newErrors.role = "Role is required"
+      },
+      2: () => {
+        if (formData.role && formData.role !== 'patient') {
+          if (!formData.department) newErrors.department = "Department is required"
+          if (formData.role === 'doctor' && !formData.licenseNumber) {
+            newErrors.licenseNumber = "License number is required for doctors"
+          }
+        }
+      },
+      3: () => {
+        if (!formData.acceptTerms) newErrors.acceptTerms = "You must accept the terms and conditions"
       }
     }
 
+    if (isFinalSubmission) {
+      // Run all validations
+      Object.values(stepValidations).forEach(validation => validation());
+    } else {
+      // Run only current step validation
+      stepValidations[currentStep as keyof typeof stepValidations]();
+    }
+
+    
+
     setErrors(newErrors)
+
+    if (isFinalSubmission && Object.keys(newErrors).length > 0) {
+      // Find the first step with an error and navigate to it
+      const firstErrorField = Object.keys(newErrors)[0];
+      if (['name', 'email', 'password', 'confirmPassword', 'contactNumber', 'role'].includes(firstErrorField)) {
+        setCurrentStep(1);
+      } else if (['department', 'licenseNumber'].includes(firstErrorField)) {
+        setCurrentStep(2);
+      } else if (['acceptTerms'].includes(firstErrorField)) {
+        setCurrentStep(3);
+      }
+    }
     return Object.keys(newErrors).length === 0
   }
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -167,8 +211,10 @@ export default function SignupPage() {
   }
 
   const nextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1)
+    if (validateForm()) {
+      if (currentStep < 3) {
+        setCurrentStep(currentStep + 1)
+      }
     }
   }
 
@@ -729,7 +775,7 @@ export default function SignupPage() {
                       <Checkbox
                         id="acceptTerms"
                         checked={formData.acceptTerms}
-                        onCheckedChange={(checked) => handleInputChange('acceptTerms', checked.toString())}
+                        onCheckedChange={(checked: boolean) => handleInputChange('acceptTerms', checked)}
                         className="border-pink-300 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
                       />
                       <div className="space-y-1">

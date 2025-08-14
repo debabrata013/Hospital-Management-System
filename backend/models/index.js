@@ -1,0 +1,20 @@
+const sequelize = require('../config/database');
+const User = require('./User');
+const File = require('./File');
+
+const models = {
+  User,
+  File,
+};
+
+// Define associations here if any
+// For example, a user can have many files:
+User.hasMany(File, { foreignKey: 'uploaderId', as: 'uploads' });
+File.belongsTo(User, { foreignKey: 'uploaderId', as: 'uploader' });
+
+const db = {
+  ...models,
+  sequelize,
+};
+
+module.exports = db;
