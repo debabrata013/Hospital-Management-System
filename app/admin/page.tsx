@@ -185,6 +185,7 @@ const navigationItems = [
       { title: "Manage Patients", icon: Users, url: "/admin/patients" },
       { title: "Appointments", icon: Calendar, url: "/admin/appointments" },
       { title: "Admissions", icon: Bed, url: "/admin/admissions" },
+      { title: "Room Management", icon: Bed, url: "/admin/room-management" },
     ]
   },
   {
