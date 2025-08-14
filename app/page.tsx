@@ -1,583 +1,692 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { ImageCarousel } from "@/components/ui/image-carousel"
-import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap, Star, GraduationCap, Stethoscope, User, CalendarDays, Send, CheckCircle, Bell, RefreshCw } from 'lucide-react'
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageCarousel } from "@/components/ui/image-carousel";
+import { Navbar } from '@/components/landing/Navbar';
+import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserCheck, FileText, Truck, Headphones, MapPin, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle, Navigation, Zap, Star, GraduationCap, Stethoscope, User, CalendarDays, Send, CheckCircle, Bell, RefreshCw, MenuIcon } from 'lucide-react';
+
+const content = {
+  hindi: {
+    hospitalName: "आरोग्य अस्पताल",
+    nav: {
+      home: "मुख्य पृष्ठ",
+      about: "हमारे बारे में",
+      doctors: "हमारे डॉक्टर",
+      appointment: "अपॉइंटमेंट बुक करें",
+      contact: "संपर्क करें",
+      login: "लॉगिन"
+    },
+    hero: {
+      badge: "1M+ मरीज़ों का भरोसा • 5K+ बच्चों का सुरक्षित प्रसव",
+      title: "आपकी स्वास्थ्य",
+      titleHighlight: "यात्रा",
+      titleEnd: "हमारी प्राथमिकता",
+      description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
+      getStarted: "अपॉइंटमेंट बुक करें",
+      bookDemo: "हमसे मिलें",
+      stats: {
+        hospitals: "खुश मरीज़",
+        babies: "बच्चों का प्रसव",
+        uptime: "संतुष्टि दर"
+      }
+    },
+    doctors: {
+      title: "हमारे विशेषज्ञ डॉक्टरों से मिलें",
+      subtitle: "हमारी अनुभवी और योग्य डॉक्टरों की टीम आपको सर्वोत्तम स्वास्थ्य सेवा प्रदान करने के लिए यहाँ है",
+      viewProfile: "प्रोफाइल देखें",
+      bookAppointment: "अपॉइंटमेंट बुक करें",
+      experience: "अनुभव",
+      patients: "मरीज़ों का इलाज",
+      rating: "रेटिंग",
+      languages: "भाषाएं",
+      availability: "उपलब्ध"
+    },
+    appointment: {
+      title: "ऑनलाइन अपॉइंटमेंट बुक करें",
+      subtitle: "हमारे विशेषज्ञ डॉक्टरों के साथ अपनी मुलाकात का समय तय करें। अपना पसंदीदा समय चुनें और इंतज़ार से बचें।",
+      form: {
+        name: "पूरा नाम",
+        phone: "फोन नंबर",
+        email: "ईमेल पता",
+        department: "विभाग चुनें",
+        doctor: "डॉक्टर चुनें",
+        date: "पसंदीदा तारीख",
+        time: "पसंदीदा समय",
+        reason: "मुलाकात का कारण",
+        submit: "अपॉइंटमेंट बुक करें",
+        submitting: "बुक हो रहा है...",
+        success: "अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
+        error: "अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
+      },
+      benefits: {
+        title: "ऑनलाइन बुकिंग क्यों करें?",
+        noWaiting: {
+          title: "कोई इंतज़ार नहीं",
+          description: "कतार छोड़ें और अपने डॉक्टर से सीधे मिलें"
+        },
+        confirmation: {
+          title: "तुरंत पुष्टि",
+          description: "SMS और ईमेल के माध्यम से तुरंत पुष्टि प्राप्त करें"
+        },
+        reminder: {
+          title: "अपॉइंटमेंट रिमाइंडर",
+          description: "अपने अपॉइंटमेंट से पहले समय पर रिमाइंडर प्राप्त करें"
+        },
+        reschedule: {
+          title: "आसान रीशेड्यूलिंग",
+          description: "कुछ ही क्लिक में अपना अपॉइंटमेंट समय बदलें"
+        }
+      }
+    },
+    features: {
+      title: "Everything You Need for Your Healthcare",
+      subtitle: "Our modern facilities provide you with a better healthcare experience",
+      patientManagement: {
+        title: "Easy Appointments",
+        description: "Book online appointments from home, choose your time and avoid long queues"
+      },
+      doctorDashboard: {
+        title: "Digital Reports",
+        description: "View and download all your medical reports, test results and prescriptions online"
+      },
+      pharmacySystem: {
+        title: "Home Delivery",
+        description: "Get medicines delivered to your home. Direct delivery from our pharmacy to your doorstep"
+      },
+      appointmentBooking: {
+        title: "24/7 सहायता",
+        description: "किसी भी समय हमारी हेल्पलाइन पर कॉल करें या चैट करें। आपातकालीन सेवाएं हमेशा उपलब्ध"
+      }
+    },
+    about: {
+      title: "आरोग्य अस्पताल आपके लिए क्यों सबसे अच्छा है?",
+      description: "हम समझते हैं कि हर मरीज़ अलग है। इसीलिए हमने आपकी सुविधा को ध्यान में रखते हुए अपनी सेवाएं डिज़ाइन की हैं। आपका स्वास्थ्य, आपकी सुविधा, हमारी जिम्मेदारी।",
+      support247: {
+        title: "तुरंत सेवा",
+        description: "कोई लंबा इंतज़ार नहीं। अपॉइंटमेंट के समय पर मिलें डॉक्टर से और पाएं तुरंत इलाज"
+      },
+      compliance: {
+        title: "सुरक्षित और निजी",
+        description: "आपकी व्यक्तिगत जानकारी पूरी तरह सुरक्षित। भारतीय मेडिकल नियमों के अनुसार डेटा सुरक्षा"
+      },
+      awardWinning: {
+        title: "विशेषज्ञ डॉक्टर्स",
+        description: "अनुभवी और योग्य डॉक्टर्स जो आपकी हर स्वास्थ्य समस्या का बेहतरीन समाधान देते हैं"
+      }
+    },
+    gynecology: {
+      badge: "मातृत्व और महिला स्वास्थ्य विशेषज्ञ",
+      title: "नए जीवन का स्वागत",
+      titleHighlight: "विशेषज्ञ देखभाल",
+      titleEnd: "के साथ",
+      description: "डॉ. निहारिका नायक ने 10+ वर्षों की स्त्री रोग और प्रसूति विज्ञान में अपनी विशेषज्ञता के साथ 5,000 से अधिक बच्चों का सफल प्रसव कराया है। वह सुरक्षित प्रसव और मातृ कल्याण पर ध्यान देने के साथ व्यापक महिला स्वास्थ्य सेवा प्रदान करती हैं, जिससे हजारों खुश माता-पिता को खुशी मिली है।",
+      stats: {
+        deliveries: "सुरक्षित प्रसव",
+        experience: "वर्षों का अनुभव",
+        mothers: "खुश माता-पिता",
+        rating: "मरीज़ रेटिंग"
+      },
+      bookConsultation: "परामर्श बुक करें",
+      emergencyMaternity: "आपातकालीन मातृत्व",
+      achievementBadge: "5000+ सुरक्षित प्रसव"
+    },
+    founder: {
+      badge: "अस्पताल संस्थापक और मुख्य आर्थोपेडिक सर्जन",
+      title: "हमारे",
+      titleHighlight: "संस्थापक",
+      titleEnd: "से मिलें",
+      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 40 से अधिक वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
+      qualifications: {
+        title: "विशेषज्ञ योग्यताएं",
+        description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 40+ वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
+      },
+      vision: {
+        title: "रोगी-केंद्रित दृष्टि",
+        description: "सभी को सुलभ, गुणवत्तापूर्ण स्वास्थ्य सेवा प्रदान करने के मिशन के साथ आरोग्य अस्पताल की स्थापना की"
+      },
+      excellence: {
+        title: "चिकित्सा उत्कृष्टता",
+        description: "सफल आर्थोपेडिक प्रक्रियाओं और उपचारों के साथ 7,00,000+ से अधिक रोगियों का इलाज किया"
+      },
+      meetFounder: "संस्थापक से मिलें",
+      orthopedicConsultation: "आर्थोपेडिक परामर्श",
+      founderBadge: "अस्पताल संस्थापक"
+    },
+    cta: {
+      title: "आज ही शुरू करें अपनी बेहतर स्वास्थ्य की शुरुआत",
+      subtitle: "1M+ संतुष्ट मरीज़ों का भरोसा। 5K+ बच्चों का सुरक्षित प्रसव। आपकी स्वास्थ्य देखभाल अब और भी आसान।",
+      startTrial: "तुरंत अपॉइंटमेंट बुक करें",
+      scheduleDemo: "निःशुल्क सलाह लें"
+    },
+    contact: {
+      title: "हमसे जुड़ें",
+      subtitle: "कोई सवाल है? हम आपकी मदद के लिए हमेशा तैयार हैं",
+      getInTouch: "संपर्क करें",
+      visitUs: "हमसे मिलें",
+      callUs: "कॉल करें",
+      phone: "+91 98765 43210",
+      email: "ईमेल करें",
+      emailAddress: "care@arogyahospital.com",
+      address: "पता",
+      fullAddress: "123, स्वास्थ्य नगर, कनॉट प्लेस के पास, नई दिल्ली - 110001",
+      supportHours: "सेवा समय",
+      available: "24/7 उपलब्ध",
+      emergency: "आपातकाल",
+      emergencyPhone: "+91 98765 43211",
+      directions: "दिशा निर्देश पाएं",
+      bookAppointment: "अपॉइंटमेंट बुक करें",
+      liveChat: "लाइव चैट",
+      whatsapp: "व्हाट्सऐप पर संदेश"
+    },
+    footer: {
+      hospitalName: "आरोग्य अस्पताल",
+      tagline: "आपकी स्वास्थ्य देखभाल में आपका विश्वसनीय साथी",
+      quickLinks: {
+        title: "त्वरित लिंक",
+        home: "मुख्य पृष्ठ",
+        about: "हमारे बारे में",
+        services: "सेवाएं",
+        doctors: "डॉक्टर्स",
+        contact: "संपर्क करें",
+        emergency: "आपातकाल"
+      },
+      services: {
+        title: "हमारी सेवाएं",
+        generalMedicine: "सामान्य चिकित्सा",
+        cardiology: "हृदय रोग",
+        orthopedics: "हड्डी रोग",
+        pediatrics: "बाल रोग",
+        gynecology: "स्त्री रोग",
+        pharmacy: "फार्मेसी"
+      },
+      contact: {
+        title: "संपर्क जानकारी",
+        address: "123, स्वास्थ्य नगर, नई दिल्ली - 110001",
+        phone: "+91 98765 43210",
+        email: "care@arogyahospital.com",
+        emergency: "आपातकाल: +91 98765 43211"
+      },
+      hours: {
+        title: "समय सारणी",
+        opd: "OPD: सुबह 8:00 - शाम 8:00",
+        emergency: "आपातकाल: 24/7 उपलब्ध",
+        pharmacy: "फार्मेसी: सुबह 7:00 - रात 11:00"
+      },
+      social: {
+        title: "हमसे जुड़ें",
+        facebook: "Facebook",
+        twitter: "Twitter",
+        instagram: "Instagram",
+        youtube: "YouTube"
+      },
+      copyright: "© 2024 आरोग्य अस्पताल। सभी अधिकार सुरक्षित।",
+      privacy: "गोपनीयता नीति",
+      terms: "नियम और शर्तें",
+      disclaimer: "अस्वीकरण"
+    }
+  },
+  english: {
+    hospitalName: "Arogya Hospital",
+    nav: {
+      home: "Home",
+      about: "About",
+      doctors: "Our Doctors",
+      appointment: "Book Appointment",
+      contact: "Contact",
+      login: "Login"
+    },
+    hero: {
+      badge: "Trusted by 1M+ Patients • 5K+ Babies Delivered Safely",
+      title: "Your Health",
+      titleHighlight: "Journey",
+      titleEnd: "Our Priority",
+      description: "At Arogya Hospital, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
+      getStarted: "Book Appointment",
+      bookDemo: "Meet Our Team",
+      stats: {
+        hospitals: "Happy Patients",
+        babies: "Babies Delivered",
+        uptime: "Satisfaction Rate"
+      }
+    },
+    doctors: {
+      title: "Meet Our Expert Doctors",
+      subtitle: "Our team of experienced and qualified doctors are here to provide you with the best healthcare",
+      viewProfile: "View Profile",
+      bookAppointment: "Book Appointment",
+      experience: "Experience",
+      patients: "Patients Treated",
+      rating: "Rating",
+      languages: "Languages",
+      availability: "Available"
+    },
+    appointment: {
+      title: "Book Your Appointment Online",
+      subtitle: "Schedule your visit with our expert doctors. Choose your preferred time and avoid waiting.",
+      form: {
+        name: "Full Name",
+        phone: "Phone Number",
+        email: "Email Address",
+        department: "Select Department",
+        doctor: "Select Doctor",
+        date: "Preferred Date",
+        time: "Preferred Time",
+        reason: "Reason for Visit",
+        submit: "Book Appointment",
+        submitting: "Booking...",
+        success: "Appointment booked successfully!",
+        error: "Failed to book appointment. Please try again."
+      },
+      benefits: {
+        title: "Why Book Online?",
+        noWaiting: {
+          title: "No Waiting",
+          description: "Skip the queue and get direct access to your doctor"
+        },
+        confirmation: {
+          title: "Instant Confirmation",
+          description: "Get immediate confirmation via SMS and email"
+        },
+        reminder: {
+          title: "Appointment Reminders",
+          description: "Receive timely reminders before your appointment"
+        },
+        reschedule: {
+          title: "Easy Rescheduling",
+          description: "Change your appointment time with just a few clicks"
+        }
+      }
+    },
+    features: {
+      title: "Everything You Need for Your Healthcare",
+      subtitle: "Our modern facilities provide you with an exceptional healthcare experience",
+      patientManagement: {
+        title: "Easy Appointments",
+        description: "Book appointments online from home, choose your preferred time, and avoid long queues"
+      },
+      doctorDashboard: {
+        title: "Digital Reports",
+        description: "View and download all your medical reports, test results, and prescriptions online anytime"
+      },
+      pharmacySystem: {
+        title: "Home Delivery",
+        description: "Get medicines delivered to your doorstep. Direct delivery from our pharmacy to your home"
+      },
+      appointmentBooking: {
+        title: "24/7 Support",
+        description: "Call or chat with our helpline anytime. Emergency services are always available for you"
+      }
+    },
+    about: {
+      title: "Why Arogya Hospital is Best for You?",
+      description: "We understand that every patient is unique. That's why we've designed our services keeping your convenience in mind. Your health, your comfort, our responsibility.",
+      support247: {
+        title: "Instant Service",
+        description: "No long waits. Meet doctors on time for your appointment and get immediate treatment"
+      },
+      compliance: {
+        title: "Safe & Private",
+        description: "Your personal information is completely secure. Data protection as per Indian medical regulations"
+      },
+      awardWinning: {
+        title: "Expert Doctors",
+        description: "Experienced and qualified doctors who provide the best solutions for all your health problems"
+      }
+    },
+    gynecology: {
+      badge: "Maternity & Women's Health Expert",
+      title: "Bringing New Life with",
+      titleHighlight: "Expert Care",
+      titleEnd: "",
+      description: "Dr. Niharika Nayak has successfully delivered over 5,000 babies with her 10+ years of expertise in gynecology and obstetrics. She provides comprehensive women's healthcare with a focus on safe deliveries and maternal wellness, bringing joy to thousands of happy parents.",
+      stats: {
+        deliveries: "Safe Deliveries",
+        experience: "Years Experience",
+        mothers: "Happy Parents",
+        rating: "Patient Rating"
+      },
+      bookConsultation: "Book Consultation",
+      emergencyMaternity: "Emergency Maternity",
+      achievementBadge: "5000+ Safe Deliveries"
+    },
+    founder: {
+      badge: "Hospital Founder & Chief Orthopedic Surgeon",
+      title: "Meet Our",
+      titleHighlight: "Founder",
+      titleEnd: "",
+      description: "Dr. G K Nayak, the visionary founder of Arogya Hospital, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      qualifications: {
+        title: "Expert Qualifications",
+        description: "MS (Orthopedics) with 40+ years of specialized experience in joint replacement and trauma surgery"
+      },
+      vision: {
+        title: "Patient-Centric Vision",
+        description: "Founded Arogya Hospital with the mission to provide accessible, quality healthcare to all"
+      },
+      excellence: {
+        title: "Medical Excellence",
+        description: "Treated over 700,000+ patients with successful orthopedic procedures and treatments"
+      },
+      meetFounder: "Meet the Founder",
+      orthopedicConsultation: "Orthopedic Consultation",
+      founderBadge: "Hospital Founder"
+    },
+    cta: {
+      title: "Start Your Better Health Journey Today",
+      subtitle: "Trusted by 1M+ satisfied patients. 5K+ babies delivered safely. Your healthcare is now easier than ever.",
+      startTrial: "Book Appointment Now",
+      scheduleDemo: "Get Free Consultation"
+    },
+    contact: {
+      title: "Connect with Us",
+      subtitle: "Have questions? We're always ready to help you",
+      getInTouch: "Get in Touch",
+      visitUs: "Visit Us",
+      callUs: "Call Us",
+      phone: "+91 98765 43210",
+      email: "Email Us",
+      emailAddress: "care@arogyahospital.com",
+      address: "Address",
+      fullAddress: "123, Health Nagar, Near Connaught Place, New Delhi - 110001",
+      supportHours: "Service Hours",
+      available: "24/7 Available",
+      emergency: "Emergency",
+      emergencyPhone: "+91 98765 43211",
+      directions: "Get Directions",
+      bookAppointment: "Book Appointment",
+      liveChat: "Live Chat",
+      whatsapp: "WhatsApp Message"
+    },
+    footer: {
+      hospitalName: "Arogya Hospital",
+      tagline: "Your trusted partner in healthcare",
+      quickLinks: {
+        title: "Quick Links",
+        home: "Home",
+        about: "About Us",
+        services: "Services",
+        doctors: "Doctors",
+        contact: "Contact",
+        emergency: "Emergency"
+      },
+      services: {
+        title: "Our Services",
+        generalMedicine: "General Medicine",
+        cardiology: "Cardiology",
+        orthopedics: "Orthopedics",
+        pediatrics: "Pediatrics",
+        gynecology: "Gynecology",
+        pharmacy: "Pharmacy"
+      },
+      contact: {
+        title: "Contact Info",
+        address: "123, Health Nagar, New Delhi - 110001",
+        phone: "+91 98765 43210",
+        email: "care@arogyahospital.com",
+        emergency: "Emergency: +91 98765 43211"
+      },
+      hours: {
+        title: "Working Hours",
+        opd: "OPD: 8:00 AM - 8:00 PM",
+        emergency: "Emergency: 24/7 Available",
+        pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
+      },
+      social: {
+        title: "Follow Us",
+        facebook: "Facebook",
+        twitter: "Twitter",
+        instagram: "Instagram",
+        youtube: "YouTube"
+      },
+      copyright: " 2024 Arogya Hospital. All rights reserved.",
+      privacy: "Privacy Policy",
+      terms: "Terms & Conditions",
+      disclaimer: "Disclaimer"
+    }
+  }
+} as const;
+
+type ContentType = typeof content;
+type Language = keyof ContentType;
 
 export default function LandingPage() {
-  const [language, setLanguage] = useState('english')
+  const { authState, logout } = useAuth();
+  const [language, setLanguage] = useState<Language>('english');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const [appointmentForm, setAppointmentForm] = useState({
     name: '',
     phone: '',
     email: '',
-    doctor: '',
     department: '',
+    doctor: '',
     date: '',
     time: '',
-    reason: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitMessage, setSubmitMessage] = useState('')
+    reason: '',
+  });
 
-  const handleAppointmentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitMessage('')
-    
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
+
+  const t = content[language];
+
+  const toggleLanguage = () => {
+    setLanguage(prev => prev === 'english' ? 'hindi' : 'english');
+  };
+
+  const handleAppointmentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
     try {
-      const response = await fetch('/api/appointments/book', {
+      // Replace with your actual API endpoint
+      const response = await fetch('/api/book-appointment', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appointmentForm),
-      })
-      
-      const result = await response.json()
-      
-      if (result.success) {
-        setSubmitMessage('✅ ' + result.message)
-        // Reset form
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setSubmitMessage(' ' + result.message);
         setAppointmentForm({
           name: '',
           phone: '',
           email: '',
-          doctor: '',
           department: '',
+          doctor: '',
           date: '',
           time: '',
-          reason: ''
-        })
+          reason: '',
+        });
       } else {
-        setSubmitMessage('❌ ' + result.message)
+        setSubmitMessage(` ${result.message || 'An unexpected error occurred.'}`);
       }
     } catch (error) {
-      setSubmitMessage('❌ Failed to book appointment. Please try again.')
+      setSubmitMessage(' Failed to book appointment. Please try again.')
       console.error('Appointment booking error:', error)
     } finally {
       setIsSubmitting(false)
     }
-  }
+  };
 
-  // Sample doctors data - in real app, this would come from API
   const doctors = [
     {
       id: 1,
-      name: "Dr. Rajesh Kumar",
-      specialization: "Cardiologist",
-      experience: "15 years",
-      qualification: "MBBS, MD (Cardiology)",
-      image: "/doctors/doctor1.jpg",
-      rating: 4.8,
-      patients: "2000+",
-      availability: "Mon-Sat",
-      languages: ["Hindi", "English"],
-      about: "Expert in heart diseases, cardiac surgery, and preventive cardiology with over 15 years of experience."
+      name: 'Dr G K Nayak',
+      specialization: 'Orthopedics (Founder)',
+      qualification: 'MS (Ortho), Founder',
+      experience: '40+ Years',
+      patients: '700K+',
+      rating: 4.9,
+      availability: 'Mon-Sat, 9am-1pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. G K Nayak is the founder of Arogya Hospital and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
+      isFounder: true
     },
     {
       id: 2,
-      name: "Dr. Priya Sharma",
-      specialization: "Gynecologist",
-      experience: "12 years",
-      qualification: "MBBS, MS (Gynecology)",
-      image: "/doctors/doctor2.jpg",
+      name: 'Dr Niharika Nayak',
+      specialization: 'Gynecology',
+      qualification: 'MD, DGO',
+      experience: '10+ Years',
+      patients: '15K+',
       rating: 4.9,
-      patients: "1800+",
-      availability: "Mon-Fri",
-      languages: ["Hindi", "English"],
-      about: "Specialized in women's health, pregnancy care, and minimally invasive gynecological procedures."
+      availability: 'Tue-Sat, 2pm-5pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Niharika Nayak is a leading gynecologist with 10+ years of experience in gynecology and obstetrics. She has successfully delivered over 5000 babies, bringing joy to thousands of happy parents.',
+      isGynecologist: true
     },
     {
       id: 3,
-      name: "Dr. Amit Patel",
-      specialization: "Orthopedic Surgeon",
-      experience: "18 years",
-      qualification: "MBBS, MS (Orthopedics)",
-      image: "/doctors/doctor3.jpg",
-      rating: 4.7,
-      patients: "2200+",
-      availability: "Tue-Sun",
-      languages: ["Hindi", "English", "Gujarati"],
-      about: "Expert in joint replacement, sports injuries, and spine surgery with extensive surgical experience."
+      name: 'Dr Vinod Paliwal',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '15+ Years',
+      patients: '5k+',
+      rating: 4.8,
+      availability: 'Mon-Fri, 10am-1pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Vinod Paliwal specializes in orthopedic surgery with expertise in joint replacement and sports injury treatment.'
     },
     {
       id: 4,
-      name: "Dr. Sunita Verma",
-      specialization: "Pediatrician",
-      experience: "10 years",
-      qualification: "MBBS, MD (Pediatrics)",
-      image: "/doctors/doctor4.jpg",
-      rating: 4.9,
-      patients: "1500+",
-      availability: "Mon-Sat",
-      languages: ["Hindi", "English"],
-      about: "Dedicated to child healthcare, vaccination, and developmental pediatrics with a gentle approach."
+      name: 'Dr K D Singh',
+      specialization: 'Anesthetics',
+      qualification: 'MD (Anesthesia)',
+      experience: '12+ Years',
+      patients: '8k+',
+      rating: 4.8,
+      availability: 'Mon-Sat, 8am-6pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. K D Singh is an experienced anesthetist ensuring safe and comfortable surgical procedures for all patients.'
     },
     {
       id: 5,
-      name: "Dr. Vikram Singh",
-      specialization: "General Physician",
-      experience: "20 years",
-      qualification: "MBBS, MD (Internal Medicine)",
-      image: "/doctors/doctor5.jpg",
-      rating: 4.6,
-      patients: "3000+",
-      availability: "Mon-Sun",
-      languages: ["Hindi", "English", "Punjabi"],
-      about: "Experienced in treating common illnesses, preventive care, and managing chronic conditions."
+      name: 'Dr Ramakant Dewangan',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '10+ Years',
+      patients: '4k+',
+      rating: 4.7,
+      availability: 'Tue-Sat, 9am-12pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Ramakant Dewangan specializes in orthopedic treatments with focus on bone and joint disorders.'
     },
     {
       id: 6,
-      name: "Dr. Neha Gupta",
-      specialization: "Dermatologist",
-      experience: "8 years",
-      qualification: "MBBS, MD (Dermatology)",
-      image: "/doctors/doctor6.jpg",
+      name: 'Dr Shreyansh Shukla',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '8+ Years',
+      patients: '3k+',
+      rating: 4.7,
+      availability: 'Mon-Fri, 2pm-5pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Shreyansh Shukla is a skilled orthopedic surgeon with expertise in minimally invasive procedures.'
+    },
+    {
+      id: 7,
+      name: 'Dr Punit Mohanty',
+      specialization: 'Orthopedics',
+      qualification: 'MS (Ortho)',
+      experience: '12+ Years',
+      patients: '4.5k+',
       rating: 4.8,
-      patients: "1200+",
-      availability: "Mon-Fri",
-      languages: ["Hindi", "English"],
-      about: "Specialist in skin diseases, cosmetic dermatology, and advanced skin treatments."
+      availability: 'Mon-Sat, 10am-1pm',
+      languages: ['Hindi', 'English', 'Odia'],
+      about: 'Dr. Punit Mohanty specializes in orthopedic surgery with particular expertise in spine and joint treatments.'
+    },
+    {
+      id: 8,
+      name: 'Dr Ajay Rathore',
+      specialization: 'BAMS (Ayurveda)',
+      qualification: 'BAMS',
+      experience: '15+ Years',
+      patients: '6k+',
+      rating: 4.8,
+      availability: 'Mon-Sat, 9am-2pm',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Ajay Rathore is an experienced Ayurvedic physician providing holistic treatment approaches for various health conditions.'
+    },
+    {
+      id: 9,
+      name: 'Dr Payal Rathore',
+      specialization: 'Visiting Anesthetist',
+      qualification: 'MD (Anesthesia)',
+      experience: '10+ Years',
+      patients: '3k+',
+      rating: 4.7,
+      availability: 'On Call',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Payal Rathore is a visiting anesthetist providing specialized anesthesia services for complex procedures.'
+    },
+    {
+      id: 10,
+      name: 'Dr Shubham Gupta',
+      specialization: 'Visiting Surgeon',
+      qualification: 'MS (Surgery)',
+      experience: '12+ Years',
+      patients: '4k+',
+      rating: 4.8,
+      availability: 'On Call',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. Shubham Gupta is a visiting surgeon with expertise in general and laparoscopic surgical procedures.'
+    },
+    {
+      id: 11,
+      name: 'Dr R K Chandra',
+      specialization: 'Visiting Surgeon',
+      qualification: 'MS (Surgery)',
+      experience: '20+ Years',
+      patients: '7k+',
+      rating: 4.9,
+      availability: 'On Call',
+      languages: ['Hindi', 'English'],
+      about: 'Dr. R K Chandra is a senior visiting surgeon with extensive experience in complex surgical procedures and patient care.'
     }
-  ]
+  ];
 
   const departments = [
-    "Cardiology",
-    "Gynecology", 
     "Orthopedics",
+    "Gynecology", 
+    "Anesthetics",
+    "BAMS (Ayurveda)",
+    "General Surgery",
+    "Cardiology",
     "Pediatrics",
     "General Medicine",
     "Dermatology",
     "Neurology",
     "Gastroenterology"
-  ]
+  ];
 
   const timeSlots = [
     "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
     "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM",
     "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM"
-  ]
-
-  const content = {
-    hindi: {
-      hospitalName: "आरोग्य अस्पताल",
-      nav: {
-        home: "मुख्य पृष्ठ",
-        about: "हमारे बारे में",
-        doctors: "हमारे डॉक्टर", 
-        appointment: "अपॉइंटमेंट बुक करें",
-        contact: "संपर्क करें",
-        login: "लॉगिन"
-      },
-      hero: {
-        badge: "50,000+ मरीज़ों का भरोसा",
-        title: "आपकी स्वास्थ्य",
-        titleHighlight: "यात्रा",
-        titleEnd: "हमारी प्राथमिकता",
-        description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
-        getStarted: "अपॉइंटमेंट बुक करें",
-        bookDemo: "हमसे मिलें",
-        stats: {
-          hospitals: "खुश मरीज़",
-          patients: "सफल इलाज", 
-          uptime: "संतुष्टि दर"
-        }
-      },
-      doctors: {
-        title: "हमारे विशेषज्ञ डॉक्टरों से मिलें",
-        subtitle: "हमारी अनुभवी और योग्य डॉक्टरों की टीम आपको सर्वोत्तम स्वास्थ्य सेवा प्रदान करने के लिए यहाँ है",
-        viewProfile: "प्रोफाइल देखें",
-        bookAppointment: "अपॉइंटमेंट बुक करें",
-        experience: "अनुभव",
-        patients: "मरीज़ों का इलाज",
-        rating: "रेटिंग",
-        languages: "भाषाएं",
-        availability: "उपलब्ध"
-      },
-      appointment: {
-        title: "ऑनलाइन अपॉइंटमेंट बुक करें",
-        subtitle: "हमारे विशेषज्ञ डॉक्टरों के साथ अपनी मुलाकात का समय तय करें। अपना पसंदीदा समय चुनें और इंतज़ार से बचें।",
-        form: {
-          name: "पूरा नाम",
-          phone: "फोन नंबर",
-          email: "ईमेल पता",
-          department: "विभाग चुनें",
-          doctor: "डॉक्टर चुनें",
-          date: "पसंदीदा तारीख",
-          time: "पसंदीदा समय",
-          reason: "मुलाकात का कारण",
-          submit: "अपॉइंटमेंट बुक करें",
-          submitting: "बुक हो रहा है...",
-          success: "अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
-          error: "अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
-        },
-        benefits: {
-          title: "ऑनलाइन बुकिंग क्यों करें?",
-          noWaiting: {
-            title: "कोई इंतज़ार नहीं",
-            description: "कतार छोड़ें और अपने डॉक्टर से सीधे मिलें"
-          },
-          confirmation: {
-            title: "तुरंत पुष्टि",
-            description: "SMS और ईमेल के माध्यम से तुरंत पुष्टि प्राप्त करें"
-          },
-          reminder: {
-            title: "अपॉइंटमेंट रिमाइंडर",
-            description: "अपने अपॉइंटमेंट से पहले समय पर रिमाइंडर प्राप्त करें"
-          },
-          reschedule: {
-            title: "आसान रीशेड्यूलिंग",
-            description: "कुछ ही क्लिक में अपना अपॉइंटमेंट समय बदलें"
-          }
-        }
-      },
-      features: {
-        title: "Everything You Need for Your Healthcare",
-        subtitle: "Our modern facilities provide you with a better healthcare experience",
-        patientManagement: {
-          title: "Easy Appointments",
-          description: "Book online appointments from home, choose your time and avoid long queues"
-        },
-        doctorDashboard: {
-          title: "Digital Reports",
-          description: "View and download all your medical reports, test results and prescriptions online"
-        },
-        pharmacySystem: {
-          title: "Home Delivery",
-          description: "Get medicines delivered to your home. Direct delivery from our pharmacy to your doorstep"
-        },
-        appointmentBooking: {
-          title: "24/7 सहायता",
-          description: "किसी भी समय हमारी हेल्पलाइन पर कॉल करें या चैट करें। आपातकालीन सेवाएं हमेशा उपलब्ध"
-        }
-      },
-      about: {
-        title: "आरोग्य अस्पताल आपके लिए क्यों सबसे अच्छा है?",
-        description: "हम समझते हैं कि हर मरीज़ अलग है। इसीलिए हमने आपकी सुविधा को ध्यान में रखते हुए अपनी सेवाएं डिज़ाइन की हैं। आपका स्वास्थ्य, आपकी सुविधा, हमारी जिम्मेदारी।",
-        support247: {
-          title: "तुरंत सेवा",
-          description: "कोई लंबा इंतज़ार नहीं। अपॉइंटमेंट के समय पर मिलें डॉक्टर से और पाएं तुरंत इलाज"
-        },
-        compliance: {
-          title: "सुरक्षित और निजी",
-          description: "आपकी व्यक्तिगत जानकारी पूरी तरह सुरक्षित। भारतीय मेडिकल नियमों के अनुसार डेटा सुरक्षा"
-        },
-        awardWinning: {
-          title: "विशेषज्ञ डॉक्टर्स",
-          description: "अनुभवी और योग्य डॉक्टर्स जो आपकी हर स्वास्थ्य समस्या का बेहतरीन समाधान देते हैं"
-        }
-      },
-      cta: {
-        title: "आज ही शुरू करें अपनी बेहतर स्वास्थ्य की शुरुआत",
-        subtitle: "50,000+ संतुष्ट मरीज़ों का भरोसा। आपकी स्वास्थ्य देखभाल अब और भी आसान।",
-        startTrial: "तुरंत अपॉइंटमेंट बुक करें",
-        scheduleDemo: "निःशुल्क सलाह लें"
-      },
-      contact: {
-        title: "हमसे जुड़ें",
-        subtitle: "कोई सवाल है? हम आपकी मदद के लिए हमेशा तैयार हैं",
-        getInTouch: "संपर्क करें",
-        visitUs: "हमसे मिलें",
-        callUs: "कॉल करें",
-        phone: "+91 98765 43210",
-        email: "ईमेल करें",
-        emailAddress: "care@arogyahospital.com",
-        address: "पता",
-        fullAddress: "123, स्वास्थ्य नगर, कनॉट प्लेस के पास, नई दिल्ली - 110001",
-        supportHours: "सेवा समय",
-        available: "24/7 उपलब्ध",
-        emergency: "आपातकाल",
-        emergencyPhone: "+91 98765 43211",
-        directions: "दिशा निर्देश पाएं",
-        bookAppointment: "अपॉइंटमेंट बुक करें",
-        liveChat: "लाइव चैट",
-        whatsapp: "व्हाट्सऐप पर संदेश"
-      },
-      footer: {
-        hospitalName: "आरोग्य अस्पताल",
-        tagline: "आपकी स्वास्थ्य देखभाल में आपका विश्वसनीय साथी",
-        quickLinks: {
-          title: "त्वरित लिंक",
-          home: "मुख्य पृष्ठ",
-          about: "हमारे बारे में",
-          services: "सेवाएं",
-          doctors: "डॉक्टर्स",
-          contact: "संपर्क करें",
-          emergency: "आपातकाल"
-        },
-        services: {
-          title: "हमारी सेवाएं",
-          generalMedicine: "सामान्य चिकित्सा",
-          cardiology: "हृदय रोग",
-          orthopedics: "हड्डी रोग",
-          pediatrics: "बाल रोग",
-          gynecology: "स्त्री रोग",
-          pharmacy: "फार्मेसी"
-        },
-        contact: {
-          title: "संपर्क जानकारी",
-          address: "123, स्वास्थ्य नगर, नई दिल्ली - 110001",
-          phone: "+91 98765 43210",
-          email: "care@arogyahospital.com",
-          emergency: "आपातकाल: +91 98765 43211"
-        },
-        hours: {
-          title: "समय सारणी",
-          opd: "OPD: सुबह 8:00 - शाम 8:00",
-          emergency: "आपातकाल: 24/7 उपलब्ध",
-          pharmacy: "फार्मेसी: सुबह 7:00 - रात 11:00"
-        },
-        social: {
-          title: "हमसे जुड़ें",
-          facebook: "Facebook",
-          twitter: "Twitter",
-          instagram: "Instagram",
-          youtube: "YouTube"
-        },
-        copyright: "© 2024 आरोग्य अस्पताल। सभी अधिकार सुरक्षित।",
-        privacy: "गोपनीयता नीति",
-        terms: "नियम और शर्तें",
-        disclaimer: "अस्वीकरण"
-      }
-    },
-    english: {
-      hospitalName: "Arogya Hospital",
-      nav: {
-        home: "Home",
-        about: "About",
-        doctors: "Our Doctors",
-        appointment: "Book Appointment",
-        contact: "Contact", 
-        login: "Login"
-      },
-      hero: {
-        badge: "Trusted by 50,000+ Patients",
-        title: "Your Health",
-        titleHighlight: "Journey",
-        titleEnd: "Our Priority",
-        description: "At Arogya Hospital, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
-        getStarted: "Book Appointment",
-        bookDemo: "Meet Our Team",
-        stats: {
-          hospitals: "Happy Patients",
-          patients: "Successful Treatments", 
-          uptime: "Satisfaction Rate"
-        }
-      },
-      doctors: {
-        title: "Meet Our Expert Doctors",
-        subtitle: "Our team of experienced and qualified doctors are here to provide you with the best healthcare",
-        viewProfile: "View Profile",
-        bookAppointment: "Book Appointment",
-        experience: "Experience",
-        patients: "Patients Treated",
-        rating: "Rating",
-        languages: "Languages",
-        availability: "Available"
-      },
-      appointment: {
-        title: "Book Your Appointment Online",
-        subtitle: "Schedule your visit with our expert doctors. Choose your preferred time and avoid waiting.",
-        form: {
-          name: "Full Name",
-          phone: "Phone Number",
-          email: "Email Address",
-          department: "Select Department",
-          doctor: "Select Doctor",
-          date: "Preferred Date",
-          time: "Preferred Time",
-          reason: "Reason for Visit",
-          submit: "Book Appointment",
-          submitting: "Booking...",
-          success: "Appointment booked successfully!",
-          error: "Failed to book appointment. Please try again."
-        },
-        benefits: {
-          title: "Why Book Online?",
-          noWaiting: {
-            title: "No Waiting",
-            description: "Skip the queue and get direct access to your doctor"
-          },
-          confirmation: {
-            title: "Instant Confirmation",
-            description: "Get immediate confirmation via SMS and email"
-          },
-          reminder: {
-            title: "Appointment Reminders",
-            description: "Receive timely reminders before your appointment"
-          },
-          reschedule: {
-            title: "Easy Rescheduling",
-            description: "Change your appointment time with just a few clicks"
-          }
-        }
-      },
-      features: {
-        title: "Everything You Need for Your Healthcare",
-        subtitle: "Our modern facilities provide you with an exceptional healthcare experience",
-        patientManagement: {
-          title: "Easy Appointments",
-          description: "Book appointments online from home, choose your preferred time, and avoid long queues"
-        },
-        doctorDashboard: {
-          title: "Digital Reports",
-          description: "View and download all your medical reports, test results, and prescriptions online anytime"
-        },
-        pharmacySystem: {
-          title: "Home Delivery",
-          description: "Get medicines delivered to your doorstep. Direct delivery from our pharmacy to your home"
-        },
-        appointmentBooking: {
-          title: "24/7 Support",
-          description: "Call or chat with our helpline anytime. Emergency services are always available for you"
-        }
-      },
-      about: {
-        title: "Why Arogya Hospital is Best for You?",
-        description: "We understand that every patient is unique. That's why we've designed our services keeping your convenience in mind. Your health, your comfort, our responsibility.",
-        support247: {
-          title: "Instant Service",
-          description: "No long waits. Meet doctors on time for your appointment and get immediate treatment"
-        },
-        compliance: {
-          title: "Safe & Private",
-          description: "Your personal information is completely secure. Data protection as per Indian medical regulations"
-        },
-        awardWinning: {
-          title: "Expert Doctors",
-          description: "Experienced and qualified doctors who provide the best solutions for all your health problems"
-        }
-      },
-      cta: {
-        title: "Start Your Better Health Journey Today",
-        subtitle: "Trusted by 50,000+ satisfied patients. Your healthcare is now easier than ever.",
-        startTrial: "Book Appointment Now",
-        scheduleDemo: "Get Free Consultation"
-      },
-      contact: {
-        title: "Connect with Us",
-        subtitle: "Have questions? We're always ready to help you",
-        getInTouch: "Get in Touch",
-        visitUs: "Visit Us",
-        callUs: "Call Us",
-        phone: "+91 98765 43210",
-        email: "Email Us",
-        emailAddress: "care@arogyahospital.com",
-        address: "Address",
-        fullAddress: "123, Health Nagar, Near Connaught Place, New Delhi - 110001",
-        supportHours: "Service Hours",
-        available: "24/7 Available",
-        emergency: "Emergency",
-        emergencyPhone: "+91 98765 43211",
-        directions: "Get Directions",
-        bookAppointment: "Book Appointment",
-        liveChat: "Live Chat",
-        whatsapp: "WhatsApp Message"
-      },
-      footer: {
-        hospitalName: "Arogya Hospital",
-        tagline: "Your trusted partner in healthcare",
-        quickLinks: {
-          title: "Quick Links",
-          home: "Home",
-          about: "About Us",
-          services: "Services",
-          doctors: "Doctors",
-          contact: "Contact",
-          emergency: "Emergency"
-        },
-        services: {
-          title: "Our Services",
-          generalMedicine: "General Medicine",
-          cardiology: "Cardiology",
-          orthopedics: "Orthopedics",
-          pediatrics: "Pediatrics",
-          gynecology: "Gynecology",
-          pharmacy: "Pharmacy"
-        },
-        contact: {
-          title: "Contact Info",
-          address: "123, Health Nagar, New Delhi - 110001",
-          phone: "+91 98765 43210",
-          email: "care@arogyahospital.com",
-          emergency: "Emergency: +91 98765 43211"
-        },
-        hours: {
-          title: "Working Hours",
-          opd: "OPD: 8:00 AM - 8:00 PM",
-          emergency: "Emergency: 24/7 Available",
-          pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
-        },
-        social: {
-          title: "Follow Us",
-          facebook: "Facebook",
-          twitter: "Twitter",
-          instagram: "Instagram",
-          youtube: "YouTube"
-        },
-        copyright: "© 2024 Arogya Hospital. All rights reserved.",
-        privacy: "Privacy Policy",
-        terms: "Terms & Conditions",
-        disclaimer: "Disclaimer"
-      }
-    }
-  }
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'hindi' ? 'english' : 'hindi')
-  }
-
-  const t = content[language]
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-800">{t.hospitalName}</span>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="#" className="text-gray-700 hover:text-pink-500 transition-colors font-medium">
-                {t.nav.home}
-              </Link>
-              <Link href="#about" className="text-gray-700 hover:text-pink-500 transition-colors font-medium">
-                {t.nav.about}
-              </Link>
-              <Link href="#contact" className="text-gray-700 hover:text-pink-500 transition-colors font-medium">
-                {t.nav.contact}
-              </Link>
-              <Button 
-                onClick={toggleLanguage}
-                variant="outline" 
-                size="sm"
-                className="border-pink-200 text-pink-600 hover:bg-pink-50"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                {language === 'hindi' ? 'English' : 'हिंदी'}
-              </Button>
-              <Link href="/login">
-                <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full px-6 shadow-lg hover:shadow-xl transition-all duration-300">
-                  {t.nav.login}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        t={t}
+        language={language}
+        toggleLanguage={toggleLanguage}
+        authState={authState}
+        logout={logout}
+      />
 
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
@@ -612,12 +721,12 @@ export default function LandingPage() {
               
               <div className="grid grid-cols-3 gap-8 pt-8">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">50K+</div>
+                  <div className="text-3xl font-bold text-gray-900">1M+</div>
                   <div className="text-gray-600">{t.hero.stats.hospitals}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">1L+</div>
-                  <div className="text-gray-600">{t.hero.stats.patients}</div>
+                  <div className="text-3xl font-bold text-gray-900">5K+</div>
+                  <div className="text-gray-600">{t.hero.stats.babies}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-gray-900">98%</div>
@@ -631,7 +740,8 @@ export default function LandingPage() {
                 <ImageCarousel
                   images={[
                     "/landingpage/pic1.jpeg",
-                    "/landingpage/pic2.jpeg"
+                    "/landingpage/pic2.jpeg",
+                    "/landingpage/founder.jpeg"
                   ]}
                   autoRotate={true}
                   rotationInterval={5000}
@@ -664,16 +774,40 @@ export default function LandingPage() {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {doctors.map((doctor) => (
+            {doctors.slice(0, 6).map((doctor) => (
               <Card key={doctor.id} className="border-pink-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 <CardContent className="p-0">
                   {/* Doctor Image */}
-                  <div className="relative h-64 bg-gradient-to-br from-pink-100 to-pink-200">
+                  <div className={`relative h-64 ${doctor.isFounder ? 'bg-gradient-to-br from-yellow-100 to-yellow-200' : doctor.isGynecologist ? 'bg-gradient-to-br from-purple-100 to-purple-200' : 'bg-gradient-to-br from-pink-100 to-pink-200'}`}>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-8 rounded-full">
-                        <User className="h-16 w-16 text-white" />
-                      </div>
+                      {doctor.isGynecologist ? (
+                        <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-8 rounded-full relative">
+                          <User className="h-16 w-16 text-white" />
+                          {/* Baby icon overlay for gynecologist */}
+                          <div className="absolute -bottom-2 -right-2 bg-pink-400 p-2 rounded-full">
+                            <Heart className="h-6 w-6 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`${doctor.isFounder ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 'bg-gradient-to-r from-pink-400 to-pink-500'} p-8 rounded-full`}>
+                          <User className="h-16 w-16 text-white" />
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Special Badges */}
+                    {doctor.isFounder && (
+                      <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        FOUNDER
+                      </div>
+                    )}
+                    {doctor.isGynecologist && (
+                      <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center">
+                        <Heart className="h-3 w-3 mr-1" />
+                        5000+ BABIES
+                      </div>
+                    )}
+                    
                     {/* Rating Badge */}
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center space-x-1">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
@@ -685,13 +819,13 @@ export default function LandingPage() {
                   <div className="p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold text-gray-900 mb-1">{doctor.name}</h3>
-                      <p className="text-pink-600 font-medium mb-2">{doctor.specialization}</p>
+                      <p className={`${doctor.isFounder ? 'text-yellow-600' : doctor.isGynecologist ? 'text-purple-600' : 'text-pink-600'} font-medium mb-2`}>{doctor.specialization}</p>
                       <p className="text-gray-600 text-sm">{doctor.qualification}</p>
                     </div>
                     
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="text-center bg-pink-50 p-3 rounded-lg">
+                      <div className={`text-center ${doctor.isFounder ? 'bg-yellow-50' : doctor.isGynecologist ? 'bg-purple-50' : 'bg-pink-50'} p-3 rounded-lg`}>
                         <div className="text-lg font-bold text-gray-900">{doctor.experience}</div>
                         <div className="text-xs text-gray-600">{t.doctors.experience}</div>
                       </div>
@@ -719,7 +853,7 @@ export default function LandingPage() {
                     {/* Action Buttons */}
                     <div className="flex gap-3">
                       <Button 
-                        className="flex-1 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full"
+                        className={`flex-1 ${doctor.isFounder ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600' : doctor.isGynecologist ? 'bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600' : 'bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600'} text-white rounded-full`}
                         onClick={() => {
                           setAppointmentForm(prev => ({ ...prev, doctor: doctor.name, department: doctor.specialization }))
                           document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
@@ -728,7 +862,7 @@ export default function LandingPage() {
                         <Calendar className="h-4 w-4 mr-2" />
                         {t.doctors.bookAppointment}
                       </Button>
-                      <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-4">
+                      <Button variant="outline" className={`${doctor.isFounder ? 'border-yellow-200 text-yellow-600 hover:bg-yellow-50' : doctor.isGynecologist ? 'border-purple-200 text-purple-600 hover:bg-purple-50' : 'border-pink-200 text-pink-600 hover:bg-pink-50'} rounded-full px-4`}>
                         <User className="h-4 w-4" />
                       </Button>
                     </div>
@@ -736,6 +870,205 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+          
+          {/* Show More Doctors Button */}
+          <div className="text-center mt-12">
+            <Button 
+              variant="outline" 
+              className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-8 py-3 text-lg"
+              onClick={() => {
+                // You can implement a modal or expand functionality here
+                alert('View all doctors functionality can be implemented here')
+              }}
+            >
+              View All {doctors.length} Doctors
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Special Gynecology Section */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="relative">
+              <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-3xl p-8 shadow-2xl">
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-12 rounded-full mb-6 relative">
+                      <User className="h-20 w-20 text-white" />
+                      {/* Baby icon overlay */}
+                      <div className="absolute -bottom-2 -right-2 bg-pink-400 p-3 rounded-full">
+                        <Heart className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr Niharika Nayak</h3>
+                    <p className="text-purple-600 font-medium">Gynecologist</p>
+                  </div>
+                </div>
+              </div>
+              {/* Achievement Badge */}
+              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-2xl shadow-lg border border-purple-100">
+                <div className="flex items-center space-x-2">
+                  <Heart className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700">{t.gynecology.achievementBadge}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="inline-flex items-center bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <Heart className="h-4 w-4 mr-2" />
+                {t.gynecology.badge}
+              </div>
+              
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                {t.gynecology.title} 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"> {t.gynecology.titleHighlight}</span>
+                {t.gynecology.titleEnd}
+              </h2>
+              
+              <p className="text-xl text-gray-600 mb-8">
+                {t.gynecology.description}
+              </p>
+              
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
+                  <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
+                  <div className="text-3xl font-bold text-pink-600 mb-2">10+</div>
+                  <div className="text-gray-600">{t.gynecology.stats.experience}</div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
+                  <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
+                  <div className="text-3xl font-bold text-pink-600 mb-2">4.9★</div>
+                  <div className="text-gray-600">{t.gynecology.stats.rating}</div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => {
+                    setAppointmentForm(prev => ({ ...prev, doctor: 'Dr Niharika Nayak', department: 'Gynecology' }))
+                    document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  {t.gynecology.bookConsultation}
+                </Button>
+                <Button size="lg" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-full px-8 py-4 text-lg">
+                  <Phone className="h-5 w-5 mr-2" />
+                  {t.gynecology.emergencyMaternity}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Founder Section */}
+      <section className="py-20 bg-gradient-to-br from-yellow-50 to-orange-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <Award className="h-4 w-4 mr-2" />
+                {t.founder.badge}
+              </div>
+              
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                {t.founder.title} 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-600"> {t.founder.titleHighlight}</span>
+                {t.founder.titleEnd}
+              </h2>
+              
+              <p className="text-xl text-gray-600 mb-8">
+                {t.founder.description}
+              </p>
+              
+              <div className="space-y-6 mb-8">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <GraduationCap className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.founder.qualifications.title}</h3>
+                    <p className="text-gray-600">{t.founder.qualifications.description}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <Users className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.founder.vision.title}</h3>
+                    <p className="text-gray-600">{t.founder.vision.description}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <Award className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.founder.excellence.title}</h3>
+                    <p className="text-gray-600">{t.founder.excellence.description}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => {
+                    setAppointmentForm(prev => ({ ...prev, doctor: 'Dr G K Nayak', department: 'Orthopedics (Founder)' }))
+                    document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  {t.founder.meetFounder}
+                </Button>
+                <Button size="lg" variant="outline" className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full px-8 py-4 text-lg">
+                  <Stethoscope className="h-5 w-5 mr-2" />
+                  {t.founder.orthopedicConsultation}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-3xl p-8 shadow-2xl">
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-12 rounded-full mb-6 relative">
+                      <User className="h-20 w-20 text-white" />
+                      {/* Founder crown icon */}
+                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-orange-400 p-2 rounded-full">
+                        <Award className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr G K Nayak</h3>
+                    <p className="text-yellow-600 font-medium">Founder & Chief Orthopedic Surgeon</p>
+                  </div>
+                </div>
+              </div>
+              {/* Founder Badge */}
+              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-2xl shadow-lg border border-yellow-100">
+                <div className="flex items-center space-x-2">
+                  <Award className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium text-gray-700">{t.founder.founderBadge}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -898,7 +1231,7 @@ export default function LandingPage() {
                 
                 {submitMessage && (
                   <div className={`p-4 rounded-lg text-center font-medium ${
-                    submitMessage.includes('✅') 
+                    submitMessage.includes(' ') 
                       ? 'bg-green-50 text-green-700 border border-green-200' 
                       : 'bg-red-50 text-red-700 border border-red-200'
                   }`}>
@@ -1276,7 +1609,7 @@ export default function LandingPage() {
                     width="100%"
                     height="300"
                     style={{ border: 0 }}
-                    allowFullScreen=""
+                    allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     className="rounded-2xl"
