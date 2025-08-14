@@ -71,7 +71,8 @@ let patients = [
     notes: 'Patient responding well to treatment',
     status: 'Admitted',
     createdAt: '2024-01-08',
-    updatedAt: '2024-01-08'
+    updatedAt: '2024-01-08',
+    actualDischargeDate: undefined as string | undefined
   },
   {
     id: '2',
@@ -84,7 +85,8 @@ let patients = [
     notes: 'Critical condition, monitoring required',
     status: 'Admitted',
     createdAt: '2024-01-09',
-    updatedAt: '2024-01-09'
+    updatedAt: '2024-01-09',
+    actualDischargeDate: undefined
   }
 ]
 
