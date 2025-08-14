@@ -51,10 +51,6 @@ export default function SignupPage() {
     specialization: "",
     licenseNumber: "",
     
-    // Personal Information
-    dateOfBirth: "",
-    gender: "",
-    
     // Address Information
     address: {
       street: "",
@@ -105,7 +101,11 @@ export default function SignupPage() {
     }
 
     const apiPayload = {
-      ...formData,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
       phoneNumber: formData.contactNumber,
       address: [
         formData.address.street,
@@ -129,15 +129,26 @@ export default function SignupPage() {
       1: () => {
         if (!formData.firstName.trim()) newErrors.firstName = "First name is required"
         if (!formData.lastName.trim()) newErrors.lastName = "Last name is required"
-        if (!formData.email.trim()) newErrors.email = "Email is required"
+
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!formData.email.trim()) {
+          newErrors.email = "Email is required";
+        } else if (!emailRegex.test(formData.email)) {
+          newErrors.email = "Please enter a valid email address";
+        }
+        
         if (!formData.password) newErrors.password = "Password is required"
         if (formData.password !== formData.confirmPassword) {
-          newErrors.confirmPassword = "Passwords don't match"
+          newErrors.confirmPassword = "Passwords do not match"
         }
         if (formData.password && formData.password.length < 8) {
           newErrors.password = "Password must be at least 8 characters"
         }
-        if (!formData.contactNumber.trim()) newErrors.contactNumber = "Phone number is required"
+        if (!formData.contactNumber) {
+          newErrors.contactNumber = "Contact number is required"
+        } else if (!/^(\+\d{1,3}[- ]?)?\d{10}$/.test(formData.contactNumber)) {
+          newErrors.contactNumber = "Invalid contact number"
+        }
         if (!formData.role) newErrors.role = "Role is required"
       },
       2: () => {
@@ -149,6 +160,9 @@ export default function SignupPage() {
         }
       },
       3: () => {
+        if (!formData.address.street.trim() || !formData.address.city.trim() || !formData.address.state.trim() || !formData.address.zipCode.trim()) {
+            newErrors.address = "Please fill out all address fields.";
+        }
         if (!formData.acceptTerms) newErrors.acceptTerms = "You must accept the terms and conditions"
       }
     }
@@ -163,11 +177,15 @@ export default function SignupPage() {
 
     if (isFinalSubmission && Object.keys(newErrors).length > 0) {
       const firstErrorField = Object.keys(newErrors)[0];
-      if (['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'contactNumber', 'role'].includes(firstErrorField)) {
+      const step1Fields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'contactNumber', 'role'];
+      const step2Fields = ['department', 'licenseNumber'];
+      const step3Fields = ['address', 'acceptTerms'];
+
+      if (step1Fields.includes(firstErrorField)) {
         setCurrentStep(1);
-      } else if (['department', 'licenseNumber'].includes(firstErrorField)) {
+      } else if (step2Fields.includes(firstErrorField)) {
         setCurrentStep(2);
-      } else if (['acceptTerms'].includes(firstErrorField)) {
+      } else if (step3Fields.includes(firstErrorField)) {
         setCurrentStep(3);
       }
     }
@@ -290,7 +308,7 @@ export default function SignupPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name *</Label>
+                        <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                           <Input
@@ -305,7 +323,7 @@ export default function SignupPage() {
                         {errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name *</Label>
+                        <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                           <Input
@@ -322,7 +340,7 @@ export default function SignupPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address *</Label>
+                      <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
@@ -341,7 +359,7 @@ export default function SignupPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="password">Password *</Label>
+                      <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
                       <div className="relative">
                         <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
@@ -371,7 +389,7 @@ export default function SignupPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
                       <div className="relative">
                         <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
@@ -393,24 +411,21 @@ export default function SignupPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="contactNumber">Phone Number *</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <Input
-                          id="contactNumber"
-                          type="tel"
-                          value={formData.contactNumber}
-                          onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-                          required
-                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.contactNumber ? 'border-red-500' : ''}`}
-                          placeholder="+91 9876543210"
-                        />
-                      </div>
+                      <Label htmlFor="contactNumber">Contact Number <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="contactNumber"
+                        type="tel"
+                        value={formData.contactNumber}
+                        onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                        placeholder="+91 98765 43210"
+                        required
+                        className={errors.contactNumber ? "border-red-500" : "border-pink-200 focus:border-pink-400 focus:ring-pink-400"}
+                      />
                       {errors.contactNumber && <p className="text-sm text-red-600">{errors.contactNumber}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="role">I am a *</Label>
+                      <Label htmlFor="role">I am a... <span className="text-red-500">*</span></Label>
                       <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
                         <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.role ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select your role" />
@@ -447,7 +462,7 @@ export default function SignupPage() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label htmlFor="department">Department *</Label>
+                          <Label htmlFor="department">Department <span className="text-red-500">*</span></Label>
                           <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
                             <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.department ? 'border-red-500' : ''}`}>
                               <SelectValue placeholder="Select department" />
@@ -477,7 +492,7 @@ export default function SignupPage() {
 
                         {formData.role === 'doctor' && (
                           <div className="space-y-2">
-                            <Label htmlFor="licenseNumber">Medical License Number *</Label>
+                            <Label htmlFor="licenseNumber">Medical License Number <span className="text-red-500">*</span></Label>
                             <Input
                               id="licenseNumber"
                               type="text"
@@ -492,40 +507,6 @@ export default function SignupPage() {
                       </div>
                     </div>
                   )}
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                      <User className="h-5 w-5 mr-2 text-pink-500" />
-                      Personal Information
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                        <Input
-                          id="dateOfBirth"
-                          type="date"
-                          value={formData.dateOfBirth}
-                          onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                          className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                          <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="flex justify-between">
                     <Button type="button" variant="outline" onClick={prevStep} className="border-pink-200 text-pink-600 hover:bg-pink-50">
@@ -548,73 +529,53 @@ export default function SignupPage() {
                     
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="street">Street Address</Label>
+                        <Label htmlFor="street">Street Address <span className="text-red-500">*</span></Label>
                         <Input
                           id="street"
                           type="text"
                           value={formData.address.street}
                           onChange={(e) => handleNestedInputChange('address', 'street', e.target.value)}
-                          className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                          className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}
                           placeholder="Enter your street address"
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="city">City</Label>
+                          <Label htmlFor="city">City <span className="text-red-500">*</span></Label>
                           <Input
                             id="city"
                             type="text"
                             value={formData.address.city}
                             onChange={(e) => handleNestedInputChange('address', 'city', e.target.value)}
-                            className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                            placeholder="Enter your city"
+                            className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="state">State</Label>
-                          <Select 
-                            value={formData.address.state} 
-                            onValueChange={(value) => handleNestedInputChange('address', 'state', value)}
-                          >
-                            <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                          <Label htmlFor="state">State <span className="text-red-500">*</span></Label>
+                          <Select onValueChange={(value) => handleNestedInputChange('address', 'state', value)} value={formData.address.state}>
+                            <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}>
                               <SelectValue placeholder="Select state" />
                             </SelectTrigger>
                             <SelectContent>
-                              {states.map((state) => (
-                                <SelectItem key={state} value={state}>{state}</SelectItem>
-                              ))}
+                              {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label htmlFor="zipCode">ZIP Code</Label>
+                          <Label htmlFor="zipCode">ZIP Code <span className="text-red-500">*</span></Label>
                           <Input
                             id="zipCode"
                             type="text"
                             value={formData.address.zipCode}
                             onChange={(e) => handleNestedInputChange('address', 'zipCode', e.target.value)}
-                            className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                            placeholder="Enter ZIP code"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="country">Country</Label>
-                          <Input
-                            id="country"
-                            type="text"
-                            value={formData.address.country}
-                            onChange={(e) => handleNestedInputChange('address', 'country', e.target.value)}
-                            className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                            disabled
+                            className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}
                           />
                         </div>
                       </div>
+                      {errors.address && <p className="text-sm text-red-600">{errors.address}</p>}
                     </div>
                   </div>
 
@@ -680,7 +641,7 @@ export default function SignupPage() {
                         className="border-pink-300 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
                       />
                       <div className="space-y-1">
-                        <Label htmlFor="acceptTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        <Label htmlFor="acceptTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">I agree to the Terms and Conditions <span className="text-red-500">*</span>
                           I agree to the Terms and Conditions *
                         </Label>
                         <p className="text-xs text-gray-500">

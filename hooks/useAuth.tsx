@@ -24,7 +24,7 @@ interface AuthState {
   error: string | null;
 }
 
-interface LoginCredentials {
+interface LoginData {
   email: string;
   password: string;
 }
@@ -41,7 +41,7 @@ interface RegisterData {
 
 interface AuthContextType {
   authState: AuthState;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (loginData: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
 }
@@ -92,13 +92,13 @@ const useProvideAuth = (): AuthContextType => {
     }
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  const login = useCallback(async (loginData: LoginData) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(loginData),
       });
 
       if (!response.ok) {

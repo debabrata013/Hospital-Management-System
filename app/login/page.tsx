@@ -93,11 +93,12 @@ function LoginForm() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
+    const emailRegex = /\S+@\S+\.\S+/;
 
     if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address"
+      newErrors.email = "Email is required";
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
@@ -212,22 +213,20 @@ function LoginForm() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center">
-                  <Mail className="h-4 w-4 mr-2 text-pink-500" />
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                    errors.email ? 'border-red-500' : ''
-                  }`}
-                  placeholder="Enter your email address"
-                  autoComplete="email"
-                />
-                {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+                <Label htmlFor="email" className="text-gray-700">Email</Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="e.g., user@example.com"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                    required
+                  />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+                {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
               </div>
 
               {/* Password */}

@@ -1,9 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models'); // Assuming an index.js in models
+const { User } = require('../models');
+const { Op } = require('sequelize');
 
 const router = express.Router();
+
+// Check for JWT_SECRET
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not defined.');
+  process.exit(1);
+}
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -12,10 +19,12 @@ router.post('/register', async (req, res) => {
   try {
     const { firstName, lastName, email, password, phoneNumber, address, role } = req.body;
 
+    // Simple validation
     if (!firstName || !lastName || !email || !password || !role) {
       return res.status(400).json({ message: 'Please enter all required fields.' });
     }
 
+    // Check for existing user
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'User with this email already exists.' });
@@ -46,6 +55,11 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please provide email and password.' });
+    }
+
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
@@ -57,8 +71,22 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token, user: { id: user.id, firstName: user.firstName, email: user.email, role: user.role } });
+    const token = jwt.sign(
+      { id: user.id, role: user.role, firstName: user.firstName, lastName: user.lastName },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      user: { 
+        id: user.id, 
+        firstName: user.firstName, 
+        lastName: user.lastName, 
+        email: user.email, 
+        role: user.role 
+      },
+    });
 
   } catch (error) {
     console.error('Login Error:', error);
