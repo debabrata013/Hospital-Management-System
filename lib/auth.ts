@@ -1,12 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
-import { connectDB } from '@/lib/mongoose';
-import User from '@/models/User';
+import { DatabaseUtils } from './db-utils';
+import { User } from '@/models/User';
 
 // Helper function to get server session (for API routes)
 export async function getServerSession(request: NextRequest) {
   try {
-    await connectDB();
 
     // Get token from cookie or Authorization header
     const token = request.cookies.get('auth-token')?.value || 
@@ -47,7 +46,13 @@ export async function getServerSession(request: NextRequest) {
     }
 
     // Get user from database
-    const user = await User.findById(decoded.userId).select('-passwordHash');
+    const userResult = await DatabaseUtils.findById('USERS', decoded.userId);
+
+    if (!userResult.success || !userResult.data) {
+      return null;
+    }
+
+    const user = userResult.data as User;
     
     if (!user || !user.isActive) {
       return null;

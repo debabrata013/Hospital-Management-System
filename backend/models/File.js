@@ -1,7 +1,9 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database'); 
+const { DataTypes, Model } = require('sequelize');
+const sequelize = require('../config/database');
 
-const File = sequelize.define('File', {
+class File extends Model {}
+
+File.init({
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -43,6 +45,10 @@ const File = sequelize.define('File', {
       key: 'id',
     },
   },
+}, {
+  sequelize,
+  modelName: 'File',
+  timestamps: true,
 });
 
 module.exports = File;

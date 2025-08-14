@@ -6,12 +6,13 @@ import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
 
 // --- CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5002/api';
 
 // --- TYPES & INTERFACES ---
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
 }
@@ -29,10 +30,13 @@ interface LoginCredentials {
 }
 
 interface RegisterData {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: string;
+  phoneNumber?: string;
+  address?: string;
 }
 
 interface AuthContextType {

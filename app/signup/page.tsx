@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Heart, 
   Eye, 
@@ -39,7 +38,8 @@ export default function SignupPage() {
 
   const [formData, setFormData] = useState({
     // Basic Information
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -96,23 +96,16 @@ export default function SignupPage() {
     "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
   ]
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate all fields on final submission
     if (!validateForm(true)) {
       toast.error("Please fill out all required fields.")
       return;
     }
 
-    // Transform formData to match the backend API schema
-    const [firstName, ...lastNameParts] = formData.name.split(' ');
-    const lastName = lastNameParts.join(' ');
-
     const apiPayload = {
-      ...formData, // Pass all other existing form data
-      firstName: firstName || '',
-      lastName: lastName || '',
+      ...formData,
       phoneNumber: formData.contactNumber,
       address: [
         formData.address.street,
@@ -134,7 +127,8 @@ export default function SignupPage() {
     const newErrors: Record<string, string> = {}
     const stepValidations = {
       1: () => {
-        if (!formData.name.trim()) newErrors.name = "Name is required"
+        if (!formData.firstName.trim()) newErrors.firstName = "First name is required"
+        if (!formData.lastName.trim()) newErrors.lastName = "Last name is required"
         if (!formData.email.trim()) newErrors.email = "Email is required"
         if (!formData.password) newErrors.password = "Password is required"
         if (formData.password !== formData.confirmPassword) {
@@ -160,21 +154,16 @@ export default function SignupPage() {
     }
 
     if (isFinalSubmission) {
-      // Run all validations
       Object.values(stepValidations).forEach(validation => validation());
     } else {
-      // Run only current step validation
       stepValidations[currentStep as keyof typeof stepValidations]();
     }
-
-    
 
     setErrors(newErrors)
 
     if (isFinalSubmission && Object.keys(newErrors).length > 0) {
-      // Find the first step with an error and navigate to it
       const firstErrorField = Object.keys(newErrors)[0];
-      if (['name', 'email', 'password', 'confirmPassword', 'contactNumber', 'role'].includes(firstErrorField)) {
+      if (['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'contactNumber', 'role'].includes(firstErrorField)) {
         setCurrentStep(1);
       } else if (['department', 'licenseNumber'].includes(firstErrorField)) {
         setCurrentStep(2);
@@ -186,17 +175,9 @@ export default function SignupPage() {
   }
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-    
-    // Clear error when user starts typing
+    setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ""
-      }))
+      setErrors(prev => ({ ...prev, [field]: "" }))
     }
   }
 
@@ -231,7 +212,6 @@ export default function SignupPage() {
     if (/[a-z]/.test(password)) strength++
     if (/\d/.test(password)) strength++
     if (/[@$!%*?&]/.test(password)) strength++
-    
     return strength
   }
 
@@ -242,7 +222,6 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
-        {/* Back to Home Link */}
         <div className="mb-6">
           <Link href="/" className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -250,7 +229,6 @@ export default function SignupPage() {
           </Link>
         </div>
 
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
@@ -261,15 +239,12 @@ export default function SignupPage() {
           <p className="text-gray-600">Create your account to access our healthcare services</p>
         </div>
 
-        {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4">
             {[1, 2, 3].map((step) => (
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step <= currentStep 
-                    ? 'bg-pink-500 text-white' 
-                    : 'bg-gray-200 text-gray-500'
+                  step <= currentStep ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-500'
                 }`}>
                   {step < currentStep ? <CheckCircle className="h-4 w-4" /> : step}
                 </div>
@@ -292,7 +267,6 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* Error Alert */}
         {authState.error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -302,7 +276,6 @@ export default function SignupPage() {
           </Alert>
         )}
 
-        {/* Registration Form */}
         <Card className="border-pink-100 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-gray-900">Create Account</CardTitle>
@@ -312,122 +285,105 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="flex items-center">
-                        <User className="h-4 w-4 mr-2 text-pink-500" />
-                        Full Name *
-                      </Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.name ? 'border-red-500' : ''
-                        }`}
-                        placeholder="Enter your full name"
-                      />
-                      {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">First Name *</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="firstName"
+                            placeholder="e.g. Anjali"
+                            value={formData.firstName}
+                            onChange={(e) => handleInputChange('firstName', e.target.value)}
+                            required
+                            className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.firstName ? 'border-red-500' : ''}`}
+                          />
+                        </div>
+                        {errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Last Name *</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="lastName"
+                            placeholder="e.g. Sharma"
+                            value={formData.lastName}
+                            onChange={(e) => handleInputChange('lastName', e.target.value)}
+                            required
+                            className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.lastName ? 'border-red-500' : ''}`}
+                          />
+                        </div>
+                        {errors.lastName && <p className="text-sm text-red-600">{errors.lastName}</p>}
+                      </div>
                     </div>
 
-                    {/* Email */}
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2 text-pink-500" />
-                        Email Address *
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.email ? 'border-red-500' : ''
-                        }`}
-                        placeholder="Enter your email address"
-                      />
+                      <Label htmlFor="email">Email Address *</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.email ? 'border-red-500' : ''}`}
+                          placeholder="e.g. anjali.sharma@email.com"
+                        />
+                      </div>
                       {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Password */}
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2 text-pink-500" />
-                        Password *
-                      </Label>
+                      <Label htmlFor="password">Password *</Label>
                       <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
-                          className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 pr-10 ${
-                            errors.password ? 'border-red-500' : ''
-                          }`}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.password ? 'border-red-500' : ''}`}
                           placeholder="Create a strong password"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      
-                      {/* Password Strength Indicator */}
                       {formData.password && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 mt-2">
                           <div className="flex space-x-1">
                             {[1, 2, 3, 4, 5].map((level) => (
-                              <div
-                                key={level}
-                                className={`h-1 flex-1 rounded ${
-                                  level <= passwordStrength 
-                                    ? strengthColors[passwordStrength - 1] 
-                                    : 'bg-gray-200'
-                                }`}
-                              />
+                              <div key={level} className={`h-1 flex-1 rounded ${level <= passwordStrength ? strengthColors[passwordStrength - 1] : 'bg-gray-200'}`} />
                             ))}
                           </div>
-                          <p className="text-xs text-gray-600">
-                            Password strength: {strengthLabels[passwordStrength - 1] || 'Very Weak'}
-                          </p>
+                          <p className="text-xs text-gray-600">Strength: {strengthLabels[passwordStrength - 1]}</p>
                         </div>
                       )}
-                      
                       {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                     </div>
 
-                    {/* Confirm Password */}
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2 text-pink-500" />
-                        Confirm Password *
-                      </Label>
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
                       <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
                           id="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           value={formData.confirmPassword}
                           onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                          className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 pr-10 ${
-                            errors.confirmPassword ? 'border-red-500' : ''
-                          }`}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                           placeholder="Confirm your password"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
@@ -436,44 +392,34 @@ export default function SignupPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Phone Number */}
                     <div className="space-y-2">
-                      <Label htmlFor="contactNumber" className="flex items-center">
-                        <Phone className="h-4 w-4 mr-2 text-pink-500" />
-                        Phone Number *
-                      </Label>
-                      <Input
-                        id="contactNumber"
-                        type="tel"
-                        value={formData.contactNumber}
-                        onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-                        className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.contactNumber ? 'border-red-500' : ''
-                        }`}
-                        placeholder="+91 9876543210"
-                      />
+                      <Label htmlFor="contactNumber">Phone Number *</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="contactNumber"
+                          type="tel"
+                          value={formData.contactNumber}
+                          onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.contactNumber ? 'border-red-500' : ''}`}
+                          placeholder="+91 9876543210"
+                        />
+                      </div>
                       {errors.contactNumber && <p className="text-sm text-red-600">{errors.contactNumber}</p>}
                     </div>
 
-                    {/* Role */}
                     <div className="space-y-2">
-                      <Label htmlFor="role" className="flex items-center">
-                        <User className="h-4 w-4 mr-2 text-pink-500" />
-                        I am a *
-                      </Label>
-                      <Select value={formData.role || undefined} onValueChange={(value) => handleInputChange('role', value)}>
-                        <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.role ? 'border-red-500' : ''
-                        }`}>
+                      <Label htmlFor="role">I am a *</Label>
+                      <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                        <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.role ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select your role" />
                         </SelectTrigger>
                         <SelectContent>
                           {roles.map((role) => (
                             <SelectItem key={role.value} value={role.value}>
-                              <div>
-                                <div className="font-medium">{role.label}</div>
-                                <div className="text-sm text-gray-500">{role.description}</div>
-                              </div>
+                              <div className="font-medium">{role.label}</div>
+                              <div className="text-sm text-gray-500">{role.description}</div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -482,23 +428,16 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  {/* Next Button */}
                   <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8"
-                    >
+                    <Button type="button" onClick={nextStep} className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8">
                       Next Step
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Step 2: Professional & Personal Details */}
               {currentStep === 2 && (
                 <div className="space-y-6">
-                  {/* Professional Information - Only for non-patients */}
                   {formData.role && formData.role !== 'patient' && (
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -507,13 +446,10 @@ export default function SignupPage() {
                       </h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Department */}
                         <div className="space-y-2">
                           <Label htmlFor="department">Department *</Label>
-                          <Select value={formData.department || undefined} onValueChange={(value) => handleInputChange('department', value)}>
-                            <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                              errors.department ? 'border-red-500' : ''
-                            }`}>
+                          <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
+                            <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.department ? 'border-red-500' : ''}`}>
                               <SelectValue placeholder="Select department" />
                             </SelectTrigger>
                             <SelectContent>
@@ -525,13 +461,9 @@ export default function SignupPage() {
                           {errors.department && <p className="text-sm text-red-600">{errors.department}</p>}
                         </div>
 
-                        {/* Specialization - For doctors */}
                         {formData.role === 'doctor' && (
                           <div className="space-y-2">
-                            <Label htmlFor="specialization" className="flex items-center">
-                              <Stethoscope className="h-4 w-4 mr-2 text-pink-500" />
-                              Specialization
-                            </Label>
+                            <Label htmlFor="specialization">Specialization</Label>
                             <Input
                               id="specialization"
                               type="text"
@@ -543,7 +475,6 @@ export default function SignupPage() {
                           </div>
                         )}
 
-                        {/* License Number - For doctors */}
                         {formData.role === 'doctor' && (
                           <div className="space-y-2">
                             <Label htmlFor="licenseNumber">Medical License Number *</Label>
@@ -552,9 +483,7 @@ export default function SignupPage() {
                               type="text"
                               value={formData.licenseNumber}
                               onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-                              className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                                errors.licenseNumber ? 'border-red-500' : ''
-                              }`}
+                              className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.licenseNumber ? 'border-red-500' : ''}`}
                               placeholder="Enter your medical license number"
                             />
                             {errors.licenseNumber && <p className="text-sm text-red-600">{errors.licenseNumber}</p>}
@@ -564,7 +493,6 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Personal Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                       <User className="h-5 w-5 mr-2 text-pink-500" />
@@ -572,12 +500,8 @@ export default function SignupPage() {
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Date of Birth */}
                       <div className="space-y-2">
-                        <Label htmlFor="dateOfBirth" className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-pink-500" />
-                          Date of Birth
-                        </Label>
+                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
                         <Input
                           id="dateOfBirth"
                           type="date"
@@ -587,10 +511,9 @@ export default function SignupPage() {
                         />
                       </div>
 
-                      {/* Gender */}
                       <div className="space-y-2">
                         <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender || undefined} onValueChange={(value) => handleInputChange('gender', value)}>
+                        <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
                           <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
                             <SelectValue placeholder="Select gender" />
                           </SelectTrigger>
@@ -604,31 +527,19 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  {/* Navigation Buttons */}
                   <div className="flex justify-between">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={prevStep}
-                      className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                    >
+                    <Button type="button" variant="outline" onClick={prevStep} className="border-pink-200 text-pink-600 hover:bg-pink-50">
                       Previous
                     </Button>
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8"
-                    >
+                    <Button type="button" onClick={nextStep} className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8">
                       Next Step
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Address & Emergency Contact */}
               {currentStep === 3 && (
                 <div className="space-y-6">
-                  {/* Address Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                       <MapPin className="h-5 w-5 mr-2 text-pink-500" />
@@ -636,7 +547,6 @@ export default function SignupPage() {
                     </h3>
                     
                     <div className="space-y-4">
-                      {/* Street Address */}
                       <div className="space-y-2">
                         <Label htmlFor="street">Street Address</Label>
                         <Input
@@ -650,7 +560,6 @@ export default function SignupPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* City */}
                         <div className="space-y-2">
                           <Label htmlFor="city">City</Label>
                           <Input
@@ -663,7 +572,6 @@ export default function SignupPage() {
                           />
                         </div>
 
-                        {/* State */}
                         <div className="space-y-2">
                           <Label htmlFor="state">State</Label>
                           <Select 
@@ -683,7 +591,6 @@ export default function SignupPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* ZIP Code */}
                         <div className="space-y-2">
                           <Label htmlFor="zipCode">ZIP Code</Label>
                           <Input
@@ -696,7 +603,6 @@ export default function SignupPage() {
                           />
                         </div>
 
-                        {/* Country */}
                         <div className="space-y-2">
                           <Label htmlFor="country">Country</Label>
                           <Input
@@ -712,7 +618,6 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  {/* Emergency Contact */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                       <Phone className="h-5 w-5 mr-2 text-pink-500" />
@@ -720,7 +625,6 @@ export default function SignupPage() {
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Emergency Contact Name */}
                       <div className="space-y-2">
                         <Label htmlFor="emergencyName">Contact Name</Label>
                         <Input
@@ -733,7 +637,6 @@ export default function SignupPage() {
                         />
                       </div>
 
-                      {/* Relationship */}
                       <div className="space-y-2">
                         <Label htmlFor="relationship">Relationship</Label>
                         <Select 
@@ -754,7 +657,6 @@ export default function SignupPage() {
                         </Select>
                       </div>
 
-                      {/* Emergency Contact Phone */}
                       <div className="space-y-2">
                         <Label htmlFor="emergencyPhone">Contact Number</Label>
                         <Input
@@ -769,7 +671,6 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  {/* Terms and Conditions */}
                   <div className="space-y-4">
                     <div className="flex items-start space-x-3">
                       <Checkbox
@@ -797,7 +698,6 @@ export default function SignupPage() {
                     {errors.acceptTerms && <p className="text-sm text-red-600">{errors.acceptTerms}</p>}
                   </div>
 
-                  {/* Navigation Buttons */}
                   <div className="flex justify-between">
                     <Button
                       type="button"
@@ -828,7 +728,6 @@ export default function SignupPage() {
           </CardContent>
         </Card>
 
-        {/* Login Link */}
         <div className="text-center mt-6">
           <p className="text-gray-600">
             Already have an account?{" "}
