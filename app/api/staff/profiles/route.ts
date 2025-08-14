@@ -20,8 +20,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check permissions
-    if (!['admin', 'super-admin', 'hr_manager'].includes(session.user.role)) {
+    // Check permissions (normalize role string for safety)
+    const normalizedRole = (session.user.role || '').toLowerCase().replace(/_/g, '-').trim();
+    if (!['admin', 'super-admin', 'superadmin', 'hr-manager', 'hr_manager'].includes(normalizedRole)) {
       return NextResponse.json(
         { success: false, error: 'Insufficient permissions' },
         { status: 403 }
@@ -81,8 +82,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check permissions
-    if (!['admin', 'super-admin', 'hr_manager'].includes(session.user.role)) {
+    // Check permissions (normalize role string for safety)
+    const normalizedRole = (session.user.role || '').toLowerCase().replace(/_/g, '-').trim();
+    if (!['admin', 'super-admin', 'superadmin', 'hr-manager', 'hr_manager'].includes(normalizedRole)) {
       return NextResponse.json(
         { success: false, error: 'Insufficient permissions' },
         { status: 403 }
@@ -146,8 +148,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check permissions
-    if (!['admin', 'super-admin', 'hr_manager'].includes(session.user.role)) {
+    // Check permissions (normalize role string for safety)
+    const normalizedRole = (session.user.role || '').toLowerCase().replace(/_/g, '-').trim();
+    if (!['admin', 'super-admin', 'superadmin', 'hr-manager', 'hr_manager'].includes(normalizedRole)) {
       return NextResponse.json(
         { success: false, error: 'Insufficient permissions' },
         { status: 403 }

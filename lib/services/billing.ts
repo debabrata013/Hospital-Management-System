@@ -1,4 +1,5 @@
-import { Billing, Patient, User, AuditLog } from '@/models';
+import models from '@/models';
+const { Billing, Patient, User, AuditLog } = (models as any);
 import { PaymentGatewayService } from './payment-gateway';
 import { NotificationService } from './notification';
 

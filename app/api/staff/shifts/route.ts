@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
     }
 
     // If not admin/manager, restrict to own shifts
-    if (!['admin', 'super-admin', 'hr_manager', 'department_head'].includes(session.user.role)) {
+    const normalizedRole = (session.user.role || '').toLowerCase().replace(/_/g, '-').trim();
+    if (!['admin', 'super-admin', 'superadmin', 'hr-manager', 'department-head'].includes(normalizedRole)) {
       validation.data.staffId = session.user.id;
     }
 
@@ -87,7 +88,8 @@ export async function POST(request: NextRequest) {
 
     if (action === 'create') {
       // Check permissions for creating shifts
-      if (!['admin', 'super-admin', 'hr_manager', 'department_head'].includes(session.user.role)) {
+      const normalizedRole = (session.user.role || '').toLowerCase().replace(/_/g, '-').trim();
+      if (!['admin', 'super-admin', 'superadmin', 'hr-manager', 'department-head'].includes(normalizedRole)) {
         return NextResponse.json(
           { success: false, error: 'Insufficient permissions to create shifts' },
           { status: 403 }
@@ -229,7 +231,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check permissions
-    if (!['admin', 'super-admin', 'hr_manager', 'department_head'].includes(session.user.role)) {
+    const normalizedRole = (session.user.role || '').toLowerCase().replace(/_/g, '-').trim();
+    if (!['admin', 'super-admin', 'superadmin', 'hr-manager', 'department-head'].includes(normalizedRole)) {
       return NextResponse.json(
         { success: false, error: 'Insufficient permissions to update shifts' },
         { status: 403 }
