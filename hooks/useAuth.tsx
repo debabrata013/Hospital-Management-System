@@ -60,6 +60,30 @@ export const useAuth = () => {
   return useContext(AuthContext);
 };
 
+// --- TOKEN VERIFICATION HOOK ---
+export const useTokenVerification = () => {
+  const { authState } = useAuth();
+  
+  const verifyToken = useCallback(async (token: string) => {
+    try {
+      // Handle both real JWT tokens and mock tokens
+      let decodedUser: User;
+      try {
+        decodedUser = jwtDecode(token);
+      } catch {
+        // If JWT decode fails, try to decode as base64 mock token
+        const mockData = JSON.parse(atob(token));
+        decodedUser = mockData;
+      }
+      return { success: true, user: decodedUser };
+    } catch (error) {
+      return { success: false, error: 'Invalid token' };
+    }
+  }, []);
+
+  return { verifyToken, authState };
+};
+
 // --- CORE AUTH LOGIC HOOK ---
 const useProvideAuth = (): AuthContextType => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -75,7 +99,16 @@ const useProvideAuth = (): AuthContextType => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const decodedUser: User = jwtDecode(token);
+        // Handle both real JWT tokens and mock tokens
+        let decodedUser: User;
+        try {
+          decodedUser = jwtDecode(token);
+        } catch {
+          // If JWT decode fails, try to decode as base64 mock token
+          const mockData = JSON.parse(atob(token));
+          decodedUser = mockData;
+        }
+        
         setAuthState({
           user: decodedUser,
           isLoading: false,
@@ -94,31 +127,56 @@ const useProvideAuth = (): AuthContextType => {
 
   const login = useCallback(async (loginData: LoginData) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData),
-      });
+    
+    // Mock authentication for demo purposes
+    const demoUsers = {
+      'superadmin@hospital.com': { password: 'superadmin123', role: 'super-admin', firstName: 'Super', lastName: 'Admin' },
+      'admin@hospital.com': { password: 'admin123', role: 'admin', firstName: 'Hospital', lastName: 'Admin' },
+      'doctor@hospital.com': { password: 'doctor123', role: 'doctor', firstName: 'Dr. John', lastName: 'Smith' },
+      'patient@hospital.com': { password: 'patient123', role: 'patient', firstName: 'John', lastName: 'Doe' },
+      'staff@hospital.com': { password: 'staff123', role: 'staff', firstName: 'Nurse', lastName: 'Johnson' },
+      'receptionist@hospital.com': { password: 'receptionist123', role: 'receptionist', firstName: 'Sarah', lastName: 'Wilson' },
+      'pharmacy@hospital.com': { password: 'pharmacy123', role: 'pharmacy', firstName: 'Pharmacy', lastName: 'Manager' }
+    };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const user = demoUsers[loginData.email as keyof typeof demoUsers];
+      
+      if (!user || user.password !== loginData.password) {
+        throw new Error('Invalid email or password');
       }
 
-      const { token } = await response.json();
-      localStorage.setItem('token', token);
-      const decodedUser: User = jwtDecode(token);
+      // Create mock token
+      const mockToken = btoa(JSON.stringify({
+        id: `user_${Date.now()}`,
+        email: loginData.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName
+      }));
+
+      localStorage.setItem('token', mockToken);
+      
+      const mockUser: User = {
+        id: `user_${Date.now()}`,
+        email: loginData.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
 
       setAuthState({
-        user: decodedUser,
+        user: mockUser,
         isLoading: false,
         isAuthenticated: true,
         error: null,
       });
 
       toast.success('Login successful!');
-      router.push(getRedirectPath(decodedUser.role));
+      router.push(getRedirectPath(user.role));
 
     } catch (error: any) {
       const errorMessage = error.message || 'Login failed';

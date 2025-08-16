@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Users, UserCheck, UserCog, Settings, FileText, Bell, LogOut, Building2, Activity, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, Shield, Database, Server, Wifi, HardDrive, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
+import { Heart, LayoutDashboard, Users, UserCheck, UserCog, Settings, FileText, Bell, LogOut, Building2, Activity, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, Shield, Database, Server, Wifi, HardDrive, MoreHorizontal, Eye, Edit, Trash2, Home } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 // Mock data for charts and statistics
@@ -117,6 +117,7 @@ const navigationItems = [
       { title: "Manage Doctors", icon: UserCheck, url: "/super-admin/doctors" },
       { title: "Manage Staff", icon: Users, url: "/super-admin/staff" },
       { title: "Hospitals", icon: Building2, url: "/super-admin/hospitals" },
+      { title: "Room Management", icon: Home, url: "/super-admin/room-management" },
     ]
   },
   {
