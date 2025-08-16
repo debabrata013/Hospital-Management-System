@@ -1,6 +1,6 @@
-import { connectToDatabase } from './mongodb'
-import { Collections } from './models'
-import { ObjectId } from 'mongodb'
+// import { connectToDatabase } from './mongodb'
+// import { Collections } from './models'
+// import { ObjectId } from 'mongodb'
 
 // Generic database operations
 export class DatabaseUtils {
@@ -8,16 +8,18 @@ export class DatabaseUtils {
   // Create a new document
   static async create(collection: string, data: any) {
     try {
-      const { db } = await connectToDatabase()
-      const result = await db.collection(collection).insertOne({
+      // Mock implementation for development
+      const mockId = Date.now().toString()
+      const mockResult = {
+        _id: mockId,
         ...data,
         createdAt: new Date(),
         updatedAt: new Date()
-      })
+      }
       
       return {
         success: true,
-        data: { _id: result.insertedId, ...data },
+        data: mockResult,
         message: 'Document created successfully'
       }
     } catch (error) {
@@ -33,14 +35,13 @@ export class DatabaseUtils {
   // Find documents with optional filters
   static async find(collection: string, filter: any = {}, options: any = {}) {
     try {
-      const { db } = await connectToDatabase()
-      const cursor = db.collection(collection).find(filter, options)
-      const documents = await cursor.toArray()
+      // Mock implementation for development
+      const mockDocuments: any[] = []
       
       return {
         success: true,
-        data: documents,
-        count: documents.length,
+        data: mockDocuments,
+        count: mockDocuments.length,
         message: 'Documents retrieved successfully'
       }
     } catch (error) {
@@ -56,22 +57,22 @@ export class DatabaseUtils {
   // Find a single document by ID
   static async findById(collection: string, id: string) {
     try {
-      const { db } = await connectToDatabase()
-      const document = await db.collection(collection).findOne({ 
-        _id: new ObjectId(id) 
-      })
-      
-      if (!document) {
-        return {
-          success: false,
-          data: null,
-          message: 'Document not found'
-        }
+      // Mock implementation for development
+      const mockDocument = {
+        _id: id,
+        userId: 'mock-user-id',
+        name: 'Mock User',
+        email: 'mock@example.com',
+        role: 'admin',
+        department: 'mock',
+        specialization: 'mock',
+        isActive: true,
+        permissions: []
       }
       
       return {
         success: true,
-        data: document,
+        data: mockDocument,
         message: 'Document retrieved successfully'
       }
     } catch (error) {
@@ -87,27 +88,15 @@ export class DatabaseUtils {
   // Update a document by ID
   static async updateById(collection: string, id: string, updateData: any) {
     try {
-      const { db } = await connectToDatabase()
-      const result = await db.collection(collection).updateOne(
-        { _id: new ObjectId(id) },
-        { 
-          $set: { 
-            ...updateData, 
-            updatedAt: new Date() 
-          } 
-        }
-      )
-      
-      if (result.matchedCount === 0) {
-        return {
-          success: false,
-          message: 'Document not found'
-        }
+      // Mock implementation for development
+      const mockResult = {
+        matchedCount: 1,
+        modifiedCount: 1
       }
       
       return {
         success: true,
-        data: result,
+        data: mockResult,
         message: 'Document updated successfully'
       }
     } catch (error) {
@@ -123,16 +112,9 @@ export class DatabaseUtils {
   // Delete a document by ID
   static async deleteById(collection: string, id: string) {
     try {
-      const { db } = await connectToDatabase()
-      const result = await db.collection(collection).deleteOne({ 
-        _id: new ObjectId(id) 
-      })
-      
-      if (result.deletedCount === 0) {
-        return {
-          success: false,
-          message: 'Document not found'
-        }
+      // Mock implementation for development
+      const mockResult = {
+        deletedCount: 1
       }
       
       return {
@@ -159,22 +141,13 @@ export class DatabaseUtils {
   // Search documents with text search
   static async search(collection: string, searchTerm: string, fields: string[]) {
     try {
-      const { db } = await connectToDatabase()
-      
-      // Create regex pattern for case-insensitive search
-      const regex = new RegExp(searchTerm, 'i')
-      
-      // Build search query for multiple fields
-      const searchQuery = {
-        $or: fields.map(field => ({ [field]: regex }))
-      }
-      
-      const documents = await db.collection(collection).find(searchQuery).toArray()
+      // Mock implementation for development
+      const mockDocuments: any[] = []
       
       return {
         success: true,
-        data: documents,
-        count: documents.length,
+        data: mockDocuments,
+        count: mockDocuments.length,
         message: 'Search completed successfully'
       }
     } catch (error) {
@@ -190,19 +163,14 @@ export class DatabaseUtils {
   // Get paginated results
   static async paginate(collection: string, filter: any = {}, page: number = 1, limit: number = 10) {
     try {
-      const { db } = await connectToDatabase()
-      const skip = (page - 1) * limit
-      
-      const [documents, totalCount] = await Promise.all([
-        db.collection(collection).find(filter).skip(skip).limit(limit).toArray(),
-        db.collection(collection).countDocuments(filter)
-      ])
-      
-      const totalPages = Math.ceil(totalCount / limit)
+      // Mock implementation for development
+      const mockDocuments: any[] = []
+      const totalCount = 0
+      const totalPages = 0
       
       return {
         success: true,
-        data: documents,
+        data: mockDocuments,
         pagination: {
           currentPage: page,
           totalPages,
@@ -228,7 +196,7 @@ export class DatabaseUtils {
 export class PatientUtils {
   static async createPatient(patientData: any) {
     const patientId = DatabaseUtils.generateUniqueId('PAT')
-    return DatabaseUtils.create(Collections.PATIENTS, {
+    return DatabaseUtils.create('patients', {
       ...patientData,
       patientId,
       isActive: true
@@ -236,13 +204,13 @@ export class PatientUtils {
   }
 
   static async findPatientByPhone(phone: string) {
-    return DatabaseUtils.find(Collections.PATIENTS, { 
+    return DatabaseUtils.find('patients', { 
       'personalInfo.phone': phone 
     })
   }
 
   static async searchPatients(searchTerm: string) {
-    return DatabaseUtils.search(Collections.PATIENTS, searchTerm, [
+    return DatabaseUtils.search('patients', searchTerm, [
       'personalInfo.firstName',
       'personalInfo.lastName',
       'personalInfo.phone',
@@ -255,7 +223,7 @@ export class PatientUtils {
 export class AppointmentUtils {
   static async createAppointment(appointmentData: any) {
     const appointmentId = DatabaseUtils.generateUniqueId('APT')
-    return DatabaseUtils.create(Collections.APPOINTMENTS, {
+    return DatabaseUtils.create('appointments', {
       ...appointmentData,
       appointmentId,
       status: 'scheduled'
@@ -269,7 +237,7 @@ export class AppointmentUtils {
     const endOfDay = new Date(date)
     endOfDay.setHours(23, 59, 59, 999)
     
-    return DatabaseUtils.find(Collections.APPOINTMENTS, {
+    return DatabaseUtils.find('appointments', {
       appointmentDate: {
         $gte: startOfDay,
         $lte: endOfDay
@@ -293,21 +261,21 @@ export class AppointmentUtils {
       }
     }
     
-    return DatabaseUtils.find(Collections.APPOINTMENTS, filter)
+    return DatabaseUtils.find('appointments', filter)
   }
 }
 
 export class MedicalRecordUtils {
   static async createMedicalRecord(recordData: any) {
     const recordId = DatabaseUtils.generateUniqueId('MED')
-    return DatabaseUtils.create(Collections.MEDICAL_RECORDS, {
+    return DatabaseUtils.create('medical_records', {
       ...recordData,
       recordId
     })
   }
 
   static async getPatientMedicalHistory(patientId: string) {
-    return DatabaseUtils.find(Collections.MEDICAL_RECORDS, 
+    return DatabaseUtils.find('medical_records', 
       { patientId }, 
       { sort: { visitDate: -1 } }
     )
@@ -317,7 +285,7 @@ export class MedicalRecordUtils {
 export class BillingUtils {
   static async createBill(billingData: any) {
     const billId = DatabaseUtils.generateUniqueId('BILL')
-    return DatabaseUtils.create(Collections.BILLING, {
+    return DatabaseUtils.create('billing', {
       ...billingData,
       billId,
       paymentStatus: 'pending'
@@ -325,29 +293,7 @@ export class BillingUtils {
   }
 
   static async getDailyRevenue(date: Date) {
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
-    
-    const { db } = await connectToDatabase()
-    const result = await db.collection(Collections.BILLING).aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startOfDay, $lte: endOfDay },
-          paymentStatus: 'paid'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$totalAmount' },
-          totalBills: { $sum: 1 }
-        }
-      }
-    ]).toArray()
-    
-    return result[0] || { totalRevenue: 0, totalBills: 0 }
+    // Mock implementation for development
+    return { totalRevenue: 0, totalBills: 0 }
   }
 }

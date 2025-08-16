@@ -5,7 +5,7 @@ import {
   updateStaffProfileSchema,
   staffQuerySchema 
 } from '@/lib/validations/staff';
-import { getServerSession } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth-simple';
 
 const staffService = new StaffService();
 

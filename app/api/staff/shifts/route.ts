@@ -8,7 +8,7 @@ import {
   checkOutSchema,
   addBreakSchema
 } from '@/lib/validations/staff';
-import { getServerSession } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth-simple';
 
 const staffService = new StaffService();
 

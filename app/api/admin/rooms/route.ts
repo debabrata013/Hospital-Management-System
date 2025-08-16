@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth'
-import models from '@/models'
-const { User, AuditLog } = models
+import { getServerSession } from '@/lib/auth-simple'
 
 // Mock data - replace with database operations
 let rooms = [
@@ -248,6 +246,29 @@ export async function POST(request: NextRequest) {
         success: true,
         data: { patient, room },
         message: 'Patient discharged successfully'
+      })
+
+    } else if (action === 'updateRoomStatus') {
+      // Update room status (e.g., after cleaning completion)
+      const { roomId, status } = data
+      
+      const room = rooms.find(r => r.id === roomId)
+      if (!room) {
+        return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+      }
+
+      room.status = status
+      room.updatedAt = new Date().toISOString()
+
+      if (status === 'Available') {
+        room.lastCleaned = new Date().toISOString().split('T')[0]
+        room.nextCleaningDue = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: room,
+        message: 'Room status updated successfully'
       })
 
     } else {

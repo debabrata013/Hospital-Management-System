@@ -9,20 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar, Clock, User, Bed, Sparkles, Pill, FileText, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { Calendar, Clock, User, Bed, Pill, FileText, AlertCircle, CheckCircle, XCircle, Sparkles } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import PatientAdmissionForm from '@/components/admin/PatientAdmissionForm'
 import PatientDischargeForm from '@/components/admin/PatientDischargeForm'
-
-// Temporary stub for CleaningAssignmentForm to fix compile error
-function CleaningAssignmentForm({ room, onAssignmentComplete }: { room: Room, onAssignmentComplete: () => void }) {
-  return (
-    <Button size="sm" variant="secondary" onClick={onAssignmentComplete}>
-      <Sparkles className="mr-1 h-3 w-3" />
-      Assign Cleaning
-    </Button>
-  )
-}
+import CleaningManagement from '@/components/admin/CleaningManagement'
+import AssignCleaningButton from '@/components/admin/AssignCleaningButton'
 
 
 interface Room {
@@ -33,9 +25,7 @@ interface Room {
   floor: number
   capacity: number
   currentOccupancy: number
-  status: 'Available' | 'Occupied' | 'Under Maintenance' | 'Cleaning Required' | 'Cleaning In Progress'
-  lastCleaned: string
-  nextCleaningDue: string
+  status: 'Available' | 'Occupied' | 'Under Maintenance' | 'Cleaning Required'
 }
 
 interface Patient {
@@ -51,20 +41,10 @@ interface Patient {
   status: 'Admitted' | 'Discharged' | 'Transferred'
 }
 
-interface CleaningTask {
-  id: string
-  roomId: string
-  roomNumber: string
-  assignedTo: string
-  assignedDate: string
-  completedDate?: string
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Verified'
-  notes: string
-  priority: 'Low' | 'Medium' | 'High' | 'Urgent'
-}
+
 
 export default function RoomManagementPage() {
-  const [showCleaning, setShowCleaning] = useState(false)
+
   const [showAdmission, setShowAdmission] = useState(false)
   const [admitRoom, setAdmitRoom] = useState<Room | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
@@ -76,9 +56,7 @@ export default function RoomManagementPage() {
     floor: 1,
     capacity: 1,
     currentOccupancy: 0,
-    status: 'Available',
-    lastCleaned: '',
-    nextCleaningDue: ''
+    status: 'Available'
   })
   const handleAddRoom = () => {
     if (!newRoom.name || !newRoom.roomNumber || !newRoom.type || !newRoom.floor || !newRoom.capacity) {
@@ -96,9 +74,7 @@ export default function RoomManagementPage() {
         floor: Number(newRoom.floor),
         capacity: Number(newRoom.capacity),
         currentOccupancy: 0,
-        status: newRoom.status as Room['status'],
-        lastCleaned: newRoom.lastCleaned || '',
-        nextCleaningDue: newRoom.nextCleaningDue || ''
+        status: newRoom.status as Room['status']
       }
     ])
     setShowAddRoom(false)
@@ -109,14 +85,11 @@ export default function RoomManagementPage() {
       floor: 1,
       capacity: 1,
       currentOccupancy: 0,
-      status: 'Available',
-      lastCleaned: '',
-      nextCleaningDue: ''
+      status: 'Available'
     })
     toast({ title: 'Room added successfully!' })
   }
   const [patients, setPatients] = useState<Patient[]>([])
-  // const [cleaningTasks, setCleaningTasks] = useState<CleaningTask[]>([])
   const [selectedTab, setSelectedTab] = useState('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -135,8 +108,6 @@ export default function RoomManagementPage() {
         capacity: 2,
         currentOccupancy: 1,
         status: 'Occupied',
-        lastCleaned: '2024-01-10',
-        nextCleaningDue: '2024-01-12',
         name: ''
       },
       {
@@ -147,8 +118,6 @@ export default function RoomManagementPage() {
         capacity: 1,
         currentOccupancy: 0,
         status: 'Available',
-        lastCleaned: '2024-01-11',
-        nextCleaningDue: '2024-01-13',
         name: ''
       },
       {
@@ -159,8 +128,6 @@ export default function RoomManagementPage() {
         capacity: 1,
         currentOccupancy: 1,
         status: 'Occupied',
-        lastCleaned: '2024-01-09',
-        nextCleaningDue: '2024-01-11',
         name: ''
       },
       {
@@ -171,8 +138,6 @@ export default function RoomManagementPage() {
         capacity: 2,
         currentOccupancy: 0,
         status: 'Cleaning Required',
-        lastCleaned: '2024-01-08',
-        nextCleaningDue: '2024-01-10',
         name: ''
       }
     ]
@@ -213,7 +178,6 @@ export default function RoomManagementPage() {
       case 'Occupied': return 'bg-blue-100 text-blue-800'
       case 'Under Maintenance': return 'bg-yellow-100 text-yellow-800'
       case 'Cleaning Required': return 'bg-red-100 text-red-800'
-      case 'Cleaning In Progress': return 'bg-orange-100 text-orange-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -254,7 +218,7 @@ export default function RoomManagementPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Room Management</h1>
           <p className="text-muted-foreground">
-            Manage patient admissions, room allocations, and cleaning schedules
+            Manage patient admissions and room allocations
           </p>
         </div>
         <Dialog open={showAddRoom} onOpenChange={setShowAddRoom}>
@@ -296,12 +260,8 @@ export default function RoomManagementPage() {
                   <SelectItem value="Available">Available</SelectItem>
                   <SelectItem value="Occupied">Occupied</SelectItem>
                   <SelectItem value="Under Maintenance">Under Maintenance</SelectItem>
-                  <SelectItem value="Cleaning Required">Cleaning Required</SelectItem>
-                  <SelectItem value="Cleaning In Progress">Cleaning In Progress</SelectItem>
                 </SelectContent>
               </Select>
-              <Input placeholder="Last Cleaned (YYYY-MM-DD)" value={newRoom.lastCleaned} onChange={e => setNewRoom({ ...newRoom, lastCleaned: e.target.value })} />
-              <Input placeholder="Next Cleaning Due (YYYY-MM-DD)" value={newRoom.nextCleaningDue} onChange={e => setNewRoom({ ...newRoom, nextCleaningDue: e.target.value })} />
               <Button onClick={handleAddRoom}>Add Room</Button>
             </div>
           </DialogContent>
@@ -336,7 +296,7 @@ export default function RoomManagementPage() {
             </p>
           </CardContent>
         </Card>
-  {/* Cleaning Required card removed */}
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Under Maintenance</CardTitle>
@@ -351,6 +311,20 @@ export default function RoomManagementPage() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Need Cleaning</CardTitle>
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {rooms.filter(r => r.status === 'Cleaning Required').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Require cleaning
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
@@ -358,6 +332,7 @@ export default function RoomManagementPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="rooms">Rooms</TabsTrigger>
           <TabsTrigger value="patients">Patients</TabsTrigger>
+          <TabsTrigger value="cleaning">Cleaning</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -404,8 +379,8 @@ export default function RoomManagementPage() {
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="Available">Available</SelectItem>
                 <SelectItem value="Occupied">Occupied</SelectItem>
-                <SelectItem value="Cleaning Required">Cleaning Required</SelectItem>
                 <SelectItem value="Under Maintenance">Under Maintenance</SelectItem>
+                <SelectItem value="Cleaning Required">Cleaning Required</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
@@ -452,29 +427,26 @@ export default function RoomManagementPage() {
                       </div>
                     )}
                     
-                    <div className="text-sm text-muted-foreground">
-                      <p>Last cleaned: {room.lastCleaned}</p>
-                      <p>Next cleaning: {room.nextCleaningDue}</p>
-                    </div>
 
-                    <div className="flex space-x-2">
-                      {room.status === 'Available' && (
-                        <PatientAdmissionForm 
-                          room={room} 
-                          onAdmissionComplete={refreshData}
-                        />
-                      )}
-                      {room.status === 'Cleaning Required' && (
-                        <CleaningAssignmentForm 
-                          room={room} 
-                          onAssignmentComplete={refreshData}
-                        />
-                      )}
-                      <Button size="sm" variant="outline">
-                        <FileText className="mr-1 h-3 w-3" />
-                        Details
-                      </Button>
-                    </div>
+
+                                         <div className="flex space-x-2">
+                       {room.status === 'Available' && (
+                         <PatientAdmissionForm 
+                           room={room} 
+                           onAdmissionComplete={refreshData}
+                         />
+                       )}
+                       {room.status === 'Cleaning Required' && (
+                         <AssignCleaningButton 
+                           room={room} 
+                           onCleaningAssigned={refreshData}
+                         />
+                       )}
+                       <Button size="sm" variant="outline">
+                         <FileText className="mr-1 h-3 w-3" />
+                         Details
+                       </Button>
+                     </div>
                   </CardContent>
                 </Card>
               )
@@ -572,6 +544,13 @@ export default function RoomManagementPage() {
           </div>
         </TabsContent>
 
+        {/* Cleaning Tab */}
+        <TabsContent value="cleaning" className="space-y-4">
+          <CleaningManagement 
+            rooms={rooms} 
+            onCleaningComplete={refreshData}
+          />
+        </TabsContent>
 
       </Tabs>
     </div>

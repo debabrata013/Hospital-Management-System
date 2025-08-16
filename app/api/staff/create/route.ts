@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StaffService } from '@/lib/services/staff';
-import { getServerSession } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth-simple';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 

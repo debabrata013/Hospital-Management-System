@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth'
-import models from '@/models'
-const { User, AuditLog } = models
+import { getServerSession } from '@/lib/auth-simple'
 
 // Mock data - replace with database operations
 let cleaningTasks = [
@@ -9,102 +7,134 @@ let cleaningTasks = [
     id: '1',
     roomId: '4',
     roomNumber: '202',
-    assignedTo: 'Cleaning Staff A',
-    assignedDate: '2024-01-10',
+    assignedTo: 'Sarah Johnson',
+    assignedDate: '2024-01-12',
+    completedDate: null,
     status: 'Pending',
-    notes: 'Room needs deep cleaning after discharge',
     priority: 'High',
-    estimatedDuration: '2 hours',
     cleaningType: 'Deep Clean',
-    createdAt: '2024-01-10',
-    updatedAt: '2024-01-10',
-    completedBy: '',
-    startedDate: ''
+    notes: 'Patient discharged, requires thorough cleaning',
+    estimatedDuration: 60,
+    createdAt: '2024-01-12T10:00:00Z',
+    updatedAt: '2024-01-12T10:00:00Z'
   },
   {
     id: '2',
     roomId: '2',
     roomNumber: '102',
-    assignedTo: 'Cleaning Staff B',
+    assignedTo: 'Mike Chen',
     assignedDate: '2024-01-11',
+    completedDate: '2024-01-11T14:30:00Z',
     status: 'Completed',
-    completedDate: '2024-01-11',
-    notes: 'Regular maintenance cleaning completed',
     priority: 'Medium',
-    estimatedDuration: '1 hour',
     cleaningType: 'Regular Clean',
-    createdAt: '2024-01-11',
-    updatedAt: '2024-01-11',
-    completedBy: '',
-    startedDate: ''
+    notes: 'Routine cleaning completed',
+    estimatedDuration: 30,
+    createdAt: '2024-01-11T09:00:00Z',
+    updatedAt: '2024-01-11T14:30:00Z'
   }
 ]
 
 let cleaningStaff = [
   {
     id: '1',
-    name: 'Cleaning Staff A',
-    email: 'staffa@hospital.com',
-    phone: '+1234567890',
-    specialization: 'Deep Cleaning',
-    isAvailable: true,
-    currentTasks: 1
+    name: 'Sarah Johnson',
+    email: 'sarah.johnson@hospital.com',
+    phone: '+1-555-0101',
+    status: 'Available',
+    currentTasks: 1,
+    maxTasks: 3,
+    specialization: ['Deep Clean', 'Sanitization'],
+    shift: 'Morning',
+    createdAt: '2024-01-01T00:00:00Z'
   },
   {
     id: '2',
-    name: 'Cleaning Staff B',
-    email: 'staffb@hospital.com',
-    phone: '+1234567891',
-    specialization: 'Regular Cleaning',
-    isAvailable: true,
-    currentTasks: 0
+    name: 'Mike Chen',
+    email: 'mike.chen@hospital.com',
+    phone: '+1-555-0102',
+    status: 'Available',
+    currentTasks: 0,
+    maxTasks: 3,
+    specialization: ['Regular Clean', 'Maintenance'],
+    shift: 'Afternoon',
+    createdAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: '3',
+    name: 'Lisa Rodriguez',
+    email: 'lisa.rodriguez@hospital.com',
+    phone: '+1-555-0103',
+    status: 'Busy',
+    currentTasks: 2,
+    maxTasks: 3,
+    specialization: ['Deep Clean', 'Emergency Clean'],
+    shift: 'Evening',
+    createdAt: '2024-01-01T00:00:00Z'
   }
 ]
 
 // GET - Fetch cleaning tasks and staff
 export async function GET(request: NextRequest) {
   try {
-    // BYPASS AUTH FOR LOCAL DEVELOPMENT
-    // const session = await getServerSession(request)
-    // if (!session) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-    // if (!['admin', 'super-admin', 'hr_manager', 'department_head'].includes(session.user.role)) {
-    //   return NextResponse.json({ error: 'Access denied. Insufficient permissions.' }, { status: 403 })
-    // }
+    const session = await getServerSession(request)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (!['admin', 'super-admin', 'hr_manager'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Access denied. Only admin and super-admin can manage cleaning.' }, { status: 403 })
+    }
 
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const priority = searchParams.get('priority')
-    const assignedTo = searchParams.get('assignedTo')
-    const roomId = searchParams.get('roomId')
+    const action = searchParams.get('action')
 
-    let filteredTasks = [...cleaningTasks]
+    if (action === 'tasks') {
+      const status = searchParams.get('status')
+      const priority = searchParams.get('priority')
+      
+      let filteredTasks = cleaningTasks
+      
+      if (status && status !== 'all') {
+        filteredTasks = filteredTasks.filter(task => task.status === status)
+      }
+      
+      if (priority && priority !== 'all') {
+        filteredTasks = filteredTasks.filter(task => task.priority === priority)
+      }
 
-    if (status && status !== 'all') {
-      filteredTasks = filteredTasks.filter(task => task.status === status)
+      return NextResponse.json({
+        success: true,
+        data: filteredTasks,
+        message: 'Cleaning tasks retrieved successfully'
+      })
+
+    } else if (action === 'staff') {
+      const status = searchParams.get('status')
+      
+      let filteredStaff = cleaningStaff
+      
+      if (status && status !== 'all') {
+        filteredStaff = filteredStaff.filter(staff => staff.status === status)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: filteredStaff,
+        message: 'Cleaning staff retrieved successfully'
+      })
+
+    } else {
+      // Return both tasks and staff
+      return NextResponse.json({
+        success: true,
+        data: {
+          tasks: cleaningTasks,
+          staff: cleaningStaff
+        },
+        message: 'Cleaning data retrieved successfully'
+      })
     }
-
-    if (priority && priority !== 'all') {
-      filteredTasks = filteredTasks.filter(task => task.priority === priority)
-    }
-
-    if (assignedTo && assignedTo !== 'all') {
-      filteredTasks = filteredTasks.filter(task => task.assignedTo === assignedTo)
-    }
-
-    if (roomId) {
-      filteredTasks = filteredTasks.filter(task => task.roomId === roomId)
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        tasks: filteredTasks,
-        staff: cleaningStaff
-      },
-      total: filteredTasks.length
-    })
 
   } catch (error) {
     console.error('Error fetching cleaning data:', error)
@@ -112,7 +142,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new cleaning task or assign cleaning
+// POST - Create cleaning task or assign cleaning
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(request)
@@ -133,20 +163,19 @@ export async function POST(request: NextRequest) {
         id: Date.now().toString(),
         ...data,
         status: 'Pending',
+        assignedDate: new Date().toISOString().split('T')[0],
+        completedDate: null,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        completedBy: '',
-        startedDate: '',
-        completedDate: ''
+        updatedAt: new Date().toISOString()
       }
 
       cleaningTasks.push(newTask)
 
-      // Update staff task count
-      const staff = cleaningStaff.find(s => s.name === newTask.assignedTo)
+      // Update staff workload
+      const staff = cleaningStaff.find(s => s.name === data.assignedTo)
       if (staff) {
         staff.currentTasks += 1
-        staff.isAvailable = staff.currentTasks < 3 // Max 3 tasks per staff
+        staff.status = staff.currentTasks >= staff.maxTasks ? 'Busy' : 'Available'
       }
 
       return NextResponse.json({
@@ -156,48 +185,46 @@ export async function POST(request: NextRequest) {
       }, { status: 201 })
 
     } else if (action === 'assignCleaning') {
-      // Assign cleaning to specific room
-      const { roomId, roomNumber, assignedTo, priority, notes, cleaningType } = data
+      // Assign cleaning to available staff
+      const { roomId, roomNumber, priority, cleaningType, notes } = data
 
-      // Check if room already has pending cleaning
-      const existingTask = cleaningTasks.find(t => t.roomId === roomId && t.status === 'Pending')
-      if (existingTask) {
-        return NextResponse.json({ error: 'Room already has pending cleaning task' }, { status: 400 })
+      // Find available staff
+      const availableStaff = cleaningStaff.filter(s => 
+        s.status === 'Available' && 
+        s.currentTasks < s.maxTasks &&
+        s.specialization.includes(cleaningType)
+      )
+
+      if (availableStaff.length === 0) {
+        return NextResponse.json({ 
+          error: 'No available staff for this cleaning type' 
+        }, { status: 400 })
       }
 
-      // Check if staff is available
-      const staff = cleaningStaff.find(s => s.name === assignedTo)
-      if (!staff) {
-        return NextResponse.json({ error: 'Cleaning staff not found' }, { status: 404 })
-      }
-
-      if (!staff.isAvailable) {
-        return NextResponse.json({ error: 'Staff member is not available' }, { status: 400 })
-      }
-
+      // Assign to first available staff
+      const assignedStaff = availableStaff[0]
+      
       const newTask = {
         id: Date.now().toString(),
         roomId,
         roomNumber,
-        assignedTo,
+        assignedTo: assignedStaff.name,
         assignedDate: new Date().toISOString().split('T')[0],
+        completedDate: null,
         status: 'Pending',
-        notes: notes || 'Room cleaning required',
-        priority: priority || 'Medium',
-        estimatedDuration: cleaningType === 'Deep Clean' ? '2 hours' : '1 hour',
-        cleaningType: cleaningType || 'Regular Clean',
+        priority,
+        cleaningType,
+        notes,
+        estimatedDuration: cleaningType === 'Deep Clean' ? 60 : 30,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        completedBy: '',
-        startedDate: '',
-        completedDate: ''
+        updatedAt: new Date().toISOString()
       }
 
       cleaningTasks.push(newTask)
 
-      // Update staff task count
-      staff.currentTasks += 1
-      staff.isAvailable = staff.currentTasks < 3
+      // Update staff workload
+      assignedStaff.currentTasks += 1
+      assignedStaff.status = assignedStaff.currentTasks >= assignedStaff.maxTasks ? 'Busy' : 'Available'
 
       return NextResponse.json({
         success: true,
@@ -223,97 +250,57 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!['admin', 'super-admin', 'hr_manager', 'department_head'].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Access denied. Insufficient permissions.' }, { status: 403 })
+    if (!['admin', 'super-admin', 'hr_manager'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Access denied. Only admin and super-admin can manage cleaning.' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { action, ...data } = body
+    const { taskId, status, notes } = body
 
-    if (action === 'updateTaskStatus') {
-      const { taskId, status, notes, completedBy } = data
-      const taskIndex = cleaningTasks.findIndex(t => t.id === taskId)
-
-      if (taskIndex === -1) {
-        return NextResponse.json({ error: 'Cleaning task not found' }, { status: 404 })
-      }
-
-      const task = cleaningTasks[taskIndex]
-      const oldStatus = task.status
-
-      // Update task status
-      task.status = status
-      task.updatedAt = new Date().toISOString()
-
-      if (status === 'Completed') {
-        task.completedDate = new Date().toISOString().split('T')[0]
-        if (notes) task.notes = notes
-        if (completedBy) task.completedBy = completedBy
-      } else if (status === 'In Progress') {
-        task.startedDate = new Date().toISOString().split('T')[0]
-      }
-
-      // Update staff availability if task is completed
-      if (status === 'Completed' && oldStatus !== 'Completed') {
-        const staff = cleaningStaff.find(s => s.name === task.assignedTo)
-        if (staff) {
-          staff.currentTasks = Math.max(0, staff.currentTasks - 1)
-          staff.isAvailable = staff.currentTasks < 3
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: task,
-        message: 'Cleaning task status updated successfully'
-      })
-
-    } else if (action === 'reassignTask') {
-      const { taskId, newAssignedTo } = data
-      const taskIndex = cleaningTasks.findIndex(t => t.id === taskId)
-
-      if (taskIndex === -1) {
-        return NextResponse.json({ error: 'Cleaning task not found' }, { status: 404 })
-      }
-
-      const task = cleaningTasks[taskIndex]
-      const oldAssignedTo = task.assignedTo
-
-      // Check if new staff is available
-      const newStaff = cleaningStaff.find(s => s.name === newAssignedTo)
-      if (!newStaff) {
-        return NextResponse.json({ error: 'New cleaning staff not found' }, { status: 404 })
-      }
-
-      if (!newStaff.isAvailable) {
-        return NextResponse.json({ error: 'New staff member is not available' }, { status: 400 })
-      }
-
-      // Update old staff task count
-      const oldStaff = cleaningStaff.find(s => s.name === oldAssignedTo)
-      if (oldStaff) {
-        oldStaff.currentTasks = Math.max(0, oldStaff.currentTasks - 1)
-        oldStaff.isAvailable = oldStaff.currentTasks < 3
-      }
-
-      // Update new staff task count
-      newStaff.currentTasks += 1
-      newStaff.isAvailable = newStaff.currentTasks < 3
-
-      // Update task assignment
-      task.assignedTo = newAssignedTo
-      task.assignedDate = new Date().toISOString().split('T')[0]
-      task.updatedAt = new Date().toISOString()
-
-      return NextResponse.json({
-        success: true,
-        data: task,
-        message: 'Cleaning task reassigned successfully'
-      })
-
-    } else {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+    const task = cleaningTasks.find(t => t.id === taskId)
+    if (!task) {
+      return NextResponse.json({ error: 'Cleaning task not found' }, { status: 404 })
     }
+
+    const oldStatus = task.status
+    task.status = status
+    task.updatedAt = new Date().toISOString()
+
+    if (status === 'Completed') {
+      task.completedDate = new Date().toISOString()
+      
+      // Update staff workload
+      const staff = cleaningStaff.find(s => s.name === task.assignedTo)
+      if (staff) {
+        staff.currentTasks = Math.max(0, staff.currentTasks - 1)
+        staff.status = staff.currentTasks === 0 ? 'Available' : 'Busy'
+      }
+
+      // Update room status to Available
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/rooms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'updateRoomStatus',
+            roomId: task.roomId,
+            status: 'Available'
+          })
+        })
+      } catch (error) {
+        console.error('Error updating room status:', error)
+      }
+    }
+
+    if (notes) {
+      task.notes = notes
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: task,
+      message: 'Cleaning task updated successfully'
+    })
 
   } catch (error) {
     console.error('Error updating cleaning task:', error)
@@ -329,8 +316,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!['admin', 'super-admin'].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Access denied. Only admin and super-admin can delete cleaning tasks.' }, { status: 403 })
+    if (!['admin', 'super-admin', 'hr_manager'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Access denied. Only admin and super-admin can manage cleaning.' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -346,13 +333,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     const task = cleaningTasks[taskIndex]
-
-    // Update staff task count if task was active
-    if (['Pending', 'In Progress'].includes(task.status)) {
+    
+    // Update staff workload if task was assigned
+    if (task.status !== 'Completed') {
       const staff = cleaningStaff.find(s => s.name === task.assignedTo)
       if (staff) {
         staff.currentTasks = Math.max(0, staff.currentTasks - 1)
-        staff.isAvailable = staff.currentTasks < 3
+        staff.status = staff.currentTasks === 0 ? 'Available' : 'Busy'
       }
     }
 
