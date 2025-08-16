@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { User } from '@/models';
+import models from '@/models';
+
+// Resolve CommonJS default export to access named models
+const { User } = (models as any);
 
 // Interface for authenticated user
 export interface AuthenticatedUser {
@@ -285,7 +288,9 @@ export async function logAuditAction(
   ipAddress?: string
 ): Promise<void> {
   try {
-    const { AuditLog } = await import('@/models');
+    const mod = await import('@/models');
+    const allModels: any = (mod as any).default ?? (mod as any);
+    const { AuditLog } = allModels;
     
     await AuditLog.create({
       userId,

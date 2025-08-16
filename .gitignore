@@ -288,7 +288,7 @@ temp/
 /patient-data/
 /medical-records/
 /confidential/
-*patient*
+
 *medical*
 *confidential*
 

@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Heart, 
   Eye, 
@@ -39,7 +38,8 @@ export default function SignupPage() {
 
   const [formData, setFormData] = useState({
     // Basic Information
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -50,10 +50,6 @@ export default function SignupPage() {
     department: "",
     specialization: "",
     licenseNumber: "",
-    
-    // Personal Information
-    dateOfBirth: "",
-    gender: "",
     
     // Address Information
     address: {
@@ -97,62 +93,109 @@ export default function SignupPage() {
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
-      return
+    e.preventDefault();
+
+    if (!validateForm(true)) {
+      toast.error("Please fill out all required fields.")
+      return;
     }
+
+    const apiPayload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      phoneNumber: formData.contactNumber,
+      address: [
+        formData.address.street,
+        formData.address.city,
+        formData.address.state,
+        formData.address.zipCode,
+        formData.address.country,
+      ].filter(Boolean).join(', '),
+    };
 
     try {
-      await register(formData)
+      await register(apiPayload);
     } catch (error) {
-      console.error('Registration error:', error)
+      console.error('Registration error:', error);
     }
-  }
+  };
 
-  const validateForm = (): boolean => {
+  const validateForm = (isFinalSubmission = false): boolean => {
     const newErrors: Record<string, string> = {}
+    const stepValidations = {
+      1: () => {
+        if (!formData.firstName.trim()) newErrors.firstName = "First name is required"
+        if (!formData.lastName.trim()) newErrors.lastName = "Last name is required"
 
-    // Basic validation
-    if (!formData.name.trim()) newErrors.name = "Name is required"
-    if (!formData.email.trim()) newErrors.email = "Email is required"
-    if (!formData.password) newErrors.password = "Password is required"
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords don't match"
-    }
-    if (!formData.contactNumber.trim()) newErrors.contactNumber = "Phone number is required"
-    if (!formData.role) newErrors.role = "Role is required"
-    if (!formData.acceptTerms) newErrors.acceptTerms = "You must accept the terms and conditions"
-
-    // Password strength validation
-    if (formData.password && formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters"
-    }
-
-    // Professional info validation for non-patients
-    if (formData.role && formData.role !== 'patient') {
-      if (!formData.department) newErrors.department = "Department is required"
-      if (formData.role === 'doctor' && !formData.licenseNumber) {
-        newErrors.licenseNumber = "License number is required for doctors"
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!formData.email.trim()) {
+          newErrors.email = "Email is required";
+        } else if (!emailRegex.test(formData.email)) {
+          newErrors.email = "Please enter a valid email address";
+        }
+        
+        if (!formData.password) newErrors.password = "Password is required"
+        if (formData.password !== formData.confirmPassword) {
+          newErrors.confirmPassword = "Passwords do not match"
+        }
+        if (formData.password && formData.password.length < 8) {
+          newErrors.password = "Password must be at least 8 characters"
+        }
+        if (!formData.contactNumber) {
+          newErrors.contactNumber = "Contact number is required"
+        } else if (!/^(\+\d{1,3}[- ]?)?\d{10}$/.test(formData.contactNumber)) {
+          newErrors.contactNumber = "Invalid contact number"
+        }
+        if (!formData.role) newErrors.role = "Role is required"
+      },
+      2: () => {
+        if (formData.role && formData.role !== 'patient') {
+          if (!formData.department) newErrors.department = "Department is required"
+          if (formData.role === 'doctor' && !formData.licenseNumber) {
+            newErrors.licenseNumber = "License number is required for doctors"
+          }
+        }
+      },
+      3: () => {
+        if (!formData.address.street.trim() || !formData.address.city.trim() || !formData.address.state.trim() || !formData.address.zipCode.trim()) {
+            newErrors.address = "Please fill out all address fields.";
+        }
+        if (!formData.acceptTerms) newErrors.acceptTerms = "You must accept the terms and conditions"
       }
     }
 
+    if (isFinalSubmission) {
+      Object.values(stepValidations).forEach(validation => validation());
+    } else {
+      stepValidations[currentStep as keyof typeof stepValidations]();
+    }
+
     setErrors(newErrors)
+
+    if (isFinalSubmission && Object.keys(newErrors).length > 0) {
+      const firstErrorField = Object.keys(newErrors)[0];
+      const step1Fields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'contactNumber', 'role'];
+      const step2Fields = ['department', 'licenseNumber'];
+      const step3Fields = ['address', 'acceptTerms'];
+
+      if (step1Fields.includes(firstErrorField)) {
+        setCurrentStep(1);
+      } else if (step2Fields.includes(firstErrorField)) {
+        setCurrentStep(2);
+      } else if (step3Fields.includes(firstErrorField)) {
+        setCurrentStep(3);
+      }
+    }
     return Object.keys(newErrors).length === 0
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-    
-    // Clear error when user starts typing
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ""
-      }))
+      setErrors(prev => ({ ...prev, [field]: "" }))
     }
   }
 
@@ -167,8 +210,10 @@ export default function SignupPage() {
   }
 
   const nextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1)
+    if (validateForm()) {
+      if (currentStep < 3) {
+        setCurrentStep(currentStep + 1)
+      }
     }
   }
 
@@ -185,7 +230,6 @@ export default function SignupPage() {
     if (/[a-z]/.test(password)) strength++
     if (/\d/.test(password)) strength++
     if (/[@$!%*?&]/.test(password)) strength++
-    
     return strength
   }
 
@@ -196,7 +240,6 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
-        {/* Back to Home Link */}
         <div className="mb-6">
           <Link href="/" className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -204,7 +247,6 @@ export default function SignupPage() {
           </Link>
         </div>
 
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
@@ -215,15 +257,12 @@ export default function SignupPage() {
           <p className="text-gray-600">Create your account to access our healthcare services</p>
         </div>
 
-        {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4">
             {[1, 2, 3].map((step) => (
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step <= currentStep 
-                    ? 'bg-pink-500 text-white' 
-                    : 'bg-gray-200 text-gray-500'
+                  step <= currentStep ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-500'
                 }`}>
                   {step < currentStep ? <CheckCircle className="h-4 w-4" /> : step}
                 </div>
@@ -246,7 +285,6 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* Error Alert */}
         {authState.error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -256,7 +294,6 @@ export default function SignupPage() {
           </Alert>
         )}
 
-        {/* Registration Form */}
         <Card className="border-pink-100 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-gray-900">Create Account</CardTitle>
@@ -266,122 +303,105 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="flex items-center">
-                        <User className="h-4 w-4 mr-2 text-pink-500" />
-                        Full Name *
-                      </Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.name ? 'border-red-500' : ''
-                        }`}
-                        placeholder="Enter your full name"
-                      />
-                      {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="firstName"
+                            placeholder="e.g. Anjali"
+                            value={formData.firstName}
+                            onChange={(e) => handleInputChange('firstName', e.target.value)}
+                            required
+                            className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.firstName ? 'border-red-500' : ''}`}
+                          />
+                        </div>
+                        {errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="lastName"
+                            placeholder="e.g. Sharma"
+                            value={formData.lastName}
+                            onChange={(e) => handleInputChange('lastName', e.target.value)}
+                            required
+                            className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.lastName ? 'border-red-500' : ''}`}
+                          />
+                        </div>
+                        {errors.lastName && <p className="text-sm text-red-600">{errors.lastName}</p>}
+                      </div>
                     </div>
 
-                    {/* Email */}
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2 text-pink-500" />
-                        Email Address *
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.email ? 'border-red-500' : ''
-                        }`}
-                        placeholder="Enter your email address"
-                      />
+                      <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.email ? 'border-red-500' : ''}`}
+                          placeholder="e.g. anjali.sharma@email.com"
+                        />
+                      </div>
                       {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Password */}
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2 text-pink-500" />
-                        Password *
-                      </Label>
+                      <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
                       <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
-                          className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 pr-10 ${
-                            errors.password ? 'border-red-500' : ''
-                          }`}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.password ? 'border-red-500' : ''}`}
                           placeholder="Create a strong password"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      
-                      {/* Password Strength Indicator */}
                       {formData.password && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 mt-2">
                           <div className="flex space-x-1">
                             {[1, 2, 3, 4, 5].map((level) => (
-                              <div
-                                key={level}
-                                className={`h-1 flex-1 rounded ${
-                                  level <= passwordStrength 
-                                    ? strengthColors[passwordStrength - 1] 
-                                    : 'bg-gray-200'
-                                }`}
-                              />
+                              <div key={level} className={`h-1 flex-1 rounded ${level <= passwordStrength ? strengthColors[passwordStrength - 1] : 'bg-gray-200'}`} />
                             ))}
                           </div>
-                          <p className="text-xs text-gray-600">
-                            Password strength: {strengthLabels[passwordStrength - 1] || 'Very Weak'}
-                          </p>
+                          <p className="text-xs text-gray-600">Strength: {strengthLabels[passwordStrength - 1]}</p>
                         </div>
                       )}
-                      
                       {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                     </div>
 
-                    {/* Confirm Password */}
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2 text-pink-500" />
-                        Confirm Password *
-                      </Label>
+                      <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
                       <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
                           id="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           value={formData.confirmPassword}
                           onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                          className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 pr-10 ${
-                            errors.confirmPassword ? 'border-red-500' : ''
-                          }`}
+                          required
+                          className={`pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                           placeholder="Confirm your password"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
@@ -390,44 +410,31 @@ export default function SignupPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Phone Number */}
                     <div className="space-y-2">
-                      <Label htmlFor="contactNumber" className="flex items-center">
-                        <Phone className="h-4 w-4 mr-2 text-pink-500" />
-                        Phone Number *
-                      </Label>
+                      <Label htmlFor="contactNumber">Contact Number <span className="text-red-500">*</span></Label>
                       <Input
                         id="contactNumber"
                         type="tel"
                         value={formData.contactNumber}
                         onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-                        className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.contactNumber ? 'border-red-500' : ''
-                        }`}
-                        placeholder="+91 9876543210"
+                        placeholder="+91 98765 43210"
+                        required
+                        className={errors.contactNumber ? "border-red-500" : "border-pink-200 focus:border-pink-400 focus:ring-pink-400"}
                       />
                       {errors.contactNumber && <p className="text-sm text-red-600">{errors.contactNumber}</p>}
                     </div>
 
-                    {/* Role */}
                     <div className="space-y-2">
-                      <Label htmlFor="role" className="flex items-center">
-                        <User className="h-4 w-4 mr-2 text-pink-500" />
-                        I am a *
-                      </Label>
-                      <Select value={formData.role || undefined} onValueChange={(value) => handleInputChange('role', value)}>
-                        <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                          errors.role ? 'border-red-500' : ''
-                        }`}>
+                      <Label htmlFor="role">I am a... <span className="text-red-500">*</span></Label>
+                      <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                        <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.role ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select your role" />
                         </SelectTrigger>
                         <SelectContent>
                           {roles.map((role) => (
                             <SelectItem key={role.value} value={role.value}>
-                              <div>
-                                <div className="font-medium">{role.label}</div>
-                                <div className="text-sm text-gray-500">{role.description}</div>
-                              </div>
+                              <div className="font-medium">{role.label}</div>
+                              <div className="text-sm text-gray-500">{role.description}</div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -436,23 +443,16 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  {/* Next Button */}
                   <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8"
-                    >
+                    <Button type="button" onClick={nextStep} className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8">
                       Next Step
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Step 2: Professional & Personal Details */}
               {currentStep === 2 && (
                 <div className="space-y-6">
-                  {/* Professional Information - Only for non-patients */}
                   {formData.role && formData.role !== 'patient' && (
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -461,13 +461,10 @@ export default function SignupPage() {
                       </h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Department */}
                         <div className="space-y-2">
-                          <Label htmlFor="department">Department *</Label>
-                          <Select value={formData.department || undefined} onValueChange={(value) => handleInputChange('department', value)}>
-                            <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                              errors.department ? 'border-red-500' : ''
-                            }`}>
+                          <Label htmlFor="department">Department <span className="text-red-500">*</span></Label>
+                          <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
+                            <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.department ? 'border-red-500' : ''}`}>
                               <SelectValue placeholder="Select department" />
                             </SelectTrigger>
                             <SelectContent>
@@ -479,13 +476,9 @@ export default function SignupPage() {
                           {errors.department && <p className="text-sm text-red-600">{errors.department}</p>}
                         </div>
 
-                        {/* Specialization - For doctors */}
                         {formData.role === 'doctor' && (
                           <div className="space-y-2">
-                            <Label htmlFor="specialization" className="flex items-center">
-                              <Stethoscope className="h-4 w-4 mr-2 text-pink-500" />
-                              Specialization
-                            </Label>
+                            <Label htmlFor="specialization">Specialization</Label>
                             <Input
                               id="specialization"
                               type="text"
@@ -497,18 +490,15 @@ export default function SignupPage() {
                           </div>
                         )}
 
-                        {/* License Number - For doctors */}
                         {formData.role === 'doctor' && (
                           <div className="space-y-2">
-                            <Label htmlFor="licenseNumber">Medical License Number *</Label>
+                            <Label htmlFor="licenseNumber">Medical License Number <span className="text-red-500">*</span></Label>
                             <Input
                               id="licenseNumber"
                               type="text"
                               value={formData.licenseNumber}
                               onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-                              className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${
-                                errors.licenseNumber ? 'border-red-500' : ''
-                              }`}
+                              className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.licenseNumber ? 'border-red-500' : ''}`}
                               placeholder="Enter your medical license number"
                             />
                             {errors.licenseNumber && <p className="text-sm text-red-600">{errors.licenseNumber}</p>}
@@ -518,71 +508,19 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Personal Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                      <User className="h-5 w-5 mr-2 text-pink-500" />
-                      Personal Information
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Date of Birth */}
-                      <div className="space-y-2">
-                        <Label htmlFor="dateOfBirth" className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-pink-500" />
-                          Date of Birth
-                        </Label>
-                        <Input
-                          id="dateOfBirth"
-                          type="date"
-                          value={formData.dateOfBirth}
-                          onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                          className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                        />
-                      </div>
-
-                      {/* Gender */}
-                      <div className="space-y-2">
-                        <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender || undefined} onValueChange={(value) => handleInputChange('gender', value)}>
-                          <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Navigation Buttons */}
                   <div className="flex justify-between">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={prevStep}
-                      className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                    >
+                    <Button type="button" variant="outline" onClick={prevStep} className="border-pink-200 text-pink-600 hover:bg-pink-50">
                       Previous
                     </Button>
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8"
-                    >
+                    <Button type="button" onClick={nextStep} className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white px-8">
                       Next Step
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Address & Emergency Contact */}
               {currentStep === 3 && (
                 <div className="space-y-6">
-                  {/* Address Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                       <MapPin className="h-5 w-5 mr-2 text-pink-500" />
@@ -590,83 +528,57 @@ export default function SignupPage() {
                     </h3>
                     
                     <div className="space-y-4">
-                      {/* Street Address */}
                       <div className="space-y-2">
-                        <Label htmlFor="street">Street Address</Label>
+                        <Label htmlFor="street">Street Address <span className="text-red-500">*</span></Label>
                         <Input
                           id="street"
                           type="text"
                           value={formData.address.street}
                           onChange={(e) => handleNestedInputChange('address', 'street', e.target.value)}
-                          className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                          className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}
                           placeholder="Enter your street address"
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* City */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="city">City</Label>
+                          <Label htmlFor="city">City <span className="text-red-500">*</span></Label>
                           <Input
                             id="city"
                             type="text"
                             value={formData.address.city}
                             onChange={(e) => handleNestedInputChange('address', 'city', e.target.value)}
-                            className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                            placeholder="Enter your city"
+                            className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}
                           />
                         </div>
 
-                        {/* State */}
                         <div className="space-y-2">
-                          <Label htmlFor="state">State</Label>
-                          <Select 
-                            value={formData.address.state} 
-                            onValueChange={(value) => handleNestedInputChange('address', 'state', value)}
-                          >
-                            <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
+                          <Label htmlFor="state">State <span className="text-red-500">*</span></Label>
+                          <Select onValueChange={(value) => handleNestedInputChange('address', 'state', value)} value={formData.address.state}>
+                            <SelectTrigger className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}>
                               <SelectValue placeholder="Select state" />
                             </SelectTrigger>
                             <SelectContent>
-                              {states.map((state) => (
-                                <SelectItem key={state} value={state}>{state}</SelectItem>
-                              ))}
+                              {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* ZIP Code */}
                         <div className="space-y-2">
-                          <Label htmlFor="zipCode">ZIP Code</Label>
+                          <Label htmlFor="zipCode">ZIP Code <span className="text-red-500">*</span></Label>
                           <Input
                             id="zipCode"
                             type="text"
                             value={formData.address.zipCode}
                             onChange={(e) => handleNestedInputChange('address', 'zipCode', e.target.value)}
-                            className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                            placeholder="Enter ZIP code"
-                          />
-                        </div>
-
-                        {/* Country */}
-                        <div className="space-y-2">
-                          <Label htmlFor="country">Country</Label>
-                          <Input
-                            id="country"
-                            type="text"
-                            value={formData.address.country}
-                            onChange={(e) => handleNestedInputChange('address', 'country', e.target.value)}
-                            className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                            disabled
+                            className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 ${errors.address ? 'border-red-500' : ''}`}
                           />
                         </div>
                       </div>
+                      {errors.address && <p className="text-sm text-red-600">{errors.address}</p>}
                     </div>
                   </div>
 
-                  {/* Emergency Contact */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                       <Phone className="h-5 w-5 mr-2 text-pink-500" />
@@ -674,7 +586,6 @@ export default function SignupPage() {
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Emergency Contact Name */}
                       <div className="space-y-2">
                         <Label htmlFor="emergencyName">Contact Name</Label>
                         <Input
@@ -687,7 +598,6 @@ export default function SignupPage() {
                         />
                       </div>
 
-                      {/* Relationship */}
                       <div className="space-y-2">
                         <Label htmlFor="relationship">Relationship</Label>
                         <Select 
@@ -708,7 +618,6 @@ export default function SignupPage() {
                         </Select>
                       </div>
 
-                      {/* Emergency Contact Phone */}
                       <div className="space-y-2">
                         <Label htmlFor="emergencyPhone">Contact Number</Label>
                         <Input
@@ -723,17 +632,16 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  {/* Terms and Conditions */}
                   <div className="space-y-4">
                     <div className="flex items-start space-x-3">
                       <Checkbox
                         id="acceptTerms"
                         checked={formData.acceptTerms}
-                        onCheckedChange={(checked) => handleInputChange('acceptTerms', checked.toString())}
+                        onCheckedChange={(checked: boolean) => handleInputChange('acceptTerms', checked)}
                         className="border-pink-300 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
                       />
                       <div className="space-y-1">
-                        <Label htmlFor="acceptTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        <Label htmlFor="acceptTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">I agree to the Terms and Conditions <span className="text-red-500">*</span>
                           I agree to the Terms and Conditions *
                         </Label>
                         <p className="text-xs text-gray-500">
@@ -751,7 +659,6 @@ export default function SignupPage() {
                     {errors.acceptTerms && <p className="text-sm text-red-600">{errors.acceptTerms}</p>}
                   </div>
 
-                  {/* Navigation Buttons */}
                   <div className="flex justify-between">
                     <Button
                       type="button"
@@ -782,7 +689,6 @@ export default function SignupPage() {
           </CardContent>
         </Card>
 
-        {/* Login Link */}
         <div className="text-center mt-6">
           <p className="text-gray-600">
             Already have an account?{" "}

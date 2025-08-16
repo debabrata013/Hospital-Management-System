@@ -6,12 +6,13 @@ import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
 
 // --- CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5002/api';
 
 // --- TYPES & INTERFACES ---
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
 }
@@ -23,21 +24,24 @@ interface AuthState {
   error: string | null;
 }
 
-interface LoginCredentials {
+interface LoginData {
   email: string;
   password: string;
 }
 
 interface RegisterData {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: string;
+  phoneNumber?: string;
+  address?: string;
 }
 
 interface AuthContextType {
   authState: AuthState;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (loginData: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
 }
@@ -88,13 +92,13 @@ const useProvideAuth = (): AuthContextType => {
     }
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  const login = useCallback(async (loginData: LoginData) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(loginData),
       });
 
       if (!response.ok) {
