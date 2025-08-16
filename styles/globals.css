@@ -1,15 +1,29 @@
+/* ------------------------------
+   Tailwind core imports
+------------------------------ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Extra import from your dashboard */
+@import 'tw-animate-css';
+
+/* ------------------------------
+   Utilities
+------------------------------ */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
 
+/* ------------------------------
+   Root Variables (Light Mode)
+   Merged from both files
+------------------------------ */
 @layer base {
   :root {
+    /* Base theme from main repo (HSL) */
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -43,8 +57,24 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Extra variables from dashboard (OKLCH) */
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border-oklch: oklch(0.922 0 0);
+    --sidebar-ring-oklch: oklch(0.708 0 0);
   }
+
+  /* ------------------------------
+     Dark Mode Variables
+     Merged from both files
+  ------------------------------ */
   .dark {
+    /* Dark theme from main repo (HSL) */
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
@@ -77,12 +107,25 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Extra variables from dashboard (OKLCH) */
+    --sidebar-dark-oklch: oklch(0.205 0 0);
+    --sidebar-foreground-dark-oklch: oklch(0.985 0 0);
+    --sidebar-primary-dark-oklch: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground-dark-oklch: oklch(0.985 0 0);
+    --sidebar-accent-dark-oklch: oklch(0.269 0 0);
+    --sidebar-accent-foreground-dark-oklch: oklch(0.985 0 0);
+    --sidebar-border-dark-oklch: oklch(0.269 0 0);
+    --sidebar-ring-dark-oklch: oklch(0.439 0 0);
   }
 }
 
+/* ------------------------------
+   Base Styles
+------------------------------ */
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
