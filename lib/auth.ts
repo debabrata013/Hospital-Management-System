@@ -1,12 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
-import { connectDB } from '@/lib/mongoose';
 import User from '@/models/User';
 
 // Helper function to get server session (for API routes)
 export async function getServerSession(request: NextRequest) {
   try {
-    await connectDB();
 
     // Get token from cookie or Authorization header
     const token = request.cookies.get('auth-token')?.value || 
