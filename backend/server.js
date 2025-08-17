@@ -9,12 +9,17 @@ const { sequelize } = require('./models'); // Import from models/index.js
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const { authenticate } = require('./middleware/auth')
+const { authorizeRoles } = require('./middleware/authorize')
+const superAdminRoutes = require('./routes/superAdmin')
+
 // Middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3007'], // Added frontend origin
   credentials: true
 }));
 app.use(express.json());
+app.use('/api/super-admin', authenticate, authorizeRoles('super-admin'), superAdminRoutes)
 
 // Serve static files from the 'uploads' directory
 const uploadDir = path.join(__dirname, 'uploads');
