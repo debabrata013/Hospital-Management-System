@@ -126,50 +126,26 @@ const useProvideAuth = (): AuthContextType => {
   }, []);
 
   const login = useCallback(async (loginData: LoginData) => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    setAuthState((prev: AuthState) => ({ ...prev, isLoading: true, error: null }));
     
-    // Mock authentication for demo purposes
-    const demoUsers = {
-      'superadmin@hospital.com': { password: 'superadmin123', role: 'super-admin', firstName: 'Super', lastName: 'Admin' },
-      'admin@hospital.com': { password: 'admin123', role: 'admin', firstName: 'Hospital', lastName: 'Admin' },
-      'doctor@hospital.com': { password: 'doctor123', role: 'doctor', firstName: 'Dr. John', lastName: 'Smith' },
-      'patient@hospital.com': { password: 'patient123', role: 'patient', firstName: 'John', lastName: 'Doe' },
-      'staff@hospital.com': { password: 'staff123', role: 'staff', firstName: 'Nurse', lastName: 'Johnson' },
-      'receptionist@hospital.com': { password: 'receptionist123', role: 'receptionist', firstName: 'Sarah', lastName: 'Wilson' },
-      'pharmacy@hospital.com': { password: 'pharmacy123', role: 'pharmacy', firstName: 'Pharmacy', lastName: 'Manager' }
-    };
-
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginData),
+      });
 
-      const user = demoUsers[loginData.email as keyof typeof demoUsers];
-      
-      if (!user || user.password !== loginData.password) {
-        throw new Error('Invalid email or password');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
       }
 
-      // Create mock token
-      const mockToken = btoa(JSON.stringify({
-        id: `user_${Date.now()}`,
-        email: loginData.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName
-      }));
+      const { token, user } = await response.json();
 
-      localStorage.setItem('token', mockToken);
+      localStorage.setItem('token', token);
       
-      const mockUser: User = {
-        id: `user_${Date.now()}`,
-        email: loginData.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName
-      };
-
       setAuthState({
-        user: mockUser,
+        user,
         isLoading: false,
         isAuthenticated: true,
         error: null,
@@ -179,14 +155,14 @@ const useProvideAuth = (): AuthContextType => {
       router.push(getRedirectPath(user.role));
 
     } catch (error: any) {
-      const errorMessage = error.message || 'Login failed';
-      setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+      const errorMessage = error.message || 'An unexpected error occurred.';
+      setAuthState((prev: AuthState) => ({ ...prev, isLoading: false, error: errorMessage }));
       toast.error(errorMessage);
     }
   }, [router]);
 
   const register = useCallback(async (data: RegisterData) => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    setAuthState((prev: AuthState) => ({ ...prev, isLoading: true, error: null }));
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -205,7 +181,7 @@ const useProvideAuth = (): AuthContextType => {
 
     } catch (error: any) {
       const errorMessage = error.message || 'Registration failed';
-      setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+      setAuthState((prev: AuthState) => ({ ...prev, isLoading: false, error: errorMessage }));
       toast.error(errorMessage);
     }
   }, [router]);

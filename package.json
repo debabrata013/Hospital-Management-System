@@ -68,14 +68,18 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
-    "zod": "^4.0.17"
+    "zod": "^4.0.17",
+    "sequelize": "^6.37.3",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.2.1",
-    "@types/react": "19.1.10",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@types/uuid": "^10.0.0",
+    "@types/prop-types": "^15.7.12",
     "eslint": "^8",
     "eslint-config-next": "14.2.4",
     "postcss": "^8",

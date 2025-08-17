@@ -43,7 +43,6 @@ User.init({
   },
   employeeId: {
     type: DataTypes.STRING,
-    unique: true,
     allowNull: true
   },
   isActive: {
