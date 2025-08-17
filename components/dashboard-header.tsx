@@ -1,8 +1,7 @@
 "use client"
 
-import { Bell, Search, ChevronDown, User, Settings } from "lucide-react"
+import { ChevronDown, User, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -29,30 +28,22 @@ export function DashboardHeader({ onSectionChange }: DashboardHeaderProps) {
   const handleSettingsClick = () => onSectionChange?.("settings")
 
   return (
-    <header className="w-full bg-white/80 backdrop-blur-sm border-b border-white/20">
+    <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-4">
-        {/* Search Bar */}
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search medical records, appointments..."
-              className="pl-10 bg-white/50 border-gray-200"
-            />
-          </div>
+        {/* Left: Dashboard Title */}
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Patient Dashboard</h1>
+          <p className="text-sm text-gray-500">System overview and management</p>
         </div>
 
-        {/* Right Side */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-          </Button>
-
-          {/* Profile Dropdown */}
+        {/* Right: Profile Dropdown */}
+        <div className="flex items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-3 hover:bg-gray-50">
+              <Button
+                variant="ghost"
+                className="flex items-center gap-3 hover:bg-gray-50"
+              >
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={user?.avatar || "/placeholder.svg"} />
                   <AvatarFallback>
@@ -64,7 +55,9 @@ export function DashboardHeader({ onSectionChange }: DashboardHeaderProps) {
                   <p className="text-sm font-medium text-gray-900">
                     {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {user?.role}
+                  </p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </Button>
