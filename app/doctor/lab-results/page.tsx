@@ -15,7 +15,7 @@ import {
   Calendar,
   Clock,
   FileText,
-  Image,
+  Image as ImageIcon,
   Activity,
   AlertTriangle,
   CheckCircle,
@@ -344,7 +344,7 @@ export default function DoctorLabResultsPage() {
       <Card className="border-pink-100">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Image className="h-5 w-5 mr-2 text-green-500" />
+            <ImageIcon className="h-5 w-5 mr-2 text-green-500" />
             Imaging & X-Ray Results
           </CardTitle>
         </CardHeader>
@@ -355,7 +355,7 @@ export default function DoctorLabResultsPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-4">
                     <div className="bg-gradient-to-r from-green-400 to-green-500 text-white rounded-lg h-12 w-12 flex items-center justify-center font-bold">
-                      <Image className="h-6 w-6" />
+                      <ImageIcon className="h-6 w-6" />
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-gray-900">{result.studyType}</h3>
@@ -395,7 +395,7 @@ export default function DoctorLabResultsPage() {
                     <span className="font-medium">Radiologist:</span> {result.radiologist}
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Image className="h-4 w-4" />
+                    <ImageIcon className="h-4 w-4" />
                     <span>{result.files.length} file(s)</span>
                   </div>
                 </div>

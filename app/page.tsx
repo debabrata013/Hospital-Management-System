@@ -1318,28 +1318,47 @@ export default function LandingPage() {
               </div>
               
               {/* Emergency Surgery Contact */}
-              <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-3xl p-8 text-white">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-3xl p-8">
                 <div className="flex items-center mb-4">
-                  <Zap className="h-8 w-8 mr-3" />
-                  <h3 className="text-2xl font-bold">
+                  <div className="bg-orange-500 p-2 rounded-xl mr-3">
+                    <Zap className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900">
                     {language === 'hindi' ? 'आपातकालीन सर्जरी?' : 'Emergency Surgery?'}
                   </h3>
                 </div>
-                <p className="mb-6 text-red-100">
+                <p className="mb-6 text-gray-700 leading-relaxed">
                   {language === 'hindi' 
                     ? 'आपातकालीन सर्जरी के लिए, अपॉइंटमेंट का इंतज़ार न करें। तुरंत हमारी आपातकालीन हेल्पलाइन पर कॉल करें।'
                     : 'For emergency surgeries, don\'t wait for an appointment. Call our emergency helpline immediately.'
                   }
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button className="bg-white text-red-600 hover:bg-red-50 rounded-full font-semibold">
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
                     <Phone className="h-4 w-4 mr-2" />
                     {language === 'hindi' ? 'आपातकालीन कॉल: +91 98765 43211' : 'Emergency Call: +91 98765 43211'}
                   </Button>
-                  <Button variant="outline" className="border-white text-white hover:bg-white hover:text-red-600 rounded-full">
+                  <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50 rounded-full font-semibold">
                     <Navigation className="h-4 w-4 mr-2" />
                     {language === 'hindi' ? 'दिशा निर्देश' : 'Get Directions'}
                   </Button>
+                </div>
+                
+                {/* Additional Emergency Info */}
+                <div className="mt-6 bg-white rounded-2xl p-4 border border-orange-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <Clock className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {language === 'hindi' ? '24/7 आपातकालीन सेवा' : '24/7 Emergency Service'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {language === 'hindi' ? 'हमारी टीम हमेशा तैयार है' : 'Our team is always ready'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
