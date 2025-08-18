@@ -6,9 +6,9 @@ import { AuthProvider } from '@/hooks/useAuth';
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 Hospital Management System',
-  description: 'Hospital Management System built with Next.js',
-  generator: 'Next.js',
+  title: ' Hospital Management System',
+  description: 'Hospital Management System built with Next.js'
+
 }
 
 export default function RootLayout({
