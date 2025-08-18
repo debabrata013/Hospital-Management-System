@@ -1,17 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://localhost:5002/api/:path*",
-      },
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:5002/api/:path*',
-      },
-    ];
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -19,11 +7,22 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
   },
-  output: 'export',
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  // Remove output: 'export' for Vercel deployment with API routes
+  experimental: {
+    serverComponentsExternalPackages: ['mysql2', 'sequelize'],
+  },
 }
 
 export default nextConfig
