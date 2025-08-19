@@ -8,198 +8,128 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
-  Heart, 
-  Package, 
-  Search, 
-  Plus, 
-  Filter, 
-  Download, 
-  Edit, 
-  Trash2, 
-  AlertTriangle,
-  ArrowLeft,
-  RefreshCw,
-  Loader2,
-  Calendar,
-  TrendingUp,
-  TrendingDown
+  Heart, Package, AlertTriangle, Search, Plus, Filter, Download, 
+  RefreshCw, Edit, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight,
+  Pill, Calendar, DollarSign, TrendingDown, TrendingUp
 } from 'lucide-react'
-import { useMedicines, useInventory } from "@/hooks/usePharmacy"
+import { useMedicines, useStock } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
 
 export default function InventoryManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [stockFilter, setStockFilter] = useState("all")
-  const [selectedMedicine, setSelectedMedicine] = useState<any>(null)
-  const [isAddBatchOpen, setIsAddBatchOpen] = useState(false)
-  const [isStockMovementOpen, setIsStockMovementOpen] = useState(false)
-  const [page, setPage] = useState(1)
-
-  // Form states
-  const [batchForm, setBatchForm] = useState({
-    batchNo: '',
-    quantity: '',
-    expiryDate: '',
-    costPrice: '',
-    sellingPrice: '',
-    mrp: ''
-  })
-
-  const [stockMovementForm, setStockMovementForm] = useState({
-    movementType: '',
-    quantity: '',
-    batchNo: '',
-    reason: '',
-    notes: ''
-  })
+  const [selectedCategory, setSelectedCategory] = useState("")
+  const [stockFilter, setStockFilter] = useState("")
+  const [sortBy, setSortBy] = useState("name")
+  const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("ASC")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showFilters, setShowFilters] = useState(false)
 
   // API hooks
   const { 
     medicines, 
     pagination, 
-    loading: medicinesLoading, 
-    error: medicinesError,
-    refetch: refetchMedicines 
+    loading, 
+    error,
+    refetch,
+    deleteMedicine
   } = useMedicines({
-    page,
+    page: currentPage,
     limit: 20,
     search: searchTerm,
-    ...(categoryFilter !== "all" && { category: categoryFilter }),
-    ...(stockFilter !== "all" && { stockStatus: stockFilter })
+    category: selectedCategory,
+    lowStock: stockFilter === 'low',
+    expiringSoon: stockFilter === 'expiring',
+    sortBy,
+    sortOrder
   })
 
-  const { 
-    loading: inventoryLoading, 
-    error: inventoryError,
-    addBatch,
-    recordStockMovement 
-  } = useInventory()
+  const {
+    stockData,
+    loading: stockLoading,
+    refetch: refetchStock
+  } = useStock()
 
-  // Categories for filter
-  const categories = [
-    'Analgesic', 'Antibiotic', 'Antiviral', 'Antifungal', 'Antihistamine',
-    'Antacid', 'Antidiabetic', 'Antihypertensive', 'Cardiac', 'Respiratory',
-    'Neurological', 'Psychiatric', 'Dermatological', 'Ophthalmological',
-    'ENT', 'Gynecological', 'Pediatric', 'Surgical', 'Emergency', 'Vitamin',
-    'Supplement', 'Vaccine', 'Other'
-  ]
+  // Handle search
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1)
+  }
 
-  const stockStatuses = [
-    { value: 'in_stock', label: 'In Stock' },
-    { value: 'low_stock', label: 'Low Stock' },
-    { value: 'out_of_stock', label: 'Out of Stock' },
-    { value: 'overstocked', label: 'Overstocked' }
-  ]
+  // Handle filter changes
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value === "all" ? "" : value)
+    setCurrentPage(1)
+  }
 
-  const movementTypes = [
-    { value: 'IN', label: 'Stock In' },
-    { value: 'OUT', label: 'Stock Out' },
-    { value: 'ADJUSTMENT', label: 'Adjustment' },
-    { value: 'TRANSFER', label: 'Transfer' },
-    { value: 'RETURN', label: 'Return' },
-    { value: 'DAMAGE', label: 'Damage' },
-    { value: 'EXPIRED', label: 'Expired' }
-  ]
+  const handleStockFilterChange = (value: string) => {
+    setStockFilter(value === "all" ? "" : value)
+    setCurrentPage(1)
+  }
 
-  // Handle add batch
-  const handleAddBatch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedMedicine) return
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC")
+    } else {
+      setSortBy(field)
+      setSortOrder("ASC")
+    }
+    setCurrentPage(1)
+  }
 
-    try {
-      await addBatch({
-        medicineId: selectedMedicine._id,
-        batchNo: batchForm.batchNo,
-        quantity: parseInt(batchForm.quantity),
-        expiryDate: batchForm.expiryDate,
-        costPrice: parseFloat(batchForm.costPrice),
-        sellingPrice: parseFloat(batchForm.sellingPrice),
-        mrp: parseFloat(batchForm.mrp)
-      })
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
-      setBatchForm({
-        batchNo: '',
-        quantity: '',
-        expiryDate: '',
-        costPrice: '',
-        sellingPrice: '',
-        mrp: ''
-      })
-      setIsAddBatchOpen(false)
-      setSelectedMedicine(null)
-      refetchMedicines()
-    } catch (error) {
-      console.error('Error adding batch:', error)
+  // Handle delete medicine
+  const handleDeleteMedicine = async (medicineId: string, medicineName: string) => {
+    if (confirm(`Are you sure you want to delete ${medicineName}?`)) {
+      try {
+        await deleteMedicine(medicineId)
+        toast.success('Medicine deleted successfully')
+      } catch (error) {
+        console.error('Error deleting medicine:', error)
+      }
     }
   }
 
-  // Handle stock movement
-  const handleStockMovement = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedMedicine) return
-
+  // Refresh all data
+  const refreshData = async () => {
     try {
-      await recordStockMovement({
-        medicineId: selectedMedicine._id,
-        movementType: stockMovementForm.movementType as any,
-        quantity: parseInt(stockMovementForm.quantity),
-        batchNo: stockMovementForm.batchNo || undefined,
-        reason: stockMovementForm.reason,
-        notes: stockMovementForm.notes || undefined
-      })
-
-      setStockMovementForm({
-        movementType: '',
-        quantity: '',
-        batchNo: '',
-        reason: '',
-        notes: ''
-      })
-      setIsStockMovementOpen(false)
-      setSelectedMedicine(null)
-      refetchMedicines()
+      await Promise.all([refetch(), refetchStock()])
+      toast.success('Data refreshed successfully')
     } catch (error) {
-      console.error('Error recording stock movement:', error)
+      toast.error('Failed to refresh data')
     }
   }
 
-  // Get stock status
-  const getStockStatus = (medicine: any) => {
-    const { currentStock, reorderLevel, maximumStock } = medicine.inventory
-    
-    if (currentStock === 0) return { status: 'Out of Stock', color: 'bg-red-100 text-red-700' }
-    if (currentStock <= reorderLevel) return { status: 'Low Stock', color: 'bg-orange-100 text-orange-700' }
-    if (currentStock >= maximumStock) return { status: 'Overstocked', color: 'bg-blue-100 text-blue-700' }
-    return { status: 'In Stock', color: 'bg-green-100 text-green-700' }
+  // Get stock status color
+  const getStockStatusColor = (status: string) => {
+    switch (status) {
+      case 'low': return 'bg-red-100 text-red-700 border-red-200'
+      case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+      case 'good': return 'bg-green-100 text-green-700 border-green-200'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
   }
 
-  // Get expiry status
-  const getExpiryStatus = (batches: any[]) => {
-    const now = new Date()
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-    
-    const expiringSoon = batches.filter(batch => 
-      new Date(batch.expiryDate) <= thirtyDaysFromNow && 
-      new Date(batch.expiryDate) > now &&
-      batch.quantity > 0
-    )
-    
-    const expired = batches.filter(batch => 
-      new Date(batch.expiryDate) <= now && 
-      batch.quantity > 0
-    )
-
-    if (expired.length > 0) return { status: 'Expired', color: 'bg-red-100 text-red-700' }
-    if (expiringSoon.length > 0) return { status: 'Expiring Soon', color: 'bg-yellow-100 text-yellow-700' }
-    return { status: 'Good', color: 'bg-green-100 text-green-700' }
+  // Get expiry status color
+  const getExpiryStatusColor = (status: string) => {
+    switch (status) {
+      case 'expired': return 'bg-red-100 text-red-700 border-red-200'
+      case 'expiring_soon': return 'bg-orange-100 text-orange-700 border-orange-200'
+      case 'expiring_later': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+      case 'good': return 'bg-green-100 text-green-700 border-green-200'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
   }
+
+  // Get unique categories for filter
+  const categories = Array.from(new Set(medicines.map(m => m.category).filter(Boolean)))
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white">
@@ -209,9 +139,6 @@ export default function InventoryManagement() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <Link href="/pharmacy" className="flex items-center space-x-2">
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </Link>
-              <Link href="/" className="flex items-center space-x-2">
                 <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
                   <Heart className="h-6 w-6 text-white" />
                 </div>
@@ -220,7 +147,7 @@ export default function InventoryManagement() {
               <div className="h-6 w-px bg-gray-300"></div>
               <div className="flex items-center space-x-2">
                 <Package className="h-5 w-5 text-pink-500" />
-                <span className="text-lg font-semibold text-gray-700">Inventory Management</span>
+                <span className="text-lg font-semibold text-gray-700">Inventory</span>
               </div>
             </div>
             
@@ -228,16 +155,18 @@ export default function InventoryManagement() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={refetchMedicines}
-                disabled={medicinesLoading}
+                onClick={refreshData}
+                disabled={loading || stockLoading}
                 className="text-gray-600 hover:text-pink-500"
               >
-                {medicinesLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
+                <RefreshCw className={`h-4 w-4 ${(loading || stockLoading) ? 'animate-spin' : ''}`} />
               </Button>
+              <Link href="/pharmacy/inventory/add">
+                <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Medicine
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -247,401 +176,373 @@ export default function InventoryManagement() {
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Management</h1>
-          <p className="text-gray-600">Manage medicine stock, batches, and inventory movements</p>
+          <p className="text-gray-600">Manage medicine inventory, stock levels, and expiry dates</p>
         </div>
 
         {/* Error Alert */}
-        {(medicinesError || inventoryError) && (
+        {error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-700">
-              {medicinesError || inventoryError}
-            </AlertDescription>
+            <AlertDescription className="text-red-700">{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search medicines..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="border-pink-100">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Medicines</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stockLoading ? '...' : stockData.overview.total_medicines.toLocaleString()}
+                  </p>
+                </div>
+                <Package className="h-8 w-8 text-pink-500" />
               </div>
-              
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            </CardContent>
+          </Card>
 
-              <Select value={stockFilter} onValueChange={setStockFilter}>
-                <SelectTrigger className="border-pink-200 focus:border-pink-400 focus:ring-pink-400">
-                  <SelectValue placeholder="Filter by stock status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stock Status</SelectItem>
-                  {stockStatuses.map(status => (
-                    <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <Card className="border-pink-100">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Low Stock</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {stockLoading ? '...' : stockData.overview.low_stock_count}
+                  </p>
+                </div>
+                <TrendingDown className="h-8 w-8 text-red-500" />
+              </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex space-x-2">
+          <Card className="border-pink-100">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {stockLoading ? '...' : stockData.overview.expiring_soon_count}
+                  </p>
+                </div>
+                <Calendar className="h-8 w-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-pink-100">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Value</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ₹{stockLoading ? '...' : stockData.overview.total_stock_value.toLocaleString()}
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters and Search */}
+        <Card className="border-pink-100 mb-6">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="text-gray-900">Medicine Inventory</CardTitle>
+                <CardDescription>
+                  {pagination.total} medicines • Page {pagination.page} of {pagination.totalPages}
+                </CardDescription>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search medicines..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 w-64"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                </Button>
                 <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
                   <Download className="h-4 w-4 mr-2" />
                   Export
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Inventory Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Medicine Inventory</CardTitle>
-            <CardDescription>
-              Showing {pagination.total} medicines • Page {pagination.page} of {pagination.totalPages}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {medicinesLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
-                    <Skeleton className="h-12 w-12 rounded" />
-                    <div className="flex-1">
-                      <Skeleton className="h-4 w-48 mb-2" />
-                      <Skeleton className="h-3 w-32" />
-                    </div>
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-8 w-24" />
-                  </div>
-                ))}
-              </div>
-            ) : medicines.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Medicine</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Current Stock</TableHead>
-                      <TableHead>Stock Status</TableHead>
-                      <TableHead>Expiry Status</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {medicines.map((medicine) => {
-                      const stockStatus = getStockStatus(medicine)
-                      const expiryStatus = getExpiryStatus(medicine.batches || [])
-                      const totalValue = medicine.inventory.currentStock * medicine.pricing.sellingPrice
-
-                      return (
-                        <TableRow key={medicine._id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-semibold text-gray-900">{medicine.medicineName}</p>
-                              <p className="text-sm text-gray-500">{medicine.manufacturer}</p>
-                              <p className="text-xs text-gray-400">{medicine.strength} • {medicine.dosageForm}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {medicine.category}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <p className="font-semibold">{medicine.inventory.currentStock}</p>
-                              <p className="text-xs text-gray-500">
-                                Min: {medicine.inventory.reorderLevel} • Max: {medicine.inventory.maximumStock}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={stockStatus.color}>
-                              {stockStatus.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={expiryStatus.color}>
-                              {expiryStatus.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-semibold">₹{totalValue.toLocaleString()}</p>
-                            <p className="text-xs text-gray-500">@₹{medicine.pricing.sellingPrice}</p>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedMedicine(medicine)
-                                  setIsAddBatchOpen(true)
-                                }}
-                                className="text-xs"
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Batch
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedMedicine(medicine)
-                                  setIsStockMovementOpen(true)
-                                }}
-                                className="text-xs"
-                              >
-                                <TrendingUp className="h-3 w-3 mr-1" />
-                                Move
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No medicines found</h3>
-                <p className="text-gray-600">Try adjusting your search or filter criteria</p>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex justify-between items-center mt-6">
-                <p className="text-sm text-gray-600">
-                  Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
-                </p>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === pagination.totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Add Batch Dialog */}
-        <Dialog open={isAddBatchOpen} onOpenChange={setIsAddBatchOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Batch</DialogTitle>
-              <DialogDescription>
-                Add a new batch for {selectedMedicine?.medicineName}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddBatch} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {/* Filter Controls */}
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-pink-100">
                 <div>
-                  <Label htmlFor="batchNo">Batch Number</Label>
-                  <Input
-                    id="batchNo"
-                    value={batchForm.batchNo}
-                    onChange={(e) => setBatchForm(prev => ({ ...prev, batchNo: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={batchForm.quantity}
-                    onChange={(e) => setBatchForm(prev => ({ ...prev, quantity: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="expiryDate">Expiry Date</Label>
-                <Input
-                  id="expiryDate"
-                  type="date"
-                  value={batchForm.expiryDate}
-                  onChange={(e) => setBatchForm(prev => ({ ...prev, expiryDate: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="costPrice">Cost Price</Label>
-                  <Input
-                    id="costPrice"
-                    type="number"
-                    step="0.01"
-                    value={batchForm.costPrice}
-                    onChange={(e) => setBatchForm(prev => ({ ...prev, costPrice: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="sellingPrice">Selling Price</Label>
-                  <Input
-                    id="sellingPrice"
-                    type="number"
-                    step="0.01"
-                    value={batchForm.sellingPrice}
-                    onChange={(e) => setBatchForm(prev => ({ ...prev, sellingPrice: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="mrp">MRP</Label>
-                  <Input
-                    id="mrp"
-                    type="number"
-                    step="0.01"
-                    value={batchForm.mrp}
-                    onChange={(e) => setBatchForm(prev => ({ ...prev, mrp: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddBatchOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={inventoryLoading}>
-                  {inventoryLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    'Add Batch'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Stock Movement Dialog */}
-        <Dialog open={isStockMovementOpen} onOpenChange={setIsStockMovementOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Record Stock Movement</DialogTitle>
-              <DialogDescription>
-                Record stock movement for {selectedMedicine?.medicineName}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleStockMovement} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="movementType">Movement Type</Label>
-                  <Select 
-                    value={stockMovementForm.movementType} 
-                    onValueChange={(value) => setStockMovementForm(prev => ({ ...prev, movementType: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
+                  <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
+                    <SelectTrigger className="border-pink-200">
+                      <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      {movementTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={stockMovementForm.quantity}
-                    onChange={(e) => setStockMovementForm(prev => ({ ...prev, quantity: e.target.value }))}
-                    required
-                  />
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Stock Status</label>
+                  <Select value={stockFilter || "all"} onValueChange={handleStockFilterChange}>
+                    <SelectTrigger className="border-pink-200">
+                      <SelectValue placeholder="All Stock Levels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stock Levels</SelectItem>
+                      <SelectItem value="low">Low Stock</SelectItem>
+                      <SelectItem value="expiring">Expiring Soon</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Sort By</label>
+                  <Select value={sortBy} onValueChange={(value) => handleSort(value)}>
+                    <SelectTrigger className="border-pink-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="category">Category</SelectItem>
+                      <SelectItem value="current_stock">Stock Level</SelectItem>
+                      <SelectItem value="expiry_date">Expiry Date</SelectItem>
+                      <SelectItem value="unit_price">Price</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              
-              <div>
-                <Label htmlFor="batchNo">Batch Number (Optional)</Label>
-                <Input
-                  id="batchNo"
-                  value={stockMovementForm.batchNo}
-                  onChange={(e) => setStockMovementForm(prev => ({ ...prev, batchNo: e.target.value }))}
-                />
-              </div>
+            )}
+          </CardHeader>
 
-              <div>
-                <Label htmlFor="reason">Reason</Label>
-                <Input
-                  id="reason"
-                  value={stockMovementForm.reason}
-                  onChange={(e) => setStockMovementForm(prev => ({ ...prev, reason: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={stockMovementForm.notes}
-                  onChange={(e) => setStockMovementForm(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsStockMovementOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={inventoryLoading}>
-                  {inventoryLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Recording...
-                    </>
+          <CardContent>
+            {/* Medicine Table */}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Medicine</span>
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('current_stock')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Stock</span>
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('unit_price')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Price</span>
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('expiry_date')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Expiry</span>
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    Array.from({ length: 10 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-24" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : medicines.length > 0 ? (
+                    medicines.map((medicine) => (
+                      <TableRow key={medicine.id} className="hover:bg-gray-50">
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-gray-900">{medicine.name}</p>
+                            <p className="text-sm text-gray-500">
+                              {medicine.generic_name && `${medicine.generic_name} • `}
+                              {medicine.strength} {medicine.dosage_form}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="border-gray-200">
+                            {medicine.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{medicine.current_stock}</p>
+                            <p className="text-xs text-gray-500">Min: {medicine.minimum_stock}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">₹{medicine.unit_price}</p>
+                            <p className="text-xs text-gray-500">MRP: ₹{medicine.mrp}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {medicine.expiry_date ? (
+                            <p className="text-sm">
+                              {new Date(medicine.expiry_date).toLocaleDateString()}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-400">Not set</p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Badge 
+                              variant="outline" 
+                              className={getStockStatusColor(medicine.stock_status || 'good')}
+                            >
+                              {medicine.stock_status || 'good'}
+                            </Badge>
+                            {medicine.expiry_status && medicine.expiry_status !== 'good' && (
+                              <Badge 
+                                variant="outline" 
+                                className={getExpiryStatusColor(medicine.expiry_status)}
+                              >
+                                {medicine.expiry_status.replace('_', ' ')}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Link href={`/pharmacy/inventory/${medicine.medicine_id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Link href={`/pharmacy/inventory/${medicine.medicine_id}/edit`}>
+                              <Button variant="ghost" size="sm">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteMedicine(medicine.medicine_id, medicine.name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : (
-                    'Record Movement'
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center space-y-3">
+                          <Pill className="h-12 w-12 text-gray-400" />
+                          <p className="text-gray-500">No medicines found</p>
+                          <Link href="/pharmacy/inventory/add">
+                            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add First Medicine
+                            </Button>
+                          </Link>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </Button>
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <p className="text-sm text-gray-600">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                  {pagination.total} medicines
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={!pagination.hasPrev}
+                    className="border-pink-200"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    const page = i + 1;
+                    return (
+                      <Button
+                        key={page}
+                        variant={page === pagination.page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className={page === pagination.page 
+                          ? "bg-pink-500 hover:bg-pink-600" 
+                          : "border-pink-200 text-pink-600 hover:bg-pink-50"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={!pagination.hasNext}
+                    className="border-pink-200"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Heart, Package, AlertTriangle, TrendingUp, Search, Plus, Pill, FileText, BarChart3, Bell, Filter, Download, RefreshCw, Loader2 } from 'lucide-react'
+import { 
+  Heart, Package, AlertTriangle, TrendingUp, Search, Plus, Pill, 
+  FileText, BarChart3, Bell, Filter, Download, RefreshCw, Loader2 
+} from 'lucide-react'
 import { usePharmacyStats, usePrescriptions, usePharmacyAlerts } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
 
@@ -17,32 +20,51 @@ export default function PharmacyDashboard() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("overview")
 
-  // API hooks
+  // API hooks with error handling
   const { 
-    totalMedicines, 
-    lowStock, 
-    expiringSoon, 
-    totalValue, 
-    loading: statsLoading, 
+    totalMedicines = 0, 
+    lowStock = 0, 
+    expiringSoon = 0, 
+    totalValue = 0, 
+    loading: statsLoading = true, 
     error: statsError,
     refetch: refetchStats 
   } = usePharmacyStats()
 
   const { 
-    prescriptions, 
-    loading: prescriptionsLoading, 
+    prescriptions = [], 
+    statistics = {
+      total_prescriptions: 0,
+      active_prescriptions: 0,
+      completed_prescriptions: 0,
+      pending_dispensing: 0
+    },
+    loading: prescriptionsLoading = true, 
     error: prescriptionsError,
     refetch: refetchPrescriptions,
-    dispensePrescription 
+    dispenseAllMedications 
   } = usePrescriptions({ 
     limit: 5, 
-    status: 'pending' 
+    status: 'active',
+    pendingOnly: true
   })
 
   const { 
-    alerts, 
-    summary: alertSummary, 
-    loading: alertsLoading, 
+    alerts = {
+      lowStock: [],
+      outOfStock: [],
+      expiringSoon: [],
+      expired: [],
+      overstock: []
+    }, 
+    summary: alertSummary = {
+      lowStockCount: 0,
+      outOfStockCount: 0,
+      expiringSoonCount: 0,
+      expiredCount: 0,
+      totalAlerts: 0
+    }, 
+    loading: alertsLoading = true, 
     error: alertsError,
     refetch: refetchAlerts,
     markAlertsResolved 
@@ -51,55 +73,61 @@ export default function PharmacyDashboard() {
   // Handle prescription dispensing
   const handleDispensePrescription = async (prescriptionId: string) => {
     try {
-      await dispensePrescription(prescriptionId, {
-        dispensedBy: 'current-user', // This should come from session
-        dispensingNotes: 'Dispensed as prescribed'
-      })
+      if (dispenseAllMedications) {
+        await dispenseAllMedications(prescriptionId, 'Dispensed from pharmacy dashboard')
+        toast.success('Prescription dispensed successfully')
+      }
     } catch (error) {
       console.error('Error dispensing prescription:', error)
+      toast.error('Failed to dispense prescription')
     }
   }
 
   // Handle alert resolution
   const handleResolveAlert = async (medicineIds: string[], alertType: string) => {
     try {
-      await markAlertsResolved(medicineIds)
-      toast.success(`${alertType} alerts resolved successfully`)
+      if (markAlertsResolved) {
+        await markAlertsResolved(medicineIds)
+        toast.success(`${alertType} alerts resolved successfully`)
+      }
     } catch (error) {
       console.error('Error resolving alerts:', error)
+      toast.error('Failed to resolve alerts')
     }
   }
 
   // Refresh all data
   const refreshAllData = async () => {
     try {
-      await Promise.all([
-        refetchStats(),
-        refetchPrescriptions(),
-        refetchAlerts()
-      ])
+      const promises = []
+      if (refetchStats) promises.push(refetchStats())
+      if (refetchPrescriptions) promises.push(refetchPrescriptions())
+      if (refetchAlerts) promises.push(refetchAlerts())
+      
+      await Promise.all(promises)
       toast.success('Data refreshed successfully')
     } catch (error) {
+      console.error('Error refreshing data:', error)
       toast.error('Failed to refresh data')
     }
   }
 
   // Get recent prescriptions (limit to 3 for display)
   const recentPrescriptions = prescriptions.slice(0, 3).map(prescription => ({
-    id: prescription.prescriptionId,
-    patientName: prescription.patientName,
-    doctor: prescription.doctorName,
-    medicines: prescription.medicines.map(m => `${m.medicineName} ${m.dosage}`),
-    status: prescription.status === 'pending' ? 'pending' : 'fulfilled',
-    date: new Date(prescription.prescriptionDate).toLocaleDateString(),
-    priority: prescription.priority
+    id: prescription.prescription_id,
+    patientName: prescription.patient_name,
+    doctor: prescription.doctor_name,
+    medicines: [`${prescription.total_medications} medicines`],
+    status: prescription.dispensing_status === 'pending' ? 'pending' : 'fulfilled',
+    date: new Date(prescription.prescription_date).toLocaleDateString(),
+    priority: 'normal'
   }))
 
   // Get low stock items from alerts
-  const lowStockItems = [...alerts.lowStock, ...alerts.outOfStock].slice(0, 4).map(item => ({
-    name: item.medicineName,
-    currentStock: item.inventory.currentStock,
-    minStock: item.inventory.reorderLevel,
+  const lowStockItems = [...(alerts.lowStock || []), ...(alerts.outOfStock || [])].slice(0, 4).map(item => ({
+    name: item.name,
+    currentStock: item.current_stock,
+    minStock: item.minimum_stock,
     category: item.category
   }))
 
@@ -144,7 +172,7 @@ export default function PharmacyDashboard() {
                 </div>
               </div>
               <div className="h-8 w-8 bg-gradient-to-r from-pink-400 to-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">JP</span>
+                <span className="text-white font-semibold text-sm">P</span>
               </div>
             </div>
           </div>
@@ -378,7 +406,7 @@ export default function PharmacyDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleResolveAlert(
-                          [...alerts.lowStock, ...alerts.outOfStock].map(item => item._id),
+                          [...(alerts.lowStock || []), ...(alerts.outOfStock || [])].map(item => item.medicine_id),
                           'Low Stock'
                         )}
                         className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
