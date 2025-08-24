@@ -1,67 +1,5 @@
 // backend/routes/superAdmin.js
 const express = require('express');
-<<<<<<< HEAD
-const { Op } = require('sequelize');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const router = express.Router();
-
-// Allowed roles
-const ALLOWED_ROLES = ['patient', 'doctor', 'admin', 'super-admin', 'hr_manager', 'department_head'];
-
-// GET /api/super-admin/users
-router.get('/users', async (req, res) => {
-  try {
-    console.log('Received get users request:', req.query);
-    
-    const { search = '', role, page = 1, limit = 10 } = req.query;
-    const where = {};
-    const offset = (page - 1) * parseInt(limit);
-
-    if (role && role !== 'all') {
-      where.role = role;
-    }
-
-    if (search) {
-      where[Op.or] = [
-        { firstName: { [Op.like]: `%${search}%` } },
-        { lastName: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
-        { phoneNumber: { [Op.like]: `%${search}%` } }
-      ];
-    }
-
-    const { count, rows } = await User.findAndCountAll({
-      where,
-      offset,
-      limit: parseInt(limit),
-      order: [['createdAt', 'DESC']],
-      attributes: { exclude: ['password'] }
-    });
-
-    // Get role statistics
-    const roleStats = await User.findAll({
-      attributes: ['role', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
-      group: ['role']
-    });
-
-    const roleStatsMap = {};
-    roleStats.forEach(stat => {
-      roleStatsMap[stat.role] = parseInt(stat.getDataValue('count'));
-    });
-
-    res.json({
-      success: true,
-      data: users,
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      roleStats: roleStatsMap
-    });
-  } catch (err) {
-    console.error('GET /users error:', err)
-    res.status(500).json({ success: false, message: 'Server error' })
-=======
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const router = express.Router();
@@ -72,67 +10,10 @@ const { authenticate } = require('../middleware/auth');
 const authorizeRoles = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ message: 'Forbidden' });
->>>>>>> 09f338b170c30e405622b6707e35d7bc332dd24c
   }
   next();
 };
 
-<<<<<<< HEAD
-// POST /api/super-admin/users
-router.post('/users', async (req, res) => {
-  try {
-    console.log('Received create user request:', req.body);
-    
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      role,
-      contactNumber,
-      department,
-      specialization
-    } = req.body;
-
-    // Validate required fields
-    if (!firstName || !lastName || !email || !password || !role) {
-      console.log('Missing required fields:', { firstName, lastName, email, password, role });
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      console.log('User already exists:', email);
-      return res.status(400).json({
-        success: false,
-        message: 'User with this email already exists'
-      });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Create new user
-    const user = await User.create({
-      firstName,
-      lastName,
-      email,
-      password: hashedPassword,
-      role,
-      phoneNumber: contactNumber,
-      address: department,
-      isActive: true
-    });
-
-    res.status(201).json({
-      success: true,
-      data: user
-    });
-=======
 // =======================
 // ✅ ORIGINAL INLINE ROUTES
 // =======================
@@ -144,7 +25,6 @@ router.get('/users', authenticate, authorizeRoles('super-admin', 'admin'), async
     if (req.query.role) where.role = req.query.role;
     const users = await User.findAll({ where, attributes: { exclude: ['password'] } });
     res.json({ success: true, data: users });
->>>>>>> 09f338b170c30e405622b6707e35d7bc332dd24c
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Server error' });
