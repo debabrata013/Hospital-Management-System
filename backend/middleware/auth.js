@@ -1,25 +1,24 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models');
 require('dotenv').config();
 
 const authenticate = async (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const auth = req.headers.authorization || req.cookies.token;
+  if (!auth) return res.status(401).json({ success: false, message: 'Missing token' });
 
-  if (!token) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
-  }
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth;
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findByPk(decoded.id);
+    const user = await User.findByPk(decoded.id);
 
-    if (!req.user) {
-        return res.status(401).json({ msg: 'Authorization denied, user not found' });
-    }
+    if (!user) return res.status(401).json({ success: false, message: 'User not found' });
 
+    req.user = user.get({ plain: true }); // includes role if needed
     next();
   } catch (err) {
-    res.status(401).json({ msg: 'Token is not valid' });
+    console.error('auth error', err);
+    res.status(401).json({ success: false, message: 'Invalid token' });
   }
 };
 

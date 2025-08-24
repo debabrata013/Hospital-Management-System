@@ -77,7 +77,13 @@ web_modules/
 .yarn-integrity
 
 # Environment variables
-.env
+# Ignore all .env files by default
+.env*
+
+# But don't ignore the one in the backend directory
+!/backend/.env
+
+# Keep these original rules for local env files
 .env.local
 .env.development.local
 .env.test.local

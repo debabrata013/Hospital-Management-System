@@ -51,8 +51,8 @@ const content = {
       availability: "उपलब्ध"
     },
     appointment: {
-      title: "ऑनलाइन अपॉइंटमेंट बुक करें",
-      subtitle: "हमारे विशेषज्ञ डॉक्टरों के साथ अपनी मुलाकात का समय तय करें। अपना पसंदीदा समय चुनें और इंतज़ार से बचें।",
+      title: "सर्जरी के लिए ऑनलाइन अपॉइंटमेंट बुक करें",
+      subtitle: "हमारे विशेषज्ञ सर्जनों के साथ सर्जिकल प्रक्रियाओं के लिए अपनी मुलाकात का समय तय करें। सर्जरी की योजना बनाएं और पूर्व-परामर्श लें।",
       form: {
         name: "पूरा नाम",
         phone: "फोन नंबर",
@@ -61,29 +61,29 @@ const content = {
         doctor: "डॉक्टर चुनें",
         date: "पसंदीदा तारीख",
         time: "पसंदीदा समय",
-        reason: "मुलाकात का कारण",
-        submit: "अपॉइंटमेंट बुक करें",
+        reason: "सर्जरी का प्रकार और विवरण",
+        submit: "सर्जरी अपॉइंटमेंट बुक करें",
         submitting: "बुक हो रहा है...",
-        success: "अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
-        error: "अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
+        success: "सर्जरी अपॉइंटमेंट सफलतापूर्वक बुक हो गया!",
+        error: "सर्जरी अपॉइंटमेंट बुक करने में असफल। कृपया पुनः प्रयास करें।"
       },
       benefits: {
-        title: "ऑनलाइन बुकिंग क्यों करें?",
+        title: "सर्जरी के लिए ऑनलाइन बुकिंग क्यों करें?",
         noWaiting: {
-          title: "कोई इंतज़ार नहीं",
-          description: "कतार छोड़ें और अपने डॉक्टर से सीधे मिलें"
+          title: "पूर्व-नियोजित सर्जरी",
+          description: "सर्जरी की तारीख पहले से तय करें और अस्पताल में व्यर्थ प्रतीक्षा से बचें"
         },
         confirmation: {
-          title: "तुरंत पुष्टि",
-          description: "SMS और ईमेल के माध्यम से तुरंत पुष्टि प्राप्त करें"
+          title: "सर्जरी की पुष्टि",
+          description: "SMS और ईमेल के माध्यम से सर्जरी की तारीख और समय की पुष्टि प्राप्त करें"
         },
         reminder: {
-          title: "अपॉइंटमेंट रिमाइंडर",
-          description: "अपने अपॉइंटमेंट से पहले समय पर रिमाइंडर प्राप्त करें"
+          title: "सर्जरी रिमाइंडर",
+          description: "सर्जरी से पहले तैयारी के निर्देश और समय पर रिमाइंडर प्राप्त करें"
         },
         reschedule: {
           title: "आसान रीशेड्यूलिंग",
-          description: "कुछ ही क्लिक में अपना अपॉइंटमेंट समय बदलें"
+          description: "आपातकाल की स्थिति में सर्जरी की तारीख आसानी से बदलें"
         }
       }
     },
@@ -270,8 +270,8 @@ const content = {
       availability: "Available"
     },
     appointment: {
-      title: "Book Your Appointment Online",
-      subtitle: "Schedule your visit with our expert doctors. Choose your preferred time and avoid waiting.",
+      title: "Book Your Surgery Appointment Online",
+      subtitle: "Schedule your surgical procedures with our expert surgeons. Plan your surgery and get pre-consultation.",
       form: {
         name: "Full Name",
         phone: "Phone Number",
@@ -280,29 +280,29 @@ const content = {
         doctor: "Select Doctor",
         date: "Preferred Date",
         time: "Preferred Time",
-        reason: "Reason for Visit",
-        submit: "Book Appointment",
+        reason: "Surgery Type and Details",
+        submit: "Book Surgery Appointment",
         submitting: "Booking...",
-        success: "Appointment booked successfully!",
-        error: "Failed to book appointment. Please try again."
+        success: "Surgery appointment booked successfully!",
+        error: "Failed to book surgery appointment. Please try again."
       },
       benefits: {
-        title: "Why Book Online?",
+        title: "Why Book Surgery Online?",
         noWaiting: {
-          title: "No Waiting",
-          description: "Skip the queue and get direct access to your doctor"
+          title: "Pre-Planned Surgery",
+          description: "Schedule your surgery date in advance and avoid unnecessary waiting at the hospital"
         },
         confirmation: {
-          title: "Instant Confirmation",
-          description: "Get immediate confirmation via SMS and email"
+          title: "Surgery Confirmation",
+          description: "Get immediate confirmation of surgery date and time via SMS and email"
         },
         reminder: {
-          title: "Appointment Reminders",
-          description: "Receive timely reminders before your appointment"
+          title: "Surgery Reminders",
+          description: "Receive pre-surgery preparation instructions and timely reminders"
         },
         reschedule: {
           title: "Easy Rescheduling",
-          description: "Change your appointment time with just a few clicks"
+          description: "Easily reschedule your surgery date in case of emergencies"
         }
       }
     },
@@ -659,17 +659,17 @@ export default function LandingPage() {
   ];
 
   const departments = [
-    "Orthopedics",
-    "Gynecology", 
-    "Anesthetics",
-    "BAMS (Ayurveda)",
-    "General Surgery",
-    "Cardiology",
-    "Pediatrics",
-    "General Medicine",
-    "Dermatology",
-    "Neurology",
-    "Gastroenterology"
+    "Orthopedic Surgery",
+    "General Surgery", 
+    "Gynecological Surgery",
+    "Laparoscopic Surgery",
+    "Joint Replacement Surgery",
+    "Trauma Surgery",
+    "Minimally Invasive Surgery",
+    "Arthroscopic Surgery",
+    "Spine Surgery",
+    "Fracture Surgery",
+    "Emergency Surgery"
   ];
 
   const timeSlots = [
@@ -1080,9 +1080,23 @@ export default function LandingPage() {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               {t.appointment.title}
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
               {t.appointment.subtitle}
             </p>
+            {/* OPD Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-2xl mx-auto">
+              <div className="flex items-center justify-center space-x-2 text-blue-700">
+                <div className="bg-blue-100 p-1 rounded-full">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <span className="font-medium text-sm">
+                  {language === 'hindi' 
+                    ? 'नोट: यह फॉर्म केवल सर्जरी अपॉइंटमेंट के लिए है। सामान्य OPD के लिए कृपया सीधे अस्पताल में संपर्क करें।'
+                    : 'Note: This form is for surgery appointments only. For general OPD consultations, please contact the hospital directly.'
+                  }
+                </span>
+              </div>
+            </div>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-12 items-start">
@@ -1224,7 +1238,7 @@ export default function LandingPage() {
                     value={appointmentForm.reason}
                     onChange={(e) => setAppointmentForm(prev => ({ ...prev, reason: e.target.value }))}
                     className="mt-2 border-pink-200 focus:border-pink-400 focus:ring-pink-400"
-                    placeholder="Brief description of your health concern..."
+                    placeholder="Describe the type of surgery needed, any specific concerns, or pre-surgical consultation requirements..."
                     rows={3}
                   />
                 </div>
@@ -1303,24 +1317,48 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              {/* Emergency Contact */}
-              <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-3xl p-8 text-white">
+              {/* Emergency Surgery Contact */}
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-3xl p-8">
                 <div className="flex items-center mb-4">
-                  <Zap className="h-8 w-8 mr-3" />
-                  <h3 className="text-2xl font-bold">Emergency?</h3>
+                  <div className="bg-orange-500 p-2 rounded-xl mr-3">
+                    <Zap className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    {language === 'hindi' ? 'आपातकालीन सर्जरी?' : 'Emergency Surgery?'}
+                  </h3>
                 </div>
-                <p className="mb-6 text-red-100">
-                  For medical emergencies, don't wait for an appointment. Call our emergency helpline immediately.
+                <p className="mb-6 text-gray-700 leading-relaxed">
+                  {language === 'hindi' 
+                    ? 'आपातकालीन सर्जरी के लिए, अपॉइंटमेंट का इंतज़ार न करें। तुरंत हमारी आपातकालीन हेल्पलाइन पर कॉल करें।'
+                    : 'For emergency surgeries, don\'t wait for an appointment. Call our emergency helpline immediately.'
+                  }
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button className="bg-white text-red-600 hover:bg-red-50 rounded-full font-semibold">
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
                     <Phone className="h-4 w-4 mr-2" />
-                    Call Emergency: +91 98765 43211
+                    {language === 'hindi' ? 'आपातकालीन कॉल: +91 98765 43211' : 'Emergency Call: +91 98765 43211'}
                   </Button>
-                  <Button variant="outline" className="border-white text-white hover:bg-white hover:text-red-600 rounded-full">
+                  <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50 rounded-full font-semibold">
                     <Navigation className="h-4 w-4 mr-2" />
-                    Get Directions
+                    {language === 'hindi' ? 'दिशा निर्देश' : 'Get Directions'}
                   </Button>
+                </div>
+                
+                {/* Additional Emergency Info */}
+                <div className="mt-6 bg-white rounded-2xl p-4 border border-orange-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <Clock className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {language === 'hindi' ? '24/7 आपातकालीन सेवा' : '24/7 Emergency Service'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {language === 'hindi' ? 'हमारी टीम हमेशा तैयार है' : 'Our team is always ready'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
