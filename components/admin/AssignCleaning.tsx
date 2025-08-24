@@ -40,7 +40,7 @@ interface FormData {
   notes: string
 }
 
-export default function AssignCleaning() {
+export default function AssignCleaning({ defaultRoomNumber = '' }: { defaultRoomNumber?: string }) {
   // State
   const [tasks, setTasks] = useState<CleaningTask[]>([])
   const [staff, setStaff] = useState<CleaningStaff[]>([])
@@ -51,7 +51,7 @@ export default function AssignCleaning() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<CleaningTask | null>(null)
   const [formData, setFormData] = useState<FormData>({
-    roomNumber: '',
+    roomNumber: defaultRoomNumber || '',
     assignedTo: '',
     priority: 'medium',
     scheduledDate: new Date(),
@@ -64,9 +64,16 @@ export default function AssignCleaning() {
     fetchStaff()
   }, [])
 
+  // Prefill room number when provided by parent
+  useEffect(() => {
+    if (defaultRoomNumber) {
+      setFormData(prev => ({ ...prev, roomNumber: defaultRoomNumber }))
+    }
+  }, [defaultRoomNumber])
+
   const fetchTasks = async () => {
     try {
-      const response = await fetch('/api/cleaning/tasks')
+      const response = await fetch('/api/cleaning/tasks', { credentials: 'include' })
       const data = await response.json()
 
       if (response.ok) {
@@ -84,7 +91,7 @@ export default function AssignCleaning() {
 
   const fetchStaff = async () => {
     try {
-      const response = await fetch('/api/cleaning/staff')
+      const response = await fetch('/api/cleaning/staff', { credentials: 'include' })
       const data = await response.json()
 
       if (response.ok) {
@@ -108,6 +115,7 @@ export default function AssignCleaning() {
       const response = await fetch('/api/cleaning/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           roomNumber: formData.roomNumber,
           assignedTo: formData.assignedTo,
@@ -141,6 +149,7 @@ export default function AssignCleaning() {
       const response = await fetch(`/api/cleaning/tasks/${selectedTask._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           roomNumber: formData.roomNumber,
           assignedTo: formData.assignedTo,
@@ -169,7 +178,7 @@ export default function AssignCleaning() {
     if (!confirm('Are you sure you want to delete this task?')) return
 
     try {
-      const response = await fetch(`/api/cleaning/tasks/${taskId}`, {
+  const response = await fetch(`/api/cleaning/tasks/${taskId}`, {
         method: 'DELETE'
       })
 
@@ -191,6 +200,7 @@ export default function AssignCleaning() {
       const response = await fetch(`/api/cleaning/tasks/${taskId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: newStatus })
       })
 
