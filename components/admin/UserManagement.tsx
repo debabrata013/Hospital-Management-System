@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,16 +14,13 @@ import {
   Plus, 
   Search, 
   Edit, 
-  Trash2, 
-  Eye, 
-  UserPlus,
-  Filter,
+  Trash2,
   Download,
-  Upload,
-  MoreHorizontal
+  UserPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+// User interface
 interface User {
   _id: string
   name: string
@@ -34,10 +31,9 @@ interface User {
   specialization?: string
   isActive: boolean
   createdAt: string
-  lastLogin?: string
-    permissions?: { module: string; actions: string[] }[]
 }
 
+// Form data interface
 interface UserFormData {
   name: string
   email: string
@@ -46,24 +42,10 @@ interface UserFormData {
   contactNumber: string
   department: string
   specialization: string
-  qualification: string[]
-  experience: number
-  licenseNumber: string
-  salary: number
-  address: {
-    street: string
-    city: string
-    state: string
-    pincode: string
-  }
-  emergencyContact: {
-    name: string
-    phone: string
-    relationship: string
-  }
 }
 
 export default function UserManagement() {
+  // State management
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -72,16 +54,8 @@ export default function UserManagement() {
   const [totalPages, setTotalPages] = useState(1)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
-  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [roleStats, setRoleStats] = useState<Record<string, number>>({})
-
-  const [permissionsState, setPermissionsState] = useState<Record<string, Set<string>>>({})
-  const [notifyForm, setNotifyForm] = useState<{ subject: string; message: string; priority: 'LOW'|'MEDIUM'|'HIGH'|'URGENT'; emails: string }>(
-    { subject: '', message: '', priority: 'LOW', emails: '' }
-  )
-
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
@@ -89,46 +63,79 @@ export default function UserManagement() {
     role: '',
     contactNumber: '',
     department: '',
-    specialization: '',
-    qualification: [],
-    experience: 0,
-    licenseNumber: '',
-    salary: 0,
-    address: {
-      street: '',
-      city: '',
-      state: '',
-      pincode: ''
-    },
-    emergencyContact: {
-      name: '',
-      phone: '',
-      relationship: ''
-    }
+    specialization: ''
   })
 
+  // Fetch users on component mount and when filters change
   useEffect(() => {
     fetchUsers()
   }, [currentPage, searchTerm, roleFilter])
 
+  // Main functions for user management
   const fetchUsers = async () => {
     try {
       setLoading(true)
+      console.log('Fetching users with params:', {
+        page: currentPage,
+        searchTerm,
+        roleFilter
+      })
+      
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
-        ...(roleFilter && roleFilter !== 'all' && { role: roleFilter })
+        ...(roleFilter !== 'all' && { role: roleFilter })
       })
 
-      const response = await fetch(`/api/admin/users?${params}`)
-      if (response.ok) {
-        const result = await response.json()
-        setUsers(result.data.users)
-        setTotalPages(result.data.pagination.pages)
-        setRoleStats(result.data.roleStats)
+      const response = await fetch(`/api/super-admin/users?${params}`)
+      const result = await response.json()
+      console.log('API Response:', result)
+
+      if (response.ok && result.success) {
+        // Map the API response to our User interface
+        if (!Array.isArray(result.data)) {
+          console.error('Invalid data format - data is not an array:', result.data)
+          toast.error('Invalid data format received from server')
+          return
+        }
+
+        console.log('Raw user data:', result.data)
+        
+        const mappedUsers = result.data.map((user: any) => {
+          console.log('Processing user:', user)
+          return {
+            _id: user.id || user._id,
+            name: user.firstName && user.lastName 
+              ? `${user.firstName} ${user.lastName}`
+              : user.name || 'Unknown',
+            email: user.email,
+            role: user.role,
+            contactNumber: user.contactNumber || user.phoneNumber || '',
+            department: user.department || user.address || '',
+            specialization: user.specialization || '',
+            isActive: typeof user.isActive === 'boolean' ? user.isActive : true,
+            createdAt: user.createdAt
+          }
+        })
+        
+        console.log('Mapped users:', mappedUsers)
+        setUsers(mappedUsers)
+        
+        // Handle pagination
+        const total = result.meta?.total || result.total || 0
+        const limit = result.meta?.limit || 10
+        const pages = Math.ceil(total / limit)
+        console.log('Pagination:', { total, limit, pages })
+        setTotalPages(pages)
+
+        // Handle role stats
+        if (result.roleStats) {
+          console.log('Role stats:', result.roleStats)
+          setRoleStats(result.roleStats)
+        }
       } else {
-        toast.error('Failed to fetch users')
+        toast.error(result.message || 'Failed to fetch users')
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -140,11 +147,45 @@ export default function UserManagement() {
 
   const handleAddUser = async () => {
     try {
-      const response = await fetch('/api/admin/users', {
+      // Form validation
+      if (!formData.name || !formData.email || !formData.password || !formData.role) {
+        toast.error('Please fill in all required fields')
+        return
+      }
+
+      // Split name into first and last name
+      const [firstName, ...lastNameParts] = formData.name.split(' ')
+      const lastName = lastNameParts.join(' ')
+
+      // Create user request
+      console.log('Adding user with data:', {
+        firstName,
+        lastName,
+        email: formData.email,
+        role: formData.role,
+        contactNumber: formData.contactNumber,
+        department: formData.department,
+        specialization: formData.specialization
+      })
+
+      const response = await fetch('/api/super-admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          contactNumber: formData.contactNumber || '',
+          department: formData.department || '',
+          specialization: formData.specialization || ''
+        })
       })
+      
+      console.log('Add user response status:', response.status)
+
+      const result = await response.json()
 
       if (response.ok) {
         toast.success('User created successfully')
@@ -152,12 +193,11 @@ export default function UserManagement() {
         resetForm()
         fetchUsers()
       } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to create user')
+        toast.error(result.message || 'Failed to create user')
       }
     } catch (error) {
       console.error('Error creating user:', error)
-      toast.error('Error creating user')
+      toast.error('Failed to create user')
     }
   }
 
@@ -165,10 +205,21 @@ export default function UserManagement() {
     if (!selectedUser) return
 
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser._id}`, {
+      const [firstName, ...lastNameParts] = formData.name.split(' ')
+      const lastName = lastNameParts.join(' ')
+
+      const response = await fetch(`/api/super-admin/users/${selectedUser._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: formData.email,
+          role: formData.role,
+          contactNumber: formData.contactNumber,
+          department: formData.department,
+          specialization: formData.specialization
+        })
       })
 
       if (response.ok) {
@@ -178,11 +229,11 @@ export default function UserManagement() {
         fetchUsers()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Failed to update user')
+        toast.error(error.message || 'Failed to update user')
       }
     } catch (error) {
       console.error('Error updating user:', error)
-      toast.error('Error updating user')
+      toast.error('Failed to update user')
     }
   }
 
@@ -190,7 +241,7 @@ export default function UserManagement() {
     if (!confirm('Are you sure you want to delete this user?')) return
 
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`/api/super-admin/users/${userId}`, {
         method: 'DELETE'
       })
 
@@ -199,11 +250,11 @@ export default function UserManagement() {
         fetchUsers()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Failed to delete user')
+        toast.error(error.message || 'Failed to delete user')
       }
     } catch (error) {
       console.error('Error deleting user:', error)
-      toast.error('Error deleting user')
+      toast.error('Failed to delete user')
     }
   }
 
@@ -215,22 +266,7 @@ export default function UserManagement() {
       role: '',
       contactNumber: '',
       department: '',
-      specialization: '',
-      qualification: [],
-      experience: 0,
-      licenseNumber: '',
-      salary: 0,
-      address: {
-        street: '',
-        city: '',
-        state: '',
-        pincode: ''
-      },
-      emergencyContact: {
-        name: '',
-        phone: '',
-        relationship: ''
-      }
+      specialization: ''
     })
     setSelectedUser(null)
   }
@@ -244,104 +280,9 @@ export default function UserManagement() {
       role: user.role,
       contactNumber: user.contactNumber,
       department: user.department || '',
-      specialization: user.specialization || '',
-      qualification: [],
-      experience: 0,
-      licenseNumber: '',
-      salary: 0,
-      address: {
-        street: '',
-        city: '',
-        state: '',
-        pincode: ''
-      },
-      emergencyContact: {
-        name: '',
-        phone: '',
-        relationship: ''
-      }
+      specialization: user.specialization || ''
     })
     setIsEditDialogOpen(true)
-  }
-
-  const openPermissionsDialog = (user: User) => {
-    setSelectedUser(user)
-    // Convert existing permissions array to state map
-    const map: Record<string, Set<string>> = {}
-    ;(user.permissions || []).forEach(p => {
-      map[p.module] = new Set(p.actions)
-    })
-    setPermissionsState(map)
-    setIsPermissionsDialogOpen(true)
-  }
-
-  const togglePermission = (moduleName: string, action: string) => {
-    setPermissionsState(prev => {
-      const next = { ...prev }
-      if (!next[moduleName]) next[moduleName] = new Set<string>()
-      if (next[moduleName].has(action)) next[moduleName].delete(action)
-      else next[moduleName].add(action)
-      return next
-    })
-  }
-
-  const handleSavePermissions = async () => {
-    if (!selectedUser) return
-    const permissions = Object.entries(permissionsState).map(([module, actionsSet]) => ({
-      module,
-      actions: Array.from(actionsSet)
-    })).filter(p => p.actions.length > 0)
-    try {
-      const res = await fetch(`/api/admin/users/${selectedUser._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissions })
-      })
-      if (res.ok) {
-        toast.success('Permissions updated')
-        setIsPermissionsDialogOpen(false)
-        fetchUsers()
-      } else {
-        const err = await res.json(); toast.error(err.error || 'Failed to update permissions')
-      }
-    } catch (e) {
-      console.error(e)
-      toast.error('Error updating permissions')
-    }
-  }
-
-  const openNotifyDialog = (user: User) => {
-    setSelectedUser(user)
-    setNotifyForm({ subject: '', message: '', priority: 'LOW', emails: user.email })
-    setIsNotifyDialogOpen(true)
-  }
-
-  const handleSendNotification = async () => {
-    try {
-      const emails = notifyForm.emails.split(',').map(e => e.trim()).filter(Boolean)
-      const res = await fetch('/api/admin/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipients: emails,
-          subject: notifyForm.subject,
-          message: notifyForm.message,
-          priority: notifyForm.priority,
-          category: 'SYSTEM',
-          type: 'EMAIL'
-        })
-      })
-      if (res.ok) {
-        toast.success('Notification sent')
-        setIsNotifyDialogOpen(false)
-        setNotifyForm({ subject: '', message: '', priority: 'LOW', emails: '' })
-      } else {
-        const err = await res.json(); toast.error(err.error || 'Failed to send notification')
-      }
-    } catch (e) {
-      console.error(e)
-      toast.error('Error sending notification')
-    }
   }
 
   const getRoleBadgeColor = (role: string) => {
@@ -356,9 +297,10 @@ export default function UserManagement() {
     return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800'
   }
 
+  // Component render
   return (
     <div className="space-y-6">
-      {/* Header with Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {Object.entries(roleStats).map(([role, count]) => (
           <Card key={role}>
@@ -370,7 +312,7 @@ export default function UserManagement() {
         ))}
       </div>
 
-      {/* Controls */}
+      {/* Main Content */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -411,7 +353,7 @@ export default function UserManagement() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search users by name, email, or phone..."
+                placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -489,22 +431,6 @@ export default function UserManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openPermissionsDialog(user)}
-                            title="Manage Permissions"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openNotifyDialog(user)}
-                            title="Send Notification"
-                          >
-                            <Upload className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => handleDeleteUser(user._id)}
                             className="text-red-600 hover:text-red-700"
                           >
@@ -558,80 +484,6 @@ export default function UserManagement() {
             onSubmit={handleEditUser}
             isEdit={true}
           />
-        </DialogContent>
-      </Dialog>
-
-      {/* Permissions Dialog */}
-      <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Manage Permissions {selectedUser ? `- ${selectedUser.name}` : ''}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {['patients','appointments','billing','inventory','reports','users','messages','shifts'].map(moduleName => (
-              <div key={moduleName} className="border rounded-md p-3">
-                <div className="font-medium capitalize mb-2">{moduleName}</div>
-                <div className="flex flex-wrap gap-2">
-                  {['create','read','update','delete','approve'].map(action => {
-                    const checked = !!permissionsState[moduleName]?.has(action)
-                    return (
-                      <label key={action} className={`inline-flex items-center gap-2 px-3 py-1 rounded-md border cursor-pointer ${checked ? 'bg-pink-50 border-pink-300' : ''}`}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => togglePermission(moduleName, action)}
-                        />
-                        <span className="capitalize text-sm">{action}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsPermissionsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSavePermissions}>Save</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Notification Dialog */}
-      <Dialog open={isNotifyDialogOpen} onOpenChange={setIsNotifyDialogOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Send Notification {selectedUser ? `to ${selectedUser.name}` : ''}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="emails">Recipient Emails (comma separated)</Label>
-              <Input id="emails" value={notifyForm.emails} onChange={(e) => setNotifyForm({ ...notifyForm, emails: e.target.value })} placeholder="admin1@hospital.com, admin2@hospital.com" />
-            </div>
-            <div>
-              <Label htmlFor="subject">Subject</Label>
-              <Input id="subject" value={notifyForm.subject} onChange={(e) => setNotifyForm({ ...notifyForm, subject: e.target.value })} placeholder="Subject" />
-            </div>
-            <div>
-              <Label htmlFor="message">Message</Label>
-              <Textarea id="message" value={notifyForm.message} onChange={(e) => setNotifyForm({ ...notifyForm, message: e.target.value })} placeholder="Write your message..." rows={5} />
-            </div>
-            <div>
-              <Label>Priority</Label>
-              <Select value={notifyForm.priority} onValueChange={(v) => setNotifyForm({ ...notifyForm, priority: v as any })}>
-                <SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Low</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsNotifyDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSendNotification}>Send</Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -732,15 +584,6 @@ function UserForm({
               value={formData.specialization}
               onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
               placeholder="Enter specialization"
-            />
-          </div>
-          <div>
-            <Label htmlFor="licenseNumber">License Number</Label>
-            <Input
-              id="licenseNumber"
-              value={formData.licenseNumber}
-              onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-              placeholder="Enter license number"
             />
           </div>
         </div>

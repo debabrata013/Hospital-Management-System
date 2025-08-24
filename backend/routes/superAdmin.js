@@ -1,46 +1,62 @@
 // backend/routes/superAdmin.js
-const express = require('express')
-const bcrypt = require('bcryptjs')
-const { Op } = require('sequelize')
-const { User } = require('../models')
+const express = require('express');
+const { Op } = require('sequelize');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+const router = express.Router();
 
-const router = express.Router()
-
-// Utility: allowed roles that Super Admin can assign
-const ALLOWED_ROLES = ['super-admin','admin','hr_manager','department_head','doctor','patient']
+// Allowed roles
+const ALLOWED_ROLES = ['patient', 'doctor', 'admin', 'super-admin', 'hr_manager', 'department_head'];
 
 // GET /api/super-admin/users
-// Query params: search, role, status (active|inactive), page, limit
 router.get('/users', async (req, res) => {
   try {
-    const { search = '', role, status, page = 1, limit = 10 } = req.query
-    const where = {}
+    console.log('Received get users request:', req.query);
+    
+    const { search = '', role, page = 1, limit = 10 } = req.query;
+    const where = {};
+    const offset = (page - 1) * parseInt(limit);
 
-    if (role) where.role = role
-    if (status === 'active') where.isActive = true
-    if (status === 'inactive') where.isActive = false
+    if (role && role !== 'all') {
+      where.role = role;
+    }
+
     if (search) {
       where[Op.or] = [
         { firstName: { [Op.like]: `%${search}%` } },
         { lastName: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
-        { employeeId: { [Op.like]: `%${search}%` } },
-      ]
+        { phoneNumber: { [Op.like]: `%${search}%` } }
+      ];
     }
 
-    const pageNum = Math.max(parseInt(page, 10) || 1, 1)
-    const pageSize = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100)
-    const offset = (pageNum - 1) * pageSize
-
-    const { rows, count } = await User.findAndCountAll({
+    const { count, rows } = await User.findAndCountAll({
       where,
-      attributes: ['id','firstName','lastName','email','role','employeeId','isActive','createdAt','updatedAt'],
-      order: [['createdAt','DESC']],
-      limit: pageSize,
       offset,
-    })
+      limit: parseInt(limit),
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['password'] }
+    });
 
-    res.json({ success: true, data: rows, total: count, page: pageNum, limit: pageSize })
+    // Get role statistics
+    const roleStats = await User.findAll({
+      attributes: ['role', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['role']
+    });
+
+    const roleStatsMap = {};
+    roleStats.forEach(stat => {
+      roleStatsMap[stat.role] = parseInt(stat.getDataValue('count'));
+    });
+
+    res.json({
+      success: true,
+      data: users,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      roleStats: roleStatsMap
+    });
   } catch (err) {
     console.error('GET /users error:', err)
     res.status(500).json({ success: false, message: 'Server error' })
@@ -48,25 +64,59 @@ router.get('/users', async (req, res) => {
 })
 
 // POST /api/super-admin/users
-// Body: { firstName,lastName,email,password,role,employeeId,isActive }
 router.post('/users', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role = 'patient', employeeId, isActive = true } = req.body
+    console.log('Received create user request:', req.body);
+    
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      contactNumber,
+      department,
+      specialization
+    } = req.body;
 
-    if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' })
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !role) {
+      console.log('Missing required fields:', { firstName, lastName, email, password, role });
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
     }
-    if (!ALLOWED_ROLES.includes(role)) {
-      return res.status(400).json({ success: false, message: 'Invalid role' })
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      console.log('User already exists:', email);
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
     }
 
-    const exists = await User.findOne({ where: { email } })
-    if (exists) return res.status(409).json({ success: false, message: 'Email already in use' })
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create new user
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      role,
+      phoneNumber: contactNumber,
+      address: department,
+      isActive: true
+    });
 
-    const hash = await bcrypt.hash(password, 10)
-    const user = await User.create({ firstName, lastName, email, password: hash, role, employeeId, isActive })
-
-    res.status(201).json({ success: true, data: { id: user.id } })
+    res.status(201).json({
+      success: true,
+      data: user
+    });
   } catch (err) {
     console.error('POST /users error:', err)
     res.status(500).json({ success: false, message: 'Server error' })

@@ -241,12 +241,25 @@ export default function CleaningManagement({ rooms, onCleaningComplete }: Cleani
     }
   }
 
+  // Helper function to safely check if a string includes a search term
+  const safeIncludes = (text: string | undefined | null, searchTerm: string): boolean => {
+    if (!text) return false;
+    return text.toLowerCase().includes(searchTerm.toLowerCase());
+  };
+
   const filteredTasks = cleaningTasks.filter(task => {
-    const matchesSearch = task.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.assignedTo.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || task.status === filterStatus
-    const matchesPriority = filterPriority === 'all' || task.priority === filterPriority
-    return matchesSearch && matchesStatus && matchesPriority
+    if (!task) return false;
+    
+    const matchesSearch = searchTerm === '' || (
+      safeIncludes(task.roomNumber, searchTerm) ||
+      safeIncludes(task.assignedTo, searchTerm) ||
+      safeIncludes(task.notes, searchTerm)
+    );
+      
+    const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+    const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
+    
+    return matchesSearch && matchesStatus && matchesPriority;
   })
 
   const roomsNeedingCleaning = rooms.filter(room => room.status === 'Cleaning Required')

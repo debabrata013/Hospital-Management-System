@@ -4,10 +4,22 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./models'); // Import from models/index.js
+const { Sequelize, Op } = require('sequelize');
+const mysql = require('mysql2');
+const { Patient, Room } = require('./models');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Create MySQL connection
+const sequelize = new Sequelize({
+  dialect: 'mysql',
+  host: process.env.DB_HOST,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT
+});
 
 const { authenticate } = require('./middleware/auth')
 const { authorizeRoles } = require('./middleware/authorize')
@@ -27,29 +39,28 @@ app.use('/uploads', express.static(uploadDir));
 
 // Route imports
 const authRoutes = require('./routes/auth');
-const fileRoutes = require('./routes/fileRoutes');
+const adminRoutes = require('./routes/admin');
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/files', fileRoutes);
+app.use('/api/admin', authenticate, authorizeRoles('admin', 'doctor', 'nurse'), adminRoutes);
 
-// Test the database connection
-const testDbConnection = async () => {
+// Test database connection and sync models
+async function initializeDatabase() {
   try {
     await sequelize.authenticate();
-    console.log('Database connection has been established successfully.');
-
-    // Sync database and start server
-    // await sequelize.sync({ alter: true }); // Disabled due to permission issues on hosting
-    // console.log('Database synchronized successfully.');
+    console.log('Database connection established successfully.');
+    
+    // Sync all models
+    await sequelize.sync();
+    console.log('Database models synchronized.');
 
     app.listen(PORT, () => {
       console.log(`Backend server is running on http://localhost:${PORT}`);
     });
-
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
-};
+}
 
-testDbConnection();
+initializeDatabase();
