@@ -346,7 +346,7 @@ function LoginForm() {
         </Card>
 
         {/* Sign Up Link */}
-        <div className="text-center mt-6">
+        {/* <div className="text-center mt-6">
           <p className="text-gray-600">
             Don't have an account?{" "}
             <Link href="/signup" className="text-pink-500 hover:text-pink-600 font-medium">
@@ -354,6 +354,7 @@ function LoginForm() {
             </Link>
           </p>
         </div>
+        */}
 
         {/* Help Section */}
         <div className="text-center mt-8 p-4 bg-white/50 rounded-lg border border-pink-100">

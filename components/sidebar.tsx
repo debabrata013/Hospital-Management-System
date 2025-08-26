@@ -48,8 +48,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
     localStorage.removeItem("token"); // (example) remove token/session
     alert("You have been logged out!");
 
-    // ✅ Redirect to signup page (must exist in app/signup/page.tsx)
-    router.push("/signup");
+    // ✅ Redirect to login page
+    router.push("/login");
   };
 
   return (
