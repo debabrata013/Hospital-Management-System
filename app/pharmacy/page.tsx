@@ -1,7 +1,47 @@
+/**
+ * Pharmacy Dashboard - Main Landing Page
+ * 
+ * This is the central dashboard for the pharmacy module, providing pharmacists
+ * with a comprehensive overview of pharmacy operations, key metrics, and quick
+ * access to essential functions.
+ * 
+ * Key Features:
+ * - Real-time pharmacy statistics and KPIs
+ * - Recent prescriptions with quick dispensing actions
+ * - Inventory alerts and stock notifications
+ * - Quick navigation to all pharmacy modules
+ * - Search functionality across prescriptions and medicines
+ * - Responsive design for desktop and mobile devices
+ * 
+ * Dashboard Sections:
+ * - Statistics Cards: Key metrics (total medicines, low stock, expiring items, total value)
+ * - Recent Prescriptions: Latest prescriptions requiring attention
+ * - Inventory Alerts: Stock warnings and expiry notifications
+ * - Quick Actions: Fast access to common pharmacy tasks
+ * - Navigation Links: Direct access to all pharmacy modules
+ * 
+ * State Management:
+ * - Uses custom hooks for data fetching and state management
+ * - Implements optimistic updates for better user experience
+ * - Handles loading states and error conditions gracefully
+ * - Real-time data synchronization with backend APIs
+ * 
+ * Integration Points:
+ * - /api/pharmacy/stats - Dashboard statistics and metrics
+ * - /api/pharmacy/prescriptions - Recent prescriptions data
+ * - /api/pharmacy/alerts - Inventory and system alerts
+ * - Custom hooks: usePharmacyStats, usePrescriptions, usePharmacyAlerts
+ * 
+ * @author Hospital Management System
+ * @version 1.0
+ * @since 2024-08-26
+ */
+
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
+// UI Components from shadcn/ui for consistent design system
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,44 +49,58 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+// Lucide React icons for consistent iconography throughout the dashboard
 import { 
   Heart, Package, AlertTriangle, TrendingUp, Search, Plus, Pill, 
   FileText, BarChart3, Bell, Filter, Download, RefreshCw, Loader2 
 } from 'lucide-react'
+// Custom hooks for pharmacy data management and API integration
 import { usePharmacyStats, usePrescriptions, usePharmacyAlerts } from "@/hooks/usePharmacy"
+// Toast notifications for user feedback and system messages
 import { toast } from "sonner"
 
+/**
+ * PharmacyDashboard Component
+ * 
+ * Main functional component that renders the pharmacy dashboard interface.
+ * Manages state for search functionality, tab navigation, and coordinates
+ * data fetching through custom hooks.
+ */
 export default function PharmacyDashboard() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("overview")
+  // Local state management for UI interactions
+  const [searchTerm, setSearchTerm] = useState("")           // Search input value for filtering
+  const [activeTab, setActiveTab] = useState("overview")     // Active tab selection for dashboard views
 
-  // API hooks with error handling
+  // Custom hook for pharmacy statistics with comprehensive error handling
+  // Provides real-time metrics for dashboard KPI cards
   const { 
-    totalMedicines = 0, 
-    lowStock = 0, 
-    expiringSoon = 0, 
-    totalValue = 0, 
-    loading: statsLoading = true, 
-    error: statsError,
-    refetch: refetchStats 
+    totalMedicines = 0,      // Total number of medicines in inventory
+    lowStock = 0,            // Count of medicines with low stock levels
+    expiringSoon = 0,        // Count of medicines expiring within threshold
+    totalValue = 0,          // Total monetary value of current inventory
+    loading: statsLoading = true,     // Loading state for statistics API
+    error: statsError,                // Error state for statistics fetching
+    refetch: refetchStats             // Function to manually refresh statistics
   } = usePharmacyStats()
 
+  // Custom hook for prescriptions data with filtering and pagination
+  // Fetches recent prescriptions requiring pharmacist attention
   const { 
-    prescriptions = [], 
-    statistics = {
+    prescriptions = [],      // Array of recent prescription objects
+    statistics = {           // Prescription-related statistics object
       total_prescriptions: 0,
       active_prescriptions: 0,
       completed_prescriptions: 0,
       pending_dispensing: 0
     },
-    loading: prescriptionsLoading = true, 
-    error: prescriptionsError,
-    refetch: refetchPrescriptions,
-    dispenseAllMedications 
+    loading: prescriptionsLoading = true,    // Loading state for prescriptions API
+    error: prescriptionsError,               // Error state for prescriptions fetching
+    refetch: refetchPrescriptions,           // Function to refresh prescriptions data
+    dispenseAllMedications                   // Function to dispense all medications in a prescription
   } = usePrescriptions({ 
-    limit: 5, 
-    status: 'active',
-    pendingOnly: true
+    limit: 5,              // Limit to 5 most recent prescriptions for dashboard
+    status: 'active',      // Only show active prescriptions
+    pendingOnly: true      // Focus on prescriptions requiring dispensing action
   })
 
   const { 
