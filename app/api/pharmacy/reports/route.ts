@@ -1,44 +1,107 @@
-// Pharmacy API - Reports and Analytics
-// GET /api/pharmacy/reports - Get pharmacy reports and analytics
+/**
+ * Pharmacy Reports API Route
+ * 
+ * This API provides comprehensive reporting capabilities for the pharmacy module.
+ * It generates various types of reports including financial summaries, inventory status,
+ * prescription analytics, dispensing activity, and system alerts.
+ * 
+ * Report Types Available:
+ * - overview: Dashboard summary with key metrics and statistics
+ * - prescriptions: Detailed prescription analytics and trends
+ * - dispensing: Medication dispensing activity and patterns
+ * - inventory: Stock levels, expiry alerts, and inventory management
+ * - financial: Revenue analysis, payment tracking, and financial summaries
+ * - alerts: System notifications, stock alerts, and critical updates
+ * 
+ * Features:
+ * - Flexible date range filtering for time-based analysis
+ * - Multiple report formats with detailed breakdowns
+ * - Real-time data aggregation from multiple database tables
+ * - Performance optimized queries with proper indexing
+ * - Comprehensive error handling and validation
+ * 
+ * Query Parameters:
+ * - type: Report type (overview, prescriptions, dispensing, inventory, financial, alerts)
+ * - startDate: Start date for date-range reports (YYYY-MM-DD format)
+ * - endDate: End date for date-range reports (YYYY-MM-DD format)
+ * - period: Aggregation period for financial reports (day, week, month, year)
+ * 
+ * Database Tables Used:
+ * - prescriptions: Main prescription records and metadata
+ * - prescription_medications: Individual medication items and pricing
+ * - prescription_dispensing_log: Dispensing history and audit trail
+ * - medicines: Medicine inventory and stock information
+ * - patients: Patient demographics for analytics
+ * - users: Doctor and pharmacist information
+ * 
+ * @author Hospital Management System
+ * @version 1.0
+ * @since 2024-08-26
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
-const { executeQuery, dbUtils } = require('@/lib/mysql-connection');
+import { executeQuery } from '@/lib/mysql-connection';
 
-// Force dynamic rendering
+// Force dynamic rendering to ensure fresh data on each request
+// This prevents caching of report data which should always be current
 export const dynamic = 'force-dynamic';
 
+/**
+ * GET /api/pharmacy/reports - Generate pharmacy reports based on type and parameters
+ * 
+ * Main endpoint that routes to specific report generation functions based on the
+ * requested report type. Handles parameter validation, date range setup, and
+ * error management for all report types.
+ * 
+ * @param request - NextRequest object containing query parameters
+ * @returns JSON response with report data or error message
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Extract query parameters from the request URL
     const { searchParams } = new URL(request.url);
-    
-    const reportType = searchParams.get('type') || 'overview';
-    const dateFrom = searchParams.get('dateFrom') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const dateTo = searchParams.get('dateTo') || new Date().toISOString().split('T')[0];
-    const category = searchParams.get('category');
-    const doctorId = searchParams.get('doctorId');
-    
+    const reportType = searchParams.get('type') || 'overview';        // Default to overview report
+    const startDate = searchParams.get('startDate');                  // Optional start date filter
+    const endDate = searchParams.get('endDate');                      // Optional end date filter
+    const period = searchParams.get('period') || 'month';             // Aggregation period for financial reports
+
+    // Set default date range if not provided (last 30 days)
+    // This ensures reports always have a reasonable time frame for analysis
+    const dateFrom = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const dateTo = endDate || new Date().toISOString().split('T')[0];
+
+    // Route to appropriate report generation function based on type
+    // Each report type has specialized logic and database queries
     switch (reportType) {
       case 'overview':
+        // Dashboard summary with key performance indicators
         return await getOverviewReport(dateFrom, dateTo);
-      case 'sales':
-        return await getSalesReport(dateFrom, dateTo, category, doctorId);
-      case 'inventory':
-        return await getInventoryReport();
       case 'prescriptions':
-        return await getPrescriptionReport(dateFrom, dateTo, doctorId);
-      case 'expiry':
-        return await getExpiryReport();
+        // Detailed prescription analytics and prescription trends
+        return await getPrescriptionReport(dateFrom, dateTo);
+      case 'dispensing':
+        // Medication dispensing activity and pharmacist performance
+        return await getDispensingReport(dateFrom, dateTo);
+      case 'inventory':
+        // Current stock levels, expiry alerts, and inventory status
+        return await getInventoryReport();
       case 'financial':
-        return await getFinancialReport(dateFrom, dateTo);
+        // Revenue analysis, payment tracking, and financial summaries
+        return await getFinancialReport(dateFrom, dateTo, period);
+      case 'alerts':
+        // System notifications, critical alerts, and action items
+        return await getAlertsReport();
       default:
+        // Handle invalid report type requests
         return NextResponse.json({
           success: false,
           error: 'Invalid report type'
         }, { status: 400 });
     }
-    
+
   } catch (error) {
-    console.error('Error generating pharmacy reports:', error);
+    // Log error for debugging while protecting sensitive information
+    console.error('Error generating reports:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to generate reports'
@@ -46,59 +109,47 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Overview Report
+/**
+ * getOverviewReport - Generate comprehensive dashboard overview
+ * 
+ * Creates a high-level summary report with key metrics and statistics
+ * for pharmacy operations. Includes prescription counts, revenue summaries,
+ * stock alerts, and performance indicators.
+ * 
+ * @param dateFrom - Start date for the report period
+ * @param dateTo - End date for the report period
+ * @returns Promise<NextResponse> with overview report data
+ */
 async function getOverviewReport(dateFrom: string, dateTo: string) {
-  // Key metrics
-  const metricsQuery = `
-    SELECT 
-      COUNT(DISTINCT p.id) as total_prescriptions,
-      COUNT(DISTINCT CASE WHEN p.status = 'completed' THEN p.id END) as completed_prescriptions,
-      COUNT(DISTINCT CASE WHEN p.status = 'active' THEN p.id END) as active_prescriptions,
-      SUM(p.total_amount) as total_prescription_value,
-      SUM(CASE WHEN p.status = 'completed' THEN p.total_amount ELSE 0 END) as completed_value,
-      COUNT(DISTINCT p.patient_id) as unique_patients,
-      COUNT(DISTINCT p.doctor_id) as prescribing_doctors,
-      AVG(p.total_amount) as avg_prescription_value
-    FROM prescriptions p
-    WHERE p.prescription_date BETWEEN ? AND ?
-  `;
-  
-  const metrics = await executeQuery(metricsQuery, [dateFrom, dateTo]);
-  
-  // Stock metrics
-  const stockMetricsQuery = `
-    SELECT 
+  // Array of parallel queries for efficient data retrieval
+  const queries = [
+    // Prescription statistics
+    `SELECT 
+      COUNT(*) as total_prescriptions,
+      SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_prescriptions,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_prescriptions,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_prescriptions,
+      SUM(total_amount) as total_prescription_value,
+      COUNT(DISTINCT patient_id) as unique_patients,
+      COUNT(DISTINCT doctor_id) as prescribing_doctors,
+      AVG(total_amount) as avg_prescription_value
+    FROM prescriptions 
+    WHERE prescription_date BETWEEN ? AND ?`,
+
+    // Stock statistics
+    `SELECT 
       COUNT(*) as total_medicines,
+      SUM(current_stock) as total_stock_quantity,
       SUM(current_stock * unit_price) as total_stock_value,
-      COUNT(CASE WHEN current_stock <= minimum_stock THEN 1 END) as low_stock_items,
-      COUNT(CASE WHEN expiry_date <= CURDATE() THEN 1 END) as expired_items,
-      COUNT(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND expiry_date > CURDATE() THEN 1 END) as expiring_soon_items
-    FROM medicines
-    WHERE is_active = 1
-  `;
-  
-  const stockMetrics = await executeQuery(stockMetricsQuery);
-  
-  // Daily prescription trend
-  const trendQuery = `
-    SELECT 
-      DATE(p.prescription_date) as date,
-      COUNT(*) as prescription_count,
-      SUM(p.total_amount) as daily_value,
-      COUNT(DISTINCT p.patient_id) as unique_patients
-    FROM prescriptions p
-    WHERE p.prescription_date BETWEEN ? AND ?
-    GROUP BY DATE(p.prescription_date)
-    ORDER BY date DESC
-    LIMIT 30
-  `;
-  
-  const trend = await executeQuery(trendQuery, [dateFrom, dateTo]);
-  
-  // Top medicines by prescription frequency
-  const topMedicinesQuery = `
-    SELECT 
-      m.name,
+      SUM(CASE WHEN current_stock <= minimum_stock THEN 1 ELSE 0 END) as low_stock_count,
+      SUM(CASE WHEN expiry_date <= CURDATE() THEN 1 ELSE 0 END) as expired_count,
+      SUM(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND expiry_date > CURDATE() THEN 1 ELSE 0 END) as expiring_soon_count
+    FROM medicines 
+    WHERE is_active = 1`,
+
+    // Top medicines by prescription
+    `SELECT 
+      m.name as medicine_name,
       m.generic_name,
       m.category,
       COUNT(pm.id) as prescription_count,
@@ -109,16 +160,12 @@ async function getOverviewReport(dateFrom: string, dateTo: string) {
     JOIN medicines m ON pm.medicine_id = m.id
     JOIN prescriptions p ON pm.prescription_id = p.id
     WHERE p.prescription_date BETWEEN ? AND ?
-    GROUP BY m.id
+    GROUP BY m.id, m.name, m.generic_name, m.category, m.current_stock
     ORDER BY prescription_count DESC
-    LIMIT 10
-  `;
-  
-  const topMedicines = await executeQuery(topMedicinesQuery, [dateFrom, dateTo]);
-  
-  // Category-wise analysis
-  const categoryAnalysisQuery = `
-    SELECT 
+    LIMIT 10`,
+
+    // Category analysis
+    `SELECT 
       m.category,
       COUNT(DISTINCT m.id) as medicine_count,
       COUNT(pm.id) as prescription_count,
@@ -130,128 +177,143 @@ async function getOverviewReport(dateFrom: string, dateTo: string) {
     LEFT JOIN prescriptions p ON pm.prescription_id = p.id AND p.prescription_date BETWEEN ? AND ?
     WHERE m.is_active = 1 AND m.category IS NOT NULL
     GROUP BY m.category
-    ORDER BY total_value DESC
-  `;
-  
-  const categoryAnalysis = await executeQuery(categoryAnalysisQuery, [dateFrom, dateTo]);
-  
+    ORDER BY COALESCE(total_value, 0) DESC`
+  ];
+
+  const [prescriptionStats, stockStats, topMedicines, categoryAnalysis] = await Promise.all([
+    executeQuery(queries[0], [dateFrom, dateTo]),
+    executeQuery(queries[1], []),
+    executeQuery(queries[2], [dateFrom, dateTo]),
+    executeQuery(queries[3], [dateFrom, dateTo])
+  ]);
+
   return NextResponse.json({
     success: true,
     data: {
-      metrics: metrics[0],
-      stock_metrics: stockMetrics[0],
-      daily_trend: trend,
-      top_medicines: topMedicines,
+      prescription_statistics: prescriptionStats[0],
+      stock_statistics: stockStats[0],
+      top_dispensed_medicines: topMedicines,
       category_analysis: categoryAnalysis,
       report_period: { from: dateFrom, to: dateTo }
     }
   });
 }
 
-// Sales Report
-async function getSalesReport(dateFrom: string, dateTo: string, category?: string, doctorId?: string) {
-  let whereConditions = ['p.prescription_date BETWEEN ? AND ?'];
-  let queryParams = [dateFrom, dateTo];
-  
-  if (category) {
-    whereConditions.push('m.category = ?');
-    queryParams.push(category);
-  }
-  
-  if (doctorId) {
-    whereConditions.push('p.doctor_id = ?');
-    queryParams.push(doctorId);
-  }
-  
-  const whereClause = whereConditions.join(' AND ');
-  
-  // Sales summary
-  const salesSummaryQuery = `
-    SELECT 
-      COUNT(DISTINCT p.id) as total_prescriptions,
-      COUNT(pm.id) as total_items_sold,
-      SUM(pm.quantity) as total_quantity,
-      SUM(pm.total_price) as total_sales_value,
-      AVG(pm.total_price) as avg_item_value,
-      COUNT(DISTINCT p.patient_id) as unique_customers,
-      COUNT(DISTINCT p.doctor_id) as prescribing_doctors
+// Prescription Report
+async function getPrescriptionReport(dateFrom: string, dateTo: string) {
+  const queries = [
+    // Prescription summary
+    `SELECT 
+      COUNT(*) as total_prescriptions,
+      COUNT(CASE WHEN status = 'active' THEN 1 END) as active_prescriptions,
+      COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_prescriptions,
+      COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_prescriptions,
+      AVG(total_amount) as average_value,
+      SUM(total_amount) as total_value,
+      COUNT(DISTINCT patient_id) as unique_patients,
+      COUNT(DISTINCT doctor_id) as unique_doctors
+    FROM prescriptions 
+    WHERE prescription_date BETWEEN ? AND ?`,
+
+    // Detailed prescriptions
+    `SELECT 
+      p.prescription_id,
+      p.prescription_date,
+      p.status,
+      p.total_amount,
+      pt.name as patient_name,
+      pt.patient_id as patient_code,
+      YEAR(CURDATE()) - YEAR(pt.date_of_birth) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(pt.date_of_birth, '%m%d')) as patient_age,
+      pt.gender as patient_gender,
+      d.name as doctor_name,
+      d.specialization,
+      COUNT(pm.id) as total_medications,
+      SUM(CASE WHEN pm.is_dispensed = 1 THEN 1 ELSE 0 END) as dispensed_medications,
+      CASE 
+        WHEN COUNT(pm.id) = SUM(CASE WHEN pm.is_dispensed = 1 THEN 1 ELSE 0 END) THEN 'fully_dispensed'
+        WHEN SUM(CASE WHEN pm.is_dispensed = 1 THEN 1 ELSE 0 END) > 0 THEN 'partially_dispensed'
+        ELSE 'pending'
+      END as dispensing_status,
+      p.created_at
     FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    JOIN medicines m ON pm.medicine_id = m.id
-    WHERE ${whereClause} AND pm.is_dispensed = 1
-  `;
-  
-  const salesSummary = await executeQuery(salesSummaryQuery, queryParams);
-  
-  // Daily sales trend
-  const dailySalesQuery = `
-    SELECT 
-      DATE(p.prescription_date) as date,
-      COUNT(DISTINCT p.id) as prescriptions,
-      COUNT(pm.id) as items_sold,
-      SUM(pm.quantity) as quantity_sold,
-      SUM(pm.total_price) as daily_sales
-    FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    JOIN medicines m ON pm.medicine_id = m.id
-    WHERE ${whereClause} AND pm.is_dispensed = 1
-    GROUP BY DATE(p.prescription_date)
-    ORDER BY date DESC
-  `;
-  
-  const dailySales = await executeQuery(dailySalesQuery, queryParams);
-  
-  // Top selling medicines
-  const topSellingQuery = `
-    SELECT 
-      m.name,
-      m.generic_name,
-      m.category,
-      COUNT(pm.id) as times_prescribed,
-      SUM(pm.quantity) as total_quantity_sold,
-      SUM(pm.total_price) as total_sales_value,
-      AVG(pm.unit_price) as avg_selling_price,
-      m.unit_price as current_price
-    FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    JOIN medicines m ON pm.medicine_id = m.id
-    WHERE ${whereClause} AND pm.is_dispensed = 1
-    GROUP BY m.id
-    ORDER BY total_sales_value DESC
-    LIMIT 20
-  `;
-  
-  const topSelling = await executeQuery(topSellingQuery, queryParams);
-  
-  // Doctor-wise prescription analysis
-  const doctorAnalysisQuery = `
-    SELECT 
-      u.name as doctor_name,
-      u.specialization,
-      COUNT(DISTINCT p.id) as prescriptions_count,
-      COUNT(pm.id) as items_prescribed,
-      SUM(pm.total_price) as total_value,
-      AVG(p.total_amount) as avg_prescription_value
-    FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    JOIN medicines m ON pm.medicine_id = m.id
-    JOIN users u ON p.doctor_id = u.id
-    WHERE ${whereClause}
-    GROUP BY p.doctor_id
-    ORDER BY total_value DESC
-    LIMIT 15
-  `;
-  
-  const doctorAnalysis = await executeQuery(doctorAnalysisQuery, queryParams);
-  
+    JOIN patients pt ON p.patient_id = pt.id
+    JOIN users d ON p.doctor_id = d.id
+    LEFT JOIN prescription_medications pm ON p.id = pm.prescription_id
+    WHERE p.prescription_date BETWEEN ? AND ?
+    GROUP BY p.id
+    ORDER BY p.created_at DESC`
+  ];
+
+  const [summary, prescriptions] = await Promise.all([
+    executeQuery(queries[0], [dateFrom, dateTo]),
+    executeQuery(queries[1], [dateFrom, dateTo])
+  ]);
+
   return NextResponse.json({
     success: true,
     data: {
-      sales_summary: salesSummary[0],
-      daily_sales: dailySales,
-      top_selling_medicines: topSelling,
-      doctor_analysis: doctorAnalysis,
-      filters: { category, doctorId },
+      summary: summary[0],
+      prescriptions: prescriptions,
+      report_period: { from: dateFrom, to: dateTo }
+    }
+  });
+}
+
+// Dispensing Report
+async function getDispensingReport(dateFrom: string, dateTo: string) {
+  const queries = [
+    // Dispensing records
+    `SELECT 
+      pdl.log_id,
+      pdl.action,
+      pdl.quantity,
+      pdl.total_amount,
+      pdl.created_at as dispensed_at,
+      p.prescription_id,
+      pt.name as patient_name,
+      pt.patient_id as patient_code,
+      pm.medicine_name,
+      pm.generic_name,
+      pm.strength,
+      pm.dosage_form,
+      u.name as pharmacist_name,
+      pdl.batch_number,
+      pdl.expiry_date
+    FROM prescription_dispensing_log pdl
+    JOIN prescriptions p ON pdl.prescription_id = p.id
+    JOIN patients pt ON p.patient_id = pt.id
+    JOIN prescription_medications pm ON pdl.prescription_medication_id = pm.id
+    JOIN users u ON pdl.dispensed_by = u.id
+    WHERE pdl.action IN ('DISPENSED', 'PARTIAL_DISPENSED') 
+      AND DATE(pdl.created_at) BETWEEN ? AND ?
+    ORDER BY pdl.created_at DESC`,
+
+    // Pharmacist summary
+    `SELECT 
+      u.name as pharmacist_name,
+      COUNT(*) as total_dispensings,
+      SUM(pdl.quantity) as total_quantity,
+      SUM(pdl.total_amount) as total_value,
+      COUNT(DISTINCT pdl.prescription_id) as unique_prescriptions
+    FROM prescription_dispensing_log pdl
+    JOIN users u ON pdl.dispensed_by = u.id
+    WHERE pdl.action IN ('DISPENSED', 'PARTIAL_DISPENSED') 
+      AND DATE(pdl.created_at) BETWEEN ? AND ?
+    GROUP BY u.id, u.name
+    ORDER BY total_value DESC`
+  ];
+
+  const [dispensingRecords, pharmacistSummary] = await Promise.all([
+    executeQuery(queries[0], [dateFrom, dateTo]),
+    executeQuery(queries[1], [dateFrom, dateTo])
+  ]);
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      dispensing_records: dispensingRecords,
+      pharmacist_summary: pharmacistSummary,
+      total_records: dispensingRecords.length,
       report_period: { from: dateFrom, to: dateTo }
     }
   });
@@ -259,306 +321,211 @@ async function getSalesReport(dateFrom: string, dateTo: string, category?: strin
 
 // Inventory Report
 async function getInventoryReport() {
-  // Stock overview
-  const stockOverviewQuery = `
-    SELECT 
+  const queries = [
+    // Stock overview
+    `SELECT 
       COUNT(*) as total_medicines,
       SUM(current_stock * unit_price) as total_stock_value,
       COUNT(CASE WHEN current_stock <= minimum_stock THEN 1 END) as low_stock_count,
       COUNT(CASE WHEN current_stock = 0 THEN 1 END) as out_of_stock_count,
-      COUNT(CASE WHEN current_stock > maximum_stock THEN 1 END) as overstock_count,
-      AVG(current_stock) as avg_stock_level
+      COUNT(CASE WHEN expiry_date <= CURDATE() THEN 1 END) as expired_count,
+      COUNT(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND expiry_date > CURDATE() THEN 1 END) as expiring_soon_count
     FROM medicines
-    WHERE is_active = 1
-  `;
-  
-  const stockOverview = await executeQuery(stockOverviewQuery);
-  
-  // Category-wise stock analysis
-  const categoryStockQuery = `
-    SELECT 
-      category,
-      COUNT(*) as medicine_count,
-      SUM(current_stock) as total_stock,
-      SUM(current_stock * unit_price) as stock_value,
-      COUNT(CASE WHEN current_stock <= minimum_stock THEN 1 END) as low_stock_items,
-      AVG(current_stock) as avg_stock
-    FROM medicines
-    WHERE is_active = 1 AND category IS NOT NULL
-    GROUP BY category
-    ORDER BY stock_value DESC
-  `;
-  
-  const categoryStock = await executeQuery(categoryStockQuery);
-  
-  // Low stock alerts
-  const lowStockQuery = `
-    SELECT 
-      medicine_id,
-      name,
-      generic_name,
-      category,
-      current_stock,
-      minimum_stock,
-      maximum_stock,
-      unit_price,
-      (current_stock * unit_price) as current_value,
-      ((minimum_stock * 2) - current_stock) as suggested_order_quantity,
-      (((minimum_stock * 2) - current_stock) * unit_price) as suggested_order_value
-    FROM medicines
-    WHERE is_active = 1 AND current_stock <= minimum_stock
-    ORDER BY 
-      CASE WHEN current_stock = 0 THEN 1 ELSE 2 END,
-      (minimum_stock - current_stock) DESC
-  `;
-  
-  const lowStock = await executeQuery(lowStockQuery);
-  
-  // Fast moving items (based on last 30 days)
-  const fastMovingQuery = `
-    SELECT 
+    WHERE is_active = 1`,
+
+    // Stock status details
+    `SELECT 
+      m.medicine_id,
       m.name,
       m.generic_name,
       m.category,
+      m.strength,
+      m.dosage_form,
       m.current_stock,
       m.minimum_stock,
-      COUNT(pm.id) as prescription_frequency,
-      SUM(pm.quantity) as total_dispensed,
-      AVG(pm.quantity) as avg_quantity_per_prescription,
-      (SUM(pm.quantity) / 30) as daily_consumption_rate,
-      CASE 
-        WHEN m.current_stock / (SUM(pm.quantity) / 30) < 7 THEN 'Critical'
-        WHEN m.current_stock / (SUM(pm.quantity) / 30) < 15 THEN 'Low'
-        ELSE 'Good'
-      END as stock_status_prediction
-    FROM medicines m
-    JOIN prescription_medications pm ON m.id = pm.medicine_id
-    JOIN prescriptions p ON pm.prescription_id = p.id
-    WHERE p.prescription_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      AND pm.is_dispensed = 1
-      AND m.is_active = 1
-    GROUP BY m.id
-    HAVING total_dispensed > 0
-    ORDER BY daily_consumption_rate DESC
-    LIMIT 20
-  `;
-  
-  const fastMoving = await executeQuery(fastMovingQuery);
-  
-  // Slow moving items
-  const slowMovingQuery = `
-    SELECT 
-      m.name,
-      m.generic_name,
-      m.category,
-      m.current_stock,
+      m.maximum_stock,
       m.unit_price,
-      (m.current_stock * m.unit_price) as stock_value,
-      COALESCE(SUM(pm.quantity), 0) as total_dispensed_30_days,
-      m.expiry_date,
-      DATEDIFF(m.expiry_date, CURDATE()) as days_to_expiry
+      m.mrp,
+      m.current_stock * m.unit_price as stock_value,
+      CASE 
+        WHEN m.current_stock <= m.minimum_stock THEN 'low'
+        WHEN m.current_stock <= (m.minimum_stock * 1.5) THEN 'medium'
+        ELSE 'good'
+      END as stock_status,
+      CASE 
+        WHEN m.expiry_date <= CURDATE() THEN 'expired'
+        WHEN m.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'expiring_soon'
+        WHEN m.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN 'expiring_later'
+        ELSE 'good'
+      END as expiry_status,
+      m.expiry_date
     FROM medicines m
-    LEFT JOIN prescription_medications pm ON m.id = pm.medicine_id
-    LEFT JOIN prescriptions p ON pm.prescription_id = p.id 
-      AND p.prescription_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      AND pm.is_dispensed = 1
-    WHERE m.is_active = 1 AND m.current_stock > 0
-    GROUP BY m.id
-    HAVING total_dispensed_30_days <= 2
-    ORDER BY stock_value DESC, days_to_expiry ASC
-    LIMIT 20
-  `;
-  
-  const slowMoving = await executeQuery(slowMovingQuery);
-  
-  return NextResponse.json({
-    success: true,
-    data: {
-      stock_overview: stockOverview[0],
-      category_analysis: categoryStock,
-      low_stock_alerts: lowStock,
-      fast_moving_items: fastMoving,
-      slow_moving_items: slowMoving
-    }
-  });
-}
+    WHERE m.is_active = 1
+    ORDER BY m.name`
+  ];
 
-// Prescription Report
-async function getPrescriptionReport(dateFrom: string, dateTo: string, doctorId?: string) {
-  let whereConditions = ['p.prescription_date BETWEEN ? AND ?'];
-  let queryParams = [dateFrom, dateTo];
-  
-  if (doctorId) {
-    whereConditions.push('p.doctor_id = ?');
-    queryParams.push(doctorId);
-  }
-  
-  const whereClause = whereConditions.join(' AND ');
-  
-  // Prescription summary
-  const summaryQuery = `
-    SELECT 
-      COUNT(*) as total_prescriptions,
-      COUNT(CASE WHEN status = 'active' THEN 1 END) as active_prescriptions,
-      COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_prescriptions,
-      COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_prescriptions,
-      AVG(total_amount) as avg_prescription_value,
-      SUM(total_amount) as total_prescription_value,
-      COUNT(DISTINCT patient_id) as unique_patients,
-      COUNT(DISTINCT doctor_id) as prescribing_doctors
-    FROM prescriptions p
-    WHERE ${whereClause}
-  `;
-  
-  const summary = await executeQuery(summaryQuery, queryParams);
-  
-  // Most prescribed medicines
-  const mostPrescribedQuery = `
-    SELECT 
-      m.name,
-      m.generic_name,
-      m.category,
-      COUNT(pm.id) as prescription_count,
-      SUM(pm.quantity) as total_quantity,
-      COUNT(DISTINCT p.patient_id) as unique_patients,
-      COUNT(DISTINCT p.doctor_id) as prescribing_doctors,
-      AVG(pm.quantity) as avg_quantity_per_prescription
-    FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    JOIN medicines m ON pm.medicine_id = m.id
-    WHERE ${whereClause}
-    GROUP BY m.id
-    ORDER BY prescription_count DESC
-    LIMIT 15
-  `;
-  
-  const mostPrescribed = await executeQuery(mostPrescribedQuery, queryParams);
-  
-  // Prescription patterns by day of week
-  const dayPatternQuery = `
-    SELECT 
-      DAYNAME(prescription_date) as day_name,
-      DAYOFWEEK(prescription_date) as day_number,
-      COUNT(*) as prescription_count,
-      AVG(total_amount) as avg_value
-    FROM prescriptions p
-    WHERE ${whereClause}
-    GROUP BY DAYOFWEEK(prescription_date), DAYNAME(prescription_date)
-    ORDER BY day_number
-  `;
-  
-  const dayPattern = await executeQuery(dayPatternQuery, queryParams);
-  
+  const [summary, stockStatus] = await Promise.all([
+    executeQuery(queries[0], []),
+    executeQuery(queries[1], [])
+  ]);
+
   return NextResponse.json({
     success: true,
     data: {
       summary: summary[0],
-      most_prescribed_medicines: mostPrescribed,
-      day_wise_pattern: dayPattern,
-      filters: { doctorId },
-      report_period: { from: dateFrom, to: dateTo }
-    }
-  });
-}
-
-// Expiry Report
-async function getExpiryReport() {
-  // Expiry overview
-  const expiryOverviewQuery = `
-    SELECT 
-      COUNT(CASE WHEN expiry_date <= CURDATE() THEN 1 END) as expired_count,
-      COUNT(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND expiry_date > CURDATE() THEN 1 END) as expiring_30_days,
-      COUNT(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) AND expiry_date > DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as expiring_90_days,
-      SUM(CASE WHEN expiry_date <= CURDATE() THEN current_stock * unit_price ELSE 0 END) as expired_value,
-      SUM(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND expiry_date > CURDATE() THEN current_stock * unit_price ELSE 0 END) as expiring_30_days_value
-    FROM medicines
-    WHERE is_active = 1
-  `;
-  
-  const expiryOverview = await executeQuery(expiryOverviewQuery);
-  
-  // Detailed expiry list
-  const expiryDetailsQuery = `
-    SELECT 
-      medicine_id,
-      name,
-      generic_name,
-      category,
-      batch_number,
-      expiry_date,
-      current_stock,
-      unit_price,
-      (current_stock * unit_price) as stock_value,
-      DATEDIFF(expiry_date, CURDATE()) as days_to_expiry,
-      CASE 
-        WHEN expiry_date <= CURDATE() THEN 'Expired'
-        WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'Expiring Soon'
-        WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN 'Expiring Later'
-        ELSE 'Good'
-      END as expiry_status
-    FROM medicines
-    WHERE is_active = 1 
-      AND expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)
-      AND current_stock > 0
-    ORDER BY expiry_date ASC
-  `;
-  
-  const expiryDetails = await executeQuery(expiryDetailsQuery);
-  
-  return NextResponse.json({
-    success: true,
-    data: {
-      expiry_overview: expiryOverview[0],
-      expiry_details: expiryDetails
+      stock_status: stockStatus
     }
   });
 }
 
 // Financial Report
-async function getFinancialReport(dateFrom: string, dateTo: string) {
-  // Revenue analysis
-  const revenueQuery = `
-    SELECT 
-      SUM(pm.total_price) as total_revenue,
-      COUNT(DISTINCT p.id) as total_prescriptions,
-      COUNT(pm.id) as total_items_sold,
-      AVG(p.total_amount) as avg_prescription_value,
-      SUM(pm.quantity * m.unit_price) as cost_of_goods_sold,
-      (SUM(pm.total_price) - SUM(pm.quantity * m.unit_price)) as gross_profit,
-      ((SUM(pm.total_price) - SUM(pm.quantity * m.unit_price)) / SUM(pm.total_price) * 100) as gross_profit_margin
-    FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    JOIN medicines m ON pm.medicine_id = m.id
-    WHERE p.prescription_date BETWEEN ? AND ?
-      AND pm.is_dispensed = 1
-  `;
-  
-  const revenue = await executeQuery(revenueQuery, [dateFrom, dateTo]);
-  
-  // Monthly trend
-  const monthlyTrendQuery = `
-    SELECT 
-      DATE_FORMAT(p.prescription_date, '%Y-%m') as month,
-      COUNT(DISTINCT p.id) as prescriptions,
-      SUM(pm.total_price) as revenue,
-      COUNT(pm.id) as items_sold,
-      AVG(p.total_amount) as avg_prescription_value
-    FROM prescriptions p
-    JOIN prescription_medications pm ON p.id = pm.prescription_id
-    WHERE p.prescription_date BETWEEN ? AND ?
-      AND pm.is_dispensed = 1
-    GROUP BY DATE_FORMAT(p.prescription_date, '%Y-%m')
-    ORDER BY month DESC
-  `;
-  
-  const monthlyTrend = await executeQuery(monthlyTrendQuery, [dateFrom, dateTo]);
-  
+async function getFinancialReport(dateFrom: string, dateTo: string, period: string) {
+  let groupBy = '';
+  let dateFormat = '';
+
+  switch (period) {
+    case 'day':
+      groupBy = 'DATE(created_at)';
+      dateFormat = 'DATE(created_at) as period';
+      break;
+    case 'week':
+      groupBy = 'YEARWEEK(created_at)';
+      dateFormat = 'CONCAT(YEAR(created_at), "-W", WEEK(created_at)) as period';
+      break;
+    case 'month':
+      groupBy = 'YEAR(created_at), MONTH(created_at)';
+      dateFormat = 'CONCAT(YEAR(created_at), "-", LPAD(MONTH(created_at), 2, "0")) as period';
+      break;
+    case 'year':
+      groupBy = 'YEAR(created_at)';
+      dateFormat = 'YEAR(created_at) as period';
+      break;
+  }
+
+  const queries = [
+    // Revenue by period
+    `SELECT 
+      ${dateFormat},
+      SUM(total_amount) as revenue,
+      COUNT(*) as transaction_count,
+      AVG(total_amount) as average_transaction
+    FROM prescription_dispensing_log
+    WHERE action IN ('DISPENSED', 'PARTIAL_DISPENSED') 
+      AND DATE(created_at) BETWEEN ? AND ?
+    GROUP BY ${groupBy}
+    ORDER BY period DESC`,
+
+    // Revenue summary
+    `SELECT 
+      SUM(total_amount) as total_revenue,
+      COUNT(*) as total_transactions,
+      AVG(total_amount) as average_transaction,
+      COUNT(DISTINCT prescription_id) as unique_prescriptions
+    FROM prescription_dispensing_log
+    WHERE action IN ('DISPENSED', 'PARTIAL_DISPENSED') 
+      AND DATE(created_at) BETWEEN ? AND ?`
+  ];
+
+  const [revenueByPeriod, summary] = await Promise.all([
+    executeQuery(queries[0], [dateFrom, dateTo]),
+    executeQuery(queries[1], [dateFrom, dateTo])
+  ]);
+
   return NextResponse.json({
     success: true,
     data: {
-      revenue_analysis: revenue[0],
-      monthly_trend: monthlyTrend,
-      report_period: { from: dateFrom, to: dateTo }
+      revenue_by_period: revenueByPeriod,
+      summary: summary[0],
+      report_period: { from: dateFrom, to: dateTo, period }
+    }
+  });
+}
+
+// Alerts Report
+async function getAlertsReport() {
+  const queries = [
+    // Low stock alerts
+    `SELECT 
+      'low_stock' as alert_type,
+      medicine_id,
+      name as medicine_name,
+      current_stock,
+      minimum_stock,
+      'Stock below minimum level' as message,
+      'high' as priority
+    FROM medicines
+    WHERE current_stock <= minimum_stock AND is_active = 1`,
+
+    // Expiry alerts
+    `SELECT 
+      'expiring_soon' as alert_type,
+      medicine_id,
+      name as medicine_name,
+      expiry_date,
+      DATEDIFF(expiry_date, CURDATE()) as days_to_expiry,
+      CONCAT('Expires in ', DATEDIFF(expiry_date, CURDATE()), ' days') as message,
+      CASE 
+        WHEN expiry_date <= CURDATE() THEN 'critical'
+        WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 'high'
+        WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'medium'
+        ELSE 'low'
+      END as priority
+    FROM medicines
+    WHERE expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) AND is_active = 1`,
+
+    // Pending prescriptions
+    `SELECT 
+      'pending_prescription' as alert_type,
+      p.prescription_id,
+      p.prescription_date,
+      pt.name as patient_name,
+      DATEDIFF(CURDATE(), p.prescription_date) as days_pending,
+      CONCAT('Prescription pending for ', DATEDIFF(CURDATE(), p.prescription_date), ' days') as message,
+      CASE 
+        WHEN DATEDIFF(CURDATE(), p.prescription_date) > 7 THEN 'high'
+        WHEN DATEDIFF(CURDATE(), p.prescription_date) > 3 THEN 'medium'
+        ELSE 'low'
+      END as priority
+    FROM prescriptions p
+    JOIN patients pt ON p.patient_id = pt.id
+    WHERE p.status = 'active' 
+    AND EXISTS (
+      SELECT 1 FROM prescription_medications pm 
+      WHERE pm.prescription_id = p.id AND pm.is_dispensed = 0
+    )`
+  ];
+
+  const [lowStockAlerts, expiryAlerts, pendingPrescriptions] = await Promise.all([
+    executeQuery(queries[0], []),
+    executeQuery(queries[1], []),
+    executeQuery(queries[2], [])
+  ]);
+
+  const allAlerts = [
+    ...lowStockAlerts,
+    ...expiryAlerts,
+    ...pendingPrescriptions
+  ].sort((a, b) => {
+    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    return priorityOrder[b.priority] - priorityOrder[a.priority];
+  });
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      alerts: allAlerts,
+      summary: {
+        total_alerts: allAlerts.length,
+        critical_alerts: allAlerts.filter(a => a.priority === 'critical').length,
+        high_priority_alerts: allAlerts.filter(a => a.priority === 'high').length,
+        medium_priority_alerts: allAlerts.filter(a => a.priority === 'medium').length,
+        low_priority_alerts: allAlerts.filter(a => a.priority === 'low').length
+      },
+      categories: {
+        low_stock: lowStockAlerts.length,
+        expiring_medicines: expiryAlerts.length,
+        pending_prescriptions: pendingPrescriptions.length
+      }
     }
   });
 }

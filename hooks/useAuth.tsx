@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
 
 // --- CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:5002/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 // --- TYPES & INTERFACES ---
 interface User {

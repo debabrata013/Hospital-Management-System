@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         pt.name as patient_name,
         pt.patient_id as patient_code,
         pt.contact_number as patient_phone,
-        pt.age,
+        YEAR(CURDATE()) - YEAR(pt.date_of_birth) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(pt.date_of_birth, '%m%d')) as age,
         pt.gender,
         d.name as doctor_name,
         d.specialization,
