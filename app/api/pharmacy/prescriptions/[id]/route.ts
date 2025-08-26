@@ -1,475 +1,276 @@
-// Pharmacy API - Individual Prescription Management
-// GET /api/pharmacy/prescriptions/[id] - Get prescription details
-// PUT /api/pharmacy/prescriptions/[id] - Update prescription
-// DELETE /api/pharmacy/prescriptions/[id] - Cancel prescription
+/**
+ * Pharmacy Prescription Management API Route
+ * 
+ * This API handles detailed prescription operations for the pharmacy module.
+ * It provides comprehensive prescription data including patient info, medications,
+ * dispensing history, and stock availability for pharmacist workflow.
+ * 
+ * Features:
+ * - Detailed prescription retrieval with patient and doctor information
+ * - Medication list with stock status and dispensing tracking
+ * - Complete dispensing history and audit trail
+ * - Real-time stock availability checking
+ * - Prescription status management and updates
+ * 
+ * Database Tables Used:
+ * - prescriptions: Main prescription records
+ * - prescription_medications: Individual medication items
+ * - prescription_dispensing_log: Dispensing audit trail
+ * - patients: Patient demographic information
+ * - users: Doctor and pharmacist information
+ * - medicines: Medicine inventory and stock data
+ * 
+ * @author Hospital Management System
+ * @version 1.0
+ * @since 2024-08-26
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
-const { executeQuery, dbUtils } = require('@/lib/mysql-connection');
+import { executeQuery } from '@/lib/mysql-connection';
 
-// GET - Fetch prescription details
+/**
+ * GET /api/pharmacy/prescriptions/[id] - Retrieve detailed prescription information
+ * 
+ * This endpoint fetches comprehensive prescription data for pharmacy operations.
+ * It combines data from multiple tables to provide a complete view of:
+ * - Prescription details and metadata
+ * - Patient demographics and contact information
+ * - Doctor information and specialization
+ * - Individual medication items with dosage and instructions
+ * - Current stock levels and availability status
+ * - Dispensing history and audit trail
+ * 
+ * @param request - NextRequest object containing the HTTP request
+ * @param params - Route parameters containing prescription ID
+ * @returns JSON response with prescription data or error message
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Extract prescription ID from route parameters
+    // This can be either the database ID or the human-readable prescription_id
     const prescriptionId = params.id;
-    
-    // Fetch prescription details
+
+    // Main query to fetch prescription details with related patient and doctor information
+    // Uses JOINs to combine data from prescriptions, patients, and users tables
+    // Calculates patient age dynamically from date_of_birth for accuracy
     const prescriptionQuery = `
       SELECT 
-        p.*,
+        p.id,
+        p.prescription_id,
+        p.patient_id,
+        p.doctor_id,
+        p.prescription_date,
+        p.total_amount,
+        p.status,
+        p.notes,
+        p.follow_up_date,
         pt.name as patient_name,
         pt.patient_id as patient_code,
         pt.contact_number as patient_phone,
-        pt.date_of_birth,
+        pt.email as patient_email,
+        YEAR(CURDATE()) - YEAR(pt.date_of_birth) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(pt.date_of_birth, '%m%d')) as age,
         pt.gender,
-        pt.blood_group,
-        pt.allergies,
-        pt.current_medications,
+        pt.address as patient_address,
         d.name as doctor_name,
         d.specialization,
-        d.license_number,
-        a.appointment_date,
-        a.appointment_time,
-        mr.diagnosis,
-        mr.doctor_notes
+        d.contact_number as doctor_phone,
+        p.created_at,
+        p.updated_at
       FROM prescriptions p
       JOIN patients pt ON p.patient_id = pt.id
       JOIN users d ON p.doctor_id = d.id
-      LEFT JOIN appointments a ON p.appointment_id = a.id
-      LEFT JOIN medical_records mr ON p.medical_record_id = mr.id
-      WHERE (p.id = ? OR p.prescription_id = ?)
+      WHERE p.id = ? OR p.prescription_id = ?
     `;
-    
-    const prescription = await executeQuery(prescriptionQuery, [prescriptionId, prescriptionId]);
-    
-    if (prescription.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Prescription not found'
-      }, { status: 404 });
+
+    // Execute prescription query with both ID formats for flexibility
+    // Allows lookup by database ID (numeric) or prescription_id (alphanumeric)
+    const prescriptionResult = await executeQuery(prescriptionQuery, [prescriptionId, prescriptionId]);
+
+    // Validate prescription exists before proceeding
+    if (prescriptionResult.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Prescription not found' },
+        { status: 404 }
+      );
     }
-    
-    const prescriptionData = prescription[0];
-    
-    // Fetch prescription medications with medicine details
+
+    // Extract prescription data from query result
+    const prescription = prescriptionResult[0];
+
+    // Fetch all medications associated with this prescription
+    // Includes stock availability, dispensing status, and pricing information
+    // Uses CASE statement to determine stock status based on available quantity
     const medicationsQuery = `
       SELECT 
-        pm.*,
-        m.generic_name,
-        m.brand_name,
-        m.category,
-        m.manufacturer,
+        pm.id,
+        pm.medicine_id,
+        pm.medicine_name,
+        pm.generic_name,
+        pm.strength,
+        pm.dosage_form,
+        pm.quantity,
+        pm.dosage,
+        pm.frequency,
+        pm.duration,
+        pm.instructions,
+        pm.unit_price,
+        pm.total_price,
+        pm.is_dispensed,
+        pm.dispensed_quantity,
+        pm.dispensed_by,
+        pm.dispensed_at,
+        pm.batch_number,
+        pm.expiry_date,
+        pm.notes,
         m.current_stock,
         m.minimum_stock,
-        m.expiry_date,
-        m.batch_number,
-        m.side_effects,
-        m.contraindications,
-        m.drug_interactions,
         CASE 
           WHEN m.current_stock >= pm.quantity THEN 'available'
           WHEN m.current_stock > 0 THEN 'partial'
           ELSE 'out_of_stock'
-        END as availability_status,
-        CASE 
-          WHEN m.expiry_date <= CURDATE() THEN 'expired'
-          WHEN m.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'expiring_soon'
-          ELSE 'good'
-        END as expiry_status
+        END as stock_status,
+        u.name as dispensed_by_name
       FROM prescription_medications pm
       JOIN medicines m ON pm.medicine_id = m.id
+      LEFT JOIN users u ON pm.dispensed_by = u.id
       WHERE pm.prescription_id = ?
       ORDER BY pm.id
     `;
-    
-    const medications = await executeQuery(medicationsQuery, [prescriptionData.id]);
-    
-    // Calculate dispensing summary
-    const dispensingSummary = {
-      total_medications: medications.length,
-      dispensed_medications: medications.filter((med: any) => med.is_dispensed).length,
-      pending_medications: medications.filter((med: any) => !med.is_dispensed).length,
-      out_of_stock_medications: medications.filter((med: any) => med.availability_status === 'out_of_stock').length,
-      total_amount: prescriptionData.total_amount,
-      dispensed_amount: medications
-        .filter((med: any) => med.is_dispensed)
-        .reduce((sum: number, med: any) => sum + parseFloat(med.total_price), 0),
-      pending_amount: medications
-        .filter((med: any) => !med.is_dispensed)
-        .reduce((sum: number, med: any) => sum + parseFloat(med.total_price), 0)
-    };
-    
-    // Fetch dispensing history
-    const dispensingHistoryQuery = `
+
+    // Execute medications query to get all prescription items
+    const medications = await executeQuery(medicationsQuery, [prescription.id]);
+
+    // Retrieve complete dispensing history for audit trail and tracking
+    // Shows all dispensing actions, quantities, and pharmacist notes
+    // Ordered by most recent first for better user experience
+    const historyQuery = `
       SELECT 
-        mst.*,
-        u.name as dispensed_by_name
-      FROM medicine_stock_transactions mst
-      JOIN users u ON mst.created_by = u.id
-      WHERE mst.reference_id = ? AND mst.transaction_type = 'sale'
-      ORDER BY mst.created_at DESC
+        pdl.id,
+        pdl.log_id,
+        pdl.action,
+        pdl.quantity,
+        pdl.batch_number,
+        pdl.expiry_date,
+        pdl.unit_price,
+        pdl.total_amount,
+        pdl.pharmacist_notes,
+        pdl.created_at,
+        u.name as dispensed_by_name,
+        pm.medicine_name
+      FROM prescription_dispensing_log pdl
+      JOIN users u ON pdl.dispensed_by = u.id
+      JOIN prescription_medications pm ON pdl.prescription_medication_id = pm.id
+      WHERE pdl.prescription_id = ?
+      ORDER BY pdl.created_at DESC
     `;
-    
-    const dispensingHistory = await executeQuery(dispensingHistoryQuery, [prescriptionData.prescription_id]);
-    
+
+    // Execute dispensing history query
+    const history = await executeQuery(historyQuery, [prescription.id]);
+
+    // Calculate prescription summary statistics for dashboard display
+    // These metrics help pharmacists quickly understand prescription status
+    const totalMedications = medications.length;
+    const dispensedMedications = medications.filter(m => m.is_dispensed).length;
+    const partiallyDispensed = medications.filter(m => m.dispensed_quantity > 0 && !m.is_dispensed).length;
+    const pendingMedications = medications.filter(m => m.dispensed_quantity === 0).length;
+
+    // Determine overall dispensing status based on medication states
+    // This provides a quick status indicator for the prescription
+    const dispensingStatus = 
+      dispensedMedications === totalMedications ? 'fully_dispensed' :
+      dispensedMedications > 0 || partiallyDispensed > 0 ? 'partially_dispensed' : 'pending';
+
+    // Return comprehensive prescription data structure
+    // Organized into logical sections for frontend consumption
     return NextResponse.json({
       success: true,
       data: {
-        prescription: prescriptionData,
-        medications: medications,
-        dispensing_summary: dispensingSummary,
-        dispensing_history: dispensingHistory
+        // Enhanced prescription object with calculated status and metrics
+        prescription: {
+          ...prescription,
+          dispensing_status: dispensingStatus,
+          total_medications: totalMedications,
+          dispensed_medications: dispensedMedications,
+          pending_medications: pendingMedications,
+          partially_dispensed: partiallyDispensed
+        },
+        // Complete medication list with stock and dispensing information
+        medications,
+        // Chronological dispensing history for audit purposes
+        history,
+        // Summary statistics for quick reference and dashboard display
+        summary: {
+          total_medications: totalMedications,
+          dispensed_medications: dispensedMedications,
+          pending_medications: pendingMedications,
+          partially_dispensed: partiallyDispensed,
+          total_amount: prescription.total_amount,
+          dispensing_status
+        }
       }
     });
-    
+
   } catch (error) {
+    // Log error for debugging while protecting sensitive information
     console.error('Error fetching prescription details:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch prescription details'
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch prescription details' },
+      { status: 500 }
+    );
   }
 }
 
-// PUT - Update prescription (mainly for dispensing)
+/**
+ * PUT /api/pharmacy/prescriptions/[id] - Update prescription status and notes
+ * 
+ * This endpoint allows pharmacists to update prescription status and add notes.
+ * Common status updates include:
+ * - 'pending' -> 'in_progress' when dispensing begins
+ * - 'in_progress' -> 'completed' when fully dispensed
+ * - 'completed' -> 'collected' when patient collects medication
+ * 
+ * @param request - NextRequest containing status and notes in JSON body
+ * @param params - Route parameters containing prescription ID
+ * @returns JSON response confirming update or error message
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const prescriptionId = params.id;
-    const body = await request.json();
-    
-    // Check if prescription exists
-    const existingPrescription = await executeQuery(
-      'SELECT * FROM prescriptions WHERE (id = ? OR prescription_id = ?)',
-      [prescriptionId, prescriptionId]
-    );
-    
-    if (existingPrescription.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Prescription not found'
-      }, { status: 404 });
-    }
-    
-    const prescription = existingPrescription[0];
-    
-    // Handle different update types
-    if (body.action === 'dispense_medication') {
-      return await dispenseMedication(prescription, body);
-    } else if (body.action === 'dispense_all') {
-      return await dispenseAllMedications(prescription, body);
-    } else if (body.action === 'update_status') {
-      return await updatePrescriptionStatus(prescription, body);
-    } else {
-      return await updatePrescriptionDetails(prescription, body);
-    }
-    
-  } catch (error) {
-    console.error('Error updating prescription:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to update prescription'
-    }, { status: 500 });
-  }
-}
-
-// Helper function to dispense individual medication
-async function dispenseMedication(prescription: any, body: any) {
-  const { medication_id, quantity_dispensed, notes } = body;
-  
-  if (!medication_id || !quantity_dispensed) {
-    return NextResponse.json({
-      success: false,
-      error: 'medication_id and quantity_dispensed are required'
-    }, { status: 400 });
-  }
-  
-  // Get medication details
-  const medication = await executeQuery(
-    'SELECT * FROM prescription_medications WHERE id = ? AND prescription_id = ?',
-    [medication_id, prescription.id]
-  );
-  
-  if (medication.length === 0) {
-    return NextResponse.json({
-      success: false,
-      error: 'Medication not found in prescription'
-    }, { status: 404 });
-  }
-  
-  const med = medication[0];
-  
-  if (med.is_dispensed) {
-    return NextResponse.json({
-      success: false,
-      error: 'Medication already dispensed'
-    }, { status: 400 });
-  }
-  
-  // Check stock availability
-  const medicine = await executeQuery(
-    'SELECT * FROM medicines WHERE id = ?',
-    [med.medicine_id]
-  );
-  
-  if (medicine.length === 0 || medicine[0].current_stock < quantity_dispensed) {
-    return NextResponse.json({
-      success: false,
-      error: 'Insufficient stock available'
-    }, { status: 400 });
-  }
-  
-  const medicineData = medicine[0];
-  
-  // Execute dispensing transaction
-  const queries = [
-    // Update prescription medication as dispensed
-    {
-      query: 'UPDATE prescription_medications SET is_dispensed = 1, dispensed_at = ?, dispensed_by = ? WHERE id = ?',
-      params: [new Date(), 1, medication_id] // TODO: Get user from auth
-    },
-    // Update medicine stock
-    {
-      query: 'UPDATE medicines SET current_stock = current_stock - ?, updated_at = ? WHERE id = ?',
-      params: [quantity_dispensed, new Date(), med.medicine_id]
-    },
-    // Create stock transaction
-    {
-      query: `
-        INSERT INTO medicine_stock_transactions (
-          medicine_id, transaction_type, quantity, unit_price, total_amount,
-          batch_number, expiry_date, supplier, reference_id, notes, created_by, created_at
-        ) VALUES (?, 'sale', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      params: [
-        med.medicine_id,
-        quantity_dispensed,
-        med.unit_price,
-        quantity_dispensed * med.unit_price,
-        medicineData.batch_number,
-        medicineData.expiry_date,
-        medicineData.supplier,
-        prescription.prescription_id,
-        notes || `Dispensed for prescription ${prescription.prescription_id}`,
-        1, // TODO: Get user from auth
-        new Date()
-      ]
-    }
-  ];
-  
-  await Promise.all(queries.map(q => executeQuery(q.query, q.params)));
-  
-  // Check if all medications are dispensed to update prescription status
-  const remainingMeds = await executeQuery(
-    'SELECT COUNT(*) as count FROM prescription_medications WHERE prescription_id = ? AND is_dispensed = 0',
-    [prescription.id]
-  );
-  
-  if (remainingMeds[0].count === 0) {
-    await executeQuery(
-      'UPDATE prescriptions SET status = "completed", updated_at = ? WHERE id = ?',
-      [new Date(), prescription.id]
-    );
-  }
-  
-  return NextResponse.json({
-    success: true,
-    message: 'Medication dispensed successfully'
-  });
-}
-
-// Helper function to dispense all medications
-async function dispenseAllMedications(prescription: any, body: any) {
-  // Get all pending medications
-  const pendingMeds = await executeQuery(
-    `SELECT pm.*, m.current_stock 
-     FROM prescription_medications pm
-     JOIN medicines m ON pm.medicine_id = m.id
-     WHERE pm.prescription_id = ? AND pm.is_dispensed = 0`,
-    [prescription.id]
-  );
-  
-  if (pendingMeds.length === 0) {
-    return NextResponse.json({
-      success: false,
-      error: 'No pending medications to dispense'
-    }, { status: 400 });
-  }
-  
-  // Check stock for all medications
-  const stockIssues = [];
-  for (const med of pendingMeds) {
-    if (med.current_stock < med.quantity) {
-      stockIssues.push({
-        medicine_name: med.medicine_name,
-        required: med.quantity,
-        available: med.current_stock
-      });
-    }
-  }
-  
-  if (stockIssues.length > 0) {
-    return NextResponse.json({
-      success: false,
-      error: 'Insufficient stock for some medications',
-      stock_issues: stockIssues
-    }, { status: 400 });
-  }
-  
-  // Dispense all medications
-  const queries = [];
-  
-  for (const med of pendingMeds) {
-    // Update prescription medication
-    queries.push({
-      query: 'UPDATE prescription_medications SET is_dispensed = 1, dispensed_at = ?, dispensed_by = ? WHERE id = ?',
-      params: [new Date(), 1, med.id] // TODO: Get user from auth
-    });
-    
-    // Update medicine stock
-    queries.push({
-      query: 'UPDATE medicines SET current_stock = current_stock - ?, updated_at = ? WHERE id = ?',
-      params: [med.quantity, new Date(), med.medicine_id]
-    });
-    
-    // Create stock transaction
-    queries.push({
-      query: `
-        INSERT INTO medicine_stock_transactions (
-          medicine_id, transaction_type, quantity, unit_price, total_amount,
-          reference_id, notes, created_by, created_at
-        ) VALUES (?, 'sale', ?, ?, ?, ?, ?, ?, ?)
-      `,
-      params: [
-        med.medicine_id,
-        med.quantity,
-        med.unit_price,
-        med.quantity * med.unit_price,
-        prescription.prescription_id,
-        `Full prescription dispensed: ${prescription.prescription_id}`,
-        1, // TODO: Get user from auth
-        new Date()
-      ]
-    });
-  }
-  
-  // Update prescription status
-  queries.push({
-    query: 'UPDATE prescriptions SET status = "completed", updated_at = ? WHERE id = ?',
-    params: [new Date(), prescription.id]
-  });
-  
-  await Promise.all(queries.map(q => executeQuery(q.query, q.params)));
-  
-  return NextResponse.json({
-    success: true,
-    message: 'All medications dispensed successfully'
-  });
-}
-
-// Helper function to update prescription status
-async function updatePrescriptionStatus(prescription: any, body: any) {
-  const { status, notes } = body;
-  
-  const validStatuses = ['active', 'completed', 'cancelled', 'expired'];
-  if (!validStatuses.includes(status)) {
-    return NextResponse.json({
-      success: false,
-      error: 'Invalid status'
-    }, { status: 400 });
-  }
-  
-  await executeQuery(
-    'UPDATE prescriptions SET status = ?, notes = ?, updated_at = ? WHERE id = ?',
-    [status, notes || prescription.notes, new Date(), prescription.id]
-  );
-  
-  return NextResponse.json({
-    success: true,
-    message: 'Prescription status updated successfully'
-  });
-}
-
-// Helper function to update prescription details
-async function updatePrescriptionDetails(prescription: any, body: any) {
-  const updateData: any = {
-    updated_at: new Date()
-  };
-  
-  if (body.notes !== undefined) updateData.notes = body.notes;
-  if (body.follow_up_date !== undefined) {
-    updateData.follow_up_date = body.follow_up_date ? dbUtils.formatDate(body.follow_up_date) : null;
-  }
-  
-  const { query, params } = dbUtils.buildUpdateQuery(
-    'prescriptions',
-    updateData,
-    { id: prescription.id }
-  );
-  
-  await executeQuery(query, params);
-  
-  return NextResponse.json({
-    success: true,
-    message: 'Prescription updated successfully'
-  });
-}
-
-// DELETE - Cancel prescription
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
+    // Extract prescription ID from route parameters
     const prescriptionId = params.id;
     
-    // Check if prescription exists
-    const existingPrescription = await executeQuery(
-      'SELECT * FROM prescriptions WHERE (id = ? OR prescription_id = ?)',
-      [prescriptionId, prescriptionId]
-    );
-    
-    if (existingPrescription.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Prescription not found'
-      }, { status: 404 });
-    }
-    
-    const prescription = existingPrescription[0];
-    
-    // Check if any medications have been dispensed
-    const dispensedMeds = await executeQuery(
-      'SELECT COUNT(*) as count FROM prescription_medications WHERE prescription_id = ? AND is_dispensed = 1',
-      [prescription.id]
-    );
-    
-    if (dispensedMeds[0].count > 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cannot cancel prescription with dispensed medications'
-      }, { status: 400 });
-    }
-    
-    // Cancel prescription
-    await executeQuery(
-      'UPDATE prescriptions SET status = "cancelled", updated_at = ? WHERE id = ?',
-      [new Date(), prescription.id]
-    );
-    
+    // Parse request body to get status and notes updates
+    const { status, notes } = await request.json();
+
+    // Update prescription with new status and notes
+    // Uses timestamp for audit trail tracking
+    // Supports both database ID and prescription_id for flexibility
+    const updateQuery = `
+      UPDATE prescriptions 
+      SET status = ?, notes = ?, updated_at = NOW()
+      WHERE id = ? OR prescription_id = ?
+    `;
+
+    // Execute update query with provided parameters
+    await executeQuery(updateQuery, [status, notes, prescriptionId, prescriptionId]);
+
+    // Return success confirmation
     return NextResponse.json({
       success: true,
-      message: 'Prescription cancelled successfully'
+      message: 'Prescription updated successfully'
     });
-    
+
   } catch (error) {
-    console.error('Error cancelling prescription:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to cancel prescription'
-    }, { status: 500 });
+    // Log error for debugging and return user-friendly error message
+    console.error('Error updating prescription:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update prescription' },
+      { status: 500 }
+    );
   }
 }
