@@ -16,7 +16,6 @@ import {
   Pill,
   Truck,
   Calendar,
-  TrendingDown,
   TrendingUp,
   ShoppingCart
 } from 'lucide-react'
@@ -123,15 +122,15 @@ export default function AdminInventoryPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'critical': return 'text-red-600 bg-red-50 border-red-200'
-      case 'low': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-      case 'good': return 'text-green-600 bg-green-50 border-green-200'
-      case 'overstocked': return 'text-blue-600 bg-blue-50 border-blue-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+      case 'critical': return 'border-red-200 bg-red-50'
+      case 'low': return 'border-yellow-200 bg-yellow-50'
+      case 'good': return 'border-green-200 bg-green-50'
+      case 'overstocked': return 'border-blue-200 bg-blue-50'
+      default: return 'border-gray-200 bg-gray-50'
     }
   }
 
-  const getStockPercentage = (current: number, min: number, max: number) => {
+  const getStockPercentage = (current: number, max: number) => {
     return (current / max) * 100
   }
 
@@ -140,99 +139,88 @@ export default function AdminInventoryPage() {
     const today = new Date()
     const diffTime = expiry.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays <= 90 // Expiring within 90 days
+    return diffDays <= 90
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6 lg:p-8">
+      
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <Package className="h-8 w-8 mr-3 text-pink-500" />
-              Inventory & Vendor Management
-            </h1>
-            <p className="text-gray-600 mt-2">Manage medicine inventory, stock levels, and vendor relationships</p>
-          </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Medicine
-          </Button>
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+            <Package className="h-8 w-8 mr-2 sm:mr-3 text-pink-500" />
+            Inventory & Vendor Management
+          </h1>
+          <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+            Manage medicine inventory, stock levels, and vendor relationships
+          </p>
         </div>
+        <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto flex items-center justify-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Medicine
+        </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Items</p>
-                <p className="text-2xl font-bold text-gray-900">1,247</p>
-              </div>
-              <Package className="h-8 w-8 text-pink-500" />
+          <CardContent className="p-4 sm:p-6 flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Items</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">1,247</p>
             </div>
+            <Package className="h-6 sm:h-8 w-6 sm:w-8 text-pink-500" />
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Critical Stock</p>
-                <p className="text-2xl font-bold text-red-600">23</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+          <CardContent className="p-4 sm:p-6 flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Critical Stock</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">23</p>
             </div>
+            <AlertTriangle className="h-6 sm:h-8 w-6 sm:w-8 text-red-500" />
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
-                <p className="text-2xl font-bold text-yellow-600">15</p>
-              </div>
-              <Calendar className="h-8 w-8 text-yellow-500" />
+          <CardContent className="p-4 sm:p-6 flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-600">15</p>
             </div>
+            <Calendar className="h-6 sm:h-8 w-6 sm:w-8 text-yellow-500" />
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-green-600">₹2.4L</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+          <CardContent className="p-4 sm:p-6 flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Value</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">₹2.4L</p>
             </div>
+            <TrendingUp className="h-6 sm:h-8 w-6 sm:w-8 text-green-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search & Filter */}
       <Card className="border-pink-100 mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  placeholder="Search medicines by name, category, or supplier..." 
-                  className="pl-10 border-pink-200 focus:border-pink-400"
-                />
-              </div>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input 
+                placeholder="Search medicines by name, category, or supplier..." 
+                className="pl-10 border-pink-200 focus:border-pink-400 w-full"
+              />
             </div>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter by Category
+            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full md:w-auto flex items-center justify-center gap-2">
+              <Filter className="h-4 w-4" /> Filter by Category
             </Button>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Critical Stock
+            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full md:w-auto flex items-center justify-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Critical Stock
             </Button>
           </div>
         </CardContent>
@@ -243,198 +231,130 @@ export default function AdminInventoryPage() {
         <CardHeader>
           <CardTitle>Medicine Inventory</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {mockInventory.map((item) => (
-              <div key={item.id} className={`p-4 rounded-lg border ${getStatusColor(item.status)}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
-                      <Pill className="h-8 w-8" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
-                        <Badge variant="outline">{item.id}</Badge>
-                        <Badge className="bg-blue-100 text-blue-700">{item.category}</Badge>
-                        {getStatusBadge(item.status)}
-                        {isExpiringSoon(item.expiryDate) && (
-                          <Badge className="bg-orange-100 text-orange-700">Expiring Soon</Badge>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Current Stock:</span>
-                            <span className="font-semibold">{item.currentStock}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Min Required:</span>
-                            <span className="font-semibold">{item.minRequired}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Max Capacity:</span>
-                            <span className="font-semibold">{item.maxCapacity}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Unit Price:</span>
-                            <span className="font-semibold">₹{item.unitPrice}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Total Value:</span>
-                            <span className="font-semibold">₹{item.totalValue}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Supplier:</span>
-                            <span className="font-semibold">{item.supplier}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Expiry Date:</span>
-                            <span className={`font-semibold ${isExpiringSoon(item.expiryDate) ? 'text-orange-600' : ''}`}>
-                              {new Date(item.expiryDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Last Restocked:</span>
-                            <span className="font-semibold">{new Date(item.lastRestocked).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
+        <CardContent className="space-y-4">
+          {mockInventory.map((item) => (
+            <div key={item.id} className={`p-4 rounded-lg border ${getStatusColor(item.status)} flex flex-col md:flex-row md:items-center justify-between gap-4`}>
+              
+              {/* Left: Name + Badges */}
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center">
+                  <Pill className="h-8 w-8" />
+                </div>
+                <div className="flex flex-col md:flex-row md:items-center md:gap-3 gap-1">
+                  <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
+                  <Badge variant="outline">{item.id}</Badge>
+                  <Badge className="bg-blue-100 text-blue-700">{item.category}</Badge>
+                  {getStatusBadge(item.status)}
+                  {isExpiringSoon(item.expiryDate) && <Badge className="bg-orange-100 text-orange-700">Expiring Soon</Badge>}
+                </div>
+              </div>
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Stock Level</span>
-                          <span>{item.currentStock}/{item.maxCapacity}</span>
-                        </div>
-                        <Progress 
-                          value={getStockPercentage(item.currentStock, item.minRequired, item.maxCapacity)} 
-                          className="h-2"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 ml-4">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-green-200 text-green-600 hover:bg-green-50">
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
+              {/* Right: Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Current Stock:</span> <span>{item.currentStock}</span></div>
+                  <div className="flex justify-between"><span>Min Required:</span> <span>{item.minRequired}</span></div>
+                  <div className="flex justify-between"><span>Max Capacity:</span> <span>{item.maxCapacity}</span></div>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Unit Price:</span> <span>₹{item.unitPrice}</span></div>
+                  <div className="flex justify-between"><span>Total Value:</span> <span>₹{item.totalValue}</span></div>
+                  <div className="flex justify-between"><span>Supplier:</span> <span>{item.supplier}</span></div>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Expiry Date:</span> <span className={`${isExpiringSoon(item.expiryDate) ? 'text-orange-600 font-semibold' : ''}`}>{new Date(item.expiryDate).toLocaleDateString()}</span></div>
+                  <div className="flex justify-between"><span>Last Restocked:</span> <span>{new Date(item.lastRestocked).toLocaleDateString()}</span></div>
+                  <div className="flex flex-col mt-2">
+                    <div className="flex justify-between text-sm mb-1"><span>Stock Level</span> <span>{item.currentStock}/{item.maxCapacity}</span></div>
+                    <Progress value={getStockPercentage(item.currentStock, item.maxCapacity)} className="h-2"/>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 mt-2 md:mt-0">
+                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50"><Eye className="h-4 w-4"/></Button>
+                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50"><Edit className="h-4 w-4"/></Button>
+                <Button variant="outline" size="sm" className="border-green-200 text-green-600 hover:bg-green-50"><ShoppingCart className="h-4 w-4"/></Button>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
       {/* Vendor Management */}
-      <Card className="border-pink-100">
+      <Card className="border-pink-100 mb-6">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Truck className="h-5 w-5 mr-2 text-blue-500" />
-            Vendor Details
+            <Truck className="h-5 w-5 mr-2 text-blue-500" /> Vendor Details
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {mockVendors.map((vendor) => (
-              <div key={vendor.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg h-14 w-14 flex items-center justify-center font-bold">
-                      <Truck className="h-7 w-7" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-bold text-lg text-gray-900">{vendor.name}</h3>
-                        <Badge variant="outline">{vendor.id}</Badge>
-                        <Badge className="bg-green-100 text-green-700">{vendor.status}</Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-16">Contact:</span>
-                            <span>{vendor.contact}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-16">Email:</span>
-                            <span>{vendor.email}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-16">Rating:</span>
-                            <span className="text-yellow-600 font-semibold">⭐ {vendor.rating}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-16">Orders:</span>
-                            <span>{vendor.totalOrders} completed</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-gray-500 mt-2">{vendor.address}</p>
+        <CardContent className="space-y-4">
+          {mockVendors.map((vendor) => (
+            <div key={vendor.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col lg:flex-row justify-between gap-4">
+              
+              <div className="flex-1 flex flex-col lg:flex-row gap-4">
+                <div className="bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg h-14 w-14 flex items-center justify-center font-bold flex-shrink-0">
+                  <Truck className="h-7 w-7" />
+                </div>
+
+                <div className="flex-1">
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2 flex-wrap gap-2">
+                    <h3 className="font-bold text-lg text-gray-900">{vendor.name}</h3>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Badge variant="outline">{vendor.id}</Badge>
+                      <Badge className="bg-green-100 text-green-700">{vendor.status}</Badge>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2 ml-4">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <Edit className="h-4 w-4" />
-                    </Button>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="space-y-1">
+                      <div className="flex items-center"><span className="w-16 font-medium">Contact:</span> {vendor.contact}</div>
+                      <div className="flex items-center"><span className="w-16 font-medium">Email:</span> {vendor.email}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center"><span className="w-16 font-medium">Rating:</span> <span className="text-yellow-600 font-semibold">⭐ {vendor.rating}</span></div>
+                      <div className="flex items-center"><span className="w-16 font-medium">Orders:</span> {vendor.totalOrders} completed</div>
+                    </div>
                   </div>
+                  <p className="text-sm text-gray-500 mt-2">{vendor.address}</p>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div className="flex gap-2 flex-wrap lg:flex-col lg:items-end">
+                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50"><Eye className="h-4 w-4"/></Button>
+                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50"><Edit className="h-4 w-4"/></Button>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
       {/* Quick Actions */}
-      <Card className="border-pink-100 mt-6">
+      <Card className="border-pink-100 mb-6">
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Plus className="h-6 w-6" />
-              <span>Add Medicine</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 border-pink-200 text-pink-600 hover:bg-pink-50">
+              <Plus className="h-6 w-6"/> Add Medicine
             </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <ShoppingCart className="h-6 w-6" />
-              <span>Create Order</span>
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 border-pink-200 text-pink-600 hover:bg-pink-50">
+              <ShoppingCart className="h-6 w-6"/> Create Order
             </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Truck className="h-6 w-6" />
-              <span>Manage Vendors</span>
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 border-pink-200 text-pink-600 hover:bg-pink-50">
+              <Truck className="h-6 w-6"/> Manage Vendors
             </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <AlertTriangle className="h-6 w-6" />
-              <span>Stock Alerts</span>
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 border-pink-200 text-pink-600 hover:bg-pink-50">
+              <AlertTriangle className="h-6 w-6"/> Stock Alerts
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Coming Soon Notice */}
-      <div className="mt-8 text-center">
+      {/* Coming Soon */}
+      <div className="mt-6 text-center">
         <div className="inline-flex items-center px-6 py-3 bg-pink-100 text-pink-700 rounded-full">
           <Package className="h-5 w-5 mr-2" />
           <span className="font-medium">Advanced Inventory Management Features Coming Soon</span>

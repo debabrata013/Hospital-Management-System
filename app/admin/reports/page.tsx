@@ -126,18 +126,20 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 md:p-6">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+      <div className="mb-6 md:mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <FileText className="h-8 w-8 mr-3 text-pink-500" />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center flex-wrap">
+              <FileText className="h-8 w-8 mr-2 md:mr-3 text-pink-500" />
               Reports & Analytics
             </h1>
-            <p className="text-gray-600 mt-2">Generate and view operational reports (no financial master reports)</p>
+            <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
+              Generate and view operational reports (no financial master reports)
+            </p>
           </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 flex-shrink-0">
             <BarChart3 className="h-4 w-4 mr-2" />
             Generate Report
           </Button>
@@ -145,73 +147,42 @@ export default function AdminReportsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                <p className="text-2xl font-bold text-gray-900">30</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        {[
+          { title: "Total Reports", value: "30", icon: FileText, color: "text-pink-500" },
+          { title: "Generated Today", value: "5", icon: TrendingUp, color: "text-green-500", valueColor: "text-green-600" },
+          { title: "Downloads", value: "156", icon: Download, color: "text-blue-500", valueColor: "text-blue-600" },
+          { title: "Scheduled", value: "8", icon: Clock, color: "text-purple-500", valueColor: "text-purple-600" }
+        ].map((stat, idx) => (
+          <Card key={idx} className="border-pink-100">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className={`text-xl md:text-2xl font-bold ${stat.valueColor || 'text-gray-900'}`}>{stat.value}</p>
+                </div>
+                <stat.icon className={`h-6 md:h-8 w-6 md:w-8 ${stat.color}`} />
               </div>
-              <FileText className="h-8 w-8 text-pink-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Generated Today</p>
-                <p className="text-2xl font-bold text-green-600">5</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Downloads</p>
-                <p className="text-2xl font-bold text-blue-600">156</p>
-              </div>
-              <Download className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Scheduled</p>
-                <p className="text-2xl font-bold text-purple-600">8</p>
-              </div>
-              <Clock className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Report Categories */}
-      <Card className="border-pink-100 mb-6">
+      <Card className="border-pink-100 mb-4 md:mb-6">
         <CardHeader>
           <CardTitle>Report Categories</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {reportCategories.map((category) => (
-              <div key={category.name} className="p-4 bg-gray-50 rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${category.color}`}>
-                    <category.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{category.name}</h4>
-                    <p className="text-sm text-gray-600">{category.count} reports</p>
-                  </div>
+              <div key={category.name} className="p-4 bg-gray-50 rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${category.color} flex items-center justify-center`}>
+                  <category.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">{category.name}</h4>
+                  <p className="text-sm text-gray-600">{category.count} reports</p>
                 </div>
               </div>
             ))}
@@ -220,23 +191,21 @@ export default function AdminReportsPage() {
       </Card>
 
       {/* Search and Filter */}
-      <Card className="border-pink-100 mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  placeholder="Search reports by title, category, or date..." 
-                  className="pl-10 border-pink-200 focus:border-pink-400"
-                />
-              </div>
+      <Card className="border-pink-100 mb-4 md:mb-6">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input 
+                placeholder="Search reports by title, category, or date..." 
+                className="pl-10 border-pink-200 focus:border-pink-400 w-full"
+              />
             </div>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 flex-shrink-0">
               <Filter className="h-4 w-4 mr-2" />
               Filter by Category
             </Button>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 flex-shrink-0">
               <Calendar className="h-4 w-4 mr-2" />
               Date Range
             </Button>
@@ -245,57 +214,53 @@ export default function AdminReportsPage() {
       </Card>
 
       {/* Reports List */}
-      <Card className="border-pink-100">
+      <Card className="border-pink-100 mb-4 md:mb-6">
         <CardHeader>
           <CardTitle>Available Reports</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {mockReports.map((report) => (
-              <div key={report.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
-                      <FileText className="h-8 w-8" />
+              <div key={report.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col md:flex-row gap-4 md:gap-6">
+                <div className="flex-shrink-0">
+                  <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
+                    <FileText className="h-8 w-8" />
+                  </div>
+                </div>
+                <div className="flex-1 flex flex-col md:flex-row justify-between gap-4 md:gap-6">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="font-bold text-lg text-gray-900">{report.title}</h3>
+                      <Badge variant="outline">{report.id}</Badge>
+                      <Badge className="bg-blue-100 text-blue-700">{report.category}</Badge>
+                      {getStatusBadge(report.status)}
+                      {getFormatBadge(report.format)}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-bold text-lg text-gray-900">{report.title}</h3>
-                        <Badge variant="outline">{report.id}</Badge>
-                        <Badge className="bg-blue-100 text-blue-700">{report.category}</Badge>
-                        {getStatusBadge(report.status)}
-                        {getFormatBadge(report.format)}
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 mb-3">{report.description}</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Calendar className="h-4 w-4 mr-2 text-pink-500" />
-                            <span>Generated: {new Date(report.generatedDate).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-20">By:</span>
-                            <span>{report.generatedBy}</span>
-                          </div>
+                    <p className="text-sm text-gray-600 mb-3">{report.description}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-pink-500" />
+                          <span>Generated: {new Date(report.generatedDate).toLocaleDateString()}</span>
                         </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-20">Size:</span>
-                            <span>{report.fileSize}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Download className="h-4 w-4 mr-2 text-pink-500" />
-                            <span>{report.downloadCount} downloads</span>
-                          </div>
+                        <div className="flex items-center">
+                          <span className="font-medium w-20">By:</span>
+                          <span>{report.generatedBy}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <span className="font-medium w-20">Size:</span>
+                          <span>{report.fileSize}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Download className="h-4 w-4 mr-2 text-pink-500" />
+                          <span>{report.downloadCount} downloads</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2 ml-4">
+                  <div className="flex items-center gap-2 flex-wrap md:flex-col">
                     <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -318,34 +283,29 @@ export default function AdminReportsPage() {
       </Card>
 
       {/* Quick Report Generation */}
-      <Card className="border-pink-100 mt-6">
+      <Card className="border-pink-100 mb-4 md:mb-6">
         <CardHeader>
           <CardTitle>Quick Report Generation</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Users className="h-6 w-6" />
-              <span>Patient Report</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Activity className="h-6 w-6" />
-              <span>Operational Report</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Package className="h-6 w-6" />
-              <span>Inventory Report</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Clock className="h-6 w-6" />
-              <span>Staff Report</span>
-            </Button>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
+            {[
+              { icon: Users, label: "Patient Report" },
+              { icon: Activity, label: "Operational Report" },
+              { icon: Package, label: "Inventory Report" },
+              { icon: Clock, label: "Staff Report" }
+            ].map((report, idx) => (
+              <Button key={idx} variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-1">
+                <report.icon className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm text-center">{report.label}</span>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
 
       {/* Financial Reports Notice */}
-      <Card className="border-yellow-100 bg-yellow-50 mt-6">
+      <Card className="border-yellow-100 bg-yellow-50 mb-4 md:mb-6">
         <CardHeader>
           <CardTitle className="flex items-center text-yellow-800">
             <DollarSign className="h-5 w-5 mr-2" />
@@ -353,7 +313,7 @@ export default function AdminReportsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-yellow-700">
+          <div className="text-yellow-700 text-sm md:text-base">
             <p className="mb-2">
               <strong>Note:</strong> As a Branch Admin, you have access to operational reports relevant to daily operations.
             </p>
@@ -365,10 +325,10 @@ export default function AdminReportsPage() {
       </Card>
 
       {/* Coming Soon Notice */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex items-center px-6 py-3 bg-pink-100 text-pink-700 rounded-full">
+      <div className="mt-6 md:mt-8 text-center">
+        <div className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-pink-100 text-pink-700 rounded-full">
           <FileText className="h-5 w-5 mr-2" />
-          <span className="font-medium">Advanced Reporting Features Coming Soon</span>
+          <span className="font-medium text-sm md:text-base">Advanced Reporting Features Coming Soon</span>
         </div>
       </div>
     </div>

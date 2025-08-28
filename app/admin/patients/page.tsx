@@ -91,18 +91,20 @@ export default function AdminPatientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <Users className="h-8 w-8 mr-3 text-pink-500" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+              <Users className="h-7 w-7 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-pink-500" />
               Patient Management
             </h1>
-            <p className="text-gray-600 mt-2">Manage patient records, admissions, and medical history</p>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+              Manage patient records, admissions, and medical history
+            </p>
           </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+          <Button className="w-full sm:w-auto bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 flex items-center justify-center sm:px-4 py-2">
             <Plus className="h-4 w-4 mr-2" />
             Add New Patient
           </Button>
@@ -110,51 +112,51 @@ export default function AdminPatientsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Patients</p>
-                <p className="text-2xl font-bold text-gray-900">1,247</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">1,247</p>
               </div>
-              <Users className="h-8 w-8 text-pink-500" />
+              <Users className="h-7 sm:h-8 w-7 sm:w-8 text-pink-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Admitted Today</p>
-                <p className="text-2xl font-bold text-blue-600">23</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">23</p>
               </div>
-              <Bed className="h-8 w-8 text-blue-500" />
+              <Bed className="h-7 sm:h-8 w-7 sm:w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Discharged Today</p>
-                <p className="text-2xl font-bold text-green-600">18</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">18</p>
               </div>
-              <Activity className="h-8 w-8 text-green-500" />
+              <Activity className="h-7 sm:h-8 w-7 sm:w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">New Registrations</p>
-                <p className="text-2xl font-bold text-purple-600">12</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">12</p>
               </div>
-              <UserPlus className="h-8 w-8 text-purple-500" />
+              <UserPlus className="h-7 sm:h-8 w-7 sm:w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -162,18 +164,18 @@ export default function AdminPatientsPage() {
 
       {/* Search and Filter */}
       <Card className="border-pink-100 mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
-              <div className="relative">
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input 
                   placeholder="Search patients by name, ID, phone, or email..." 
-                  className="pl-10 border-pink-200 focus:border-pink-400"
+                  className="pl-10 border-pink-200 focus:border-pink-400 w-full"
                 />
               </div>
             </div>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+            <Button variant="outline" className="w-full sm:w-auto border-pink-200 text-pink-600 hover:bg-pink-50 flex items-center justify-center py-2">
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
@@ -189,72 +191,74 @@ export default function AdminPatientsPage() {
         <CardContent>
           <div className="space-y-4">
             {mockPatients.map((patient) => (
-              <div key={patient.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg">
-                      {patient.name.split(' ').map(n => n[0]).join('')}
+              <div key={patient.id} className="p-4 sm:p-6 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                <div className="flex items-start sm:items-center space-x-4">
+                  <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg">
+                    {patient.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="font-bold text-lg sm:text-xl text-gray-900 truncate">{patient.name}</h3>
+                      <Badge variant="outline">{patient.id}</Badge>
+                      {getStatusBadge(patient.status)}
+                      {getAdmissionBadge(patient.admissionStatus)}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-bold text-xl text-gray-900">{patient.name}</h3>
-                        <Badge variant="outline">{patient.id}</Badge>
-                        {getStatusBadge(patient.status)}
-                        {getAdmissionBadge(patient.admissionStatus)}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-20">Age:</span>
-                            <span>{patient.age} years • {patient.gender}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Phone className="h-3 w-3 mr-2 text-pink-500" />
-                            <span>{patient.phone}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Mail className="h-3 w-3 mr-2 text-pink-500" />
-                            <span>{patient.email}</span>
-                          </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-3 text-sm text-gray-600">
+                      <div className="space-y-1">
+                        <div className="flex items-center">
+                          <span className="font-medium w-20">Age:</span>
+                          <span>{patient.age} yrs • {patient.gender}</span>
                         </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-20">Blood:</span>
-                            <span className="font-semibold text-red-600">{patient.bloodGroup}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-20">Doctor:</span>
-                            <span>{patient.doctor}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="font-medium w-20">Dept:</span>
-                            <span>{patient.department}</span>
-                          </div>
+                        <div className="flex items-center">
+                          <Phone className="h-3 w-3 mr-2 text-pink-500" />
+                          <span>{patient.phone}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Mail className="h-3 w-3 mr-2 text-pink-500" />
+                          <span>{patient.email}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center text-sm text-gray-500">
+                      <div className="space-y-1">
+                        <div className="flex items-center">
+                          <span className="font-medium w-20">Blood:</span>
+                          <span className="font-semibold text-red-600">{patient.bloodGroup}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-medium w-20">Doctor:</span>
+                          <span>{patient.doctor}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-medium w-20">Dept:</span>
+                          <span>{patient.department}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 gap-1 sm:gap-4">
+                      <div className="flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                        <span className="mr-4">{patient.address}</span>
+                        <span className="truncate">{patient.address}</span>
+                      </div>
+                      <div className="flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
                         <span>Last visit: {new Date(patient.lastVisit).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2 ml-4">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                  </div>
+                </div>
+
+                <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2 sm:gap-1">
+                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                    <FileText className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -268,7 +272,7 @@ export default function AdminPatientsPage() {
           <CardTitle>Patient Categories</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg text-center">
               <Bed className="h-8 w-8 text-blue-500 mx-auto mb-2" />
               <h4 className="font-semibold text-blue-800">Admitted Patients</h4>
@@ -306,20 +310,20 @@ export default function AdminPatientsPage() {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <Button variant="outline" className="h-20 w-full border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <Plus className="h-6 w-6" />
               <span>Register Patient</span>
             </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
+            <Button variant="outline" className="h-20 w-full border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <Bed className="h-6 w-6" />
               <span>Admit Patient</span>
             </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
+            <Button variant="outline" className="h-20 w-full border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <Activity className="h-6 w-6" />
               <span>Discharge Patient</span>
             </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
+            <Button variant="outline" className="h-20 w-full border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <FileText className="h-6 w-6" />
               <span>Medical Records</span>
             </Button>
@@ -329,9 +333,9 @@ export default function AdminPatientsPage() {
 
       {/* Coming Soon Notice */}
       <div className="mt-8 text-center">
-        <div className="inline-flex items-center px-6 py-3 bg-pink-100 text-pink-700 rounded-full">
-          <Users className="h-5 w-5 mr-2" />
-          <span className="font-medium">Advanced Patient Management Features Coming Soon</span>
+        <div className="inline-flex items-center px-4 sm:px-6 py-3 bg-pink-100 text-pink-700 rounded-full flex-wrap justify-center gap-2">
+          <Users className="h-5 w-5" />
+          <span className="font-medium text-sm sm:text-base">Advanced Patient Management Features Coming Soon</span>
         </div>
       </div>
     </div>
