@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -34,16 +34,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, MessageSquare, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
 
-// Mock data for dashboard widgets (to be replaced with API calls)
-const todayStats = {
-  totalAppointments: 12,
-  completedConsultations: 8,
-  pendingPatients: 4,
-  emergencyCalls: 2,
-  avgConsultationTime: 18
-}
 
-const todayAppointments = [
+const todayAppointments: any[] = [
   {
     id: "APT001",
     patientName: "राजेश कुमार",
@@ -88,9 +80,9 @@ const todayAppointments = [
     room: "Emergency",
     phone: "+91 65432 10987"
   }
-]
+];
 
-const recentPatients = [
+const recentPatients: any[] = [
   {
     id: "P001",
     name: "राजेश कुमार",
@@ -123,32 +115,6 @@ const recentPatients = [
   }
 ]
 
-const pendingTasks = [
-  {
-    id: "TASK001",
-    type: "prescription_review",
-    patient: "राजेश कुमार",
-    description: "Review and approve prescription modifications",
-    priority: "high",
-    dueTime: "11:30 AM"
-  },
-  {
-    id: "TASK002",
-    type: "lab_review",
-    patient: "सुनीता देवी",
-    description: "Review ECG and blood test results",
-    priority: "medium",
-    dueTime: "02:00 PM"
-  },
-  {
-    id: "TASK003",
-    type: "ai_summary",
-    patient: "मोहम्मद अली",
-    description: "Approve AI-generated patient summary",
-    priority: "low",
-    dueTime: "04:00 PM"
-  }
-]
 
 // Navigation items
 const navigationItems = [
@@ -181,6 +147,19 @@ export default function DoctorDashboard() {
   const { authState, logout } = useAuth();
   const { user, isLoading } = authState;
   const [notifications] = useState(5);
+  const [stats, setStats] = useState({
+    todaysAppointments: 0,
+    totalPatients: 0,
+    emergencyCalls: 0,
+    surgeriesToday: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+  const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [pendingTasksLoading, setPendingTasksLoading] = useState(true);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -200,6 +179,79 @@ export default function DoctorDashboard() {
   };
 
   const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const response = await fetch('/api/doctor/dashboard-stats');
+        if (!response.ok) {
+          throw new Error('Failed to fetch stats');
+        }
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    const fetchAppointments = async () => {
+      try {
+        setAppointmentsLoading(true);
+        const response = await fetch('/api/doctor/appointments');
+        if (!response.ok) {
+          throw new Error('Failed to fetch appointments');
+        }
+        const data = await response.json();
+        setAppointments(data);
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+      } finally {
+        setAppointmentsLoading(false);
+      }
+    };
+
+    const fetchRecentPatients = async () => {
+      try {
+        setRecentPatientsLoading(true);
+        const response = await fetch('/api/doctor/recent-patients');
+        if (!response.ok) {
+          throw new Error('Failed to fetch recent patients');
+        }
+        const data = await response.json();
+        setRecentPatients(data);
+      } catch (error) {
+        console.error("Error fetching recent patients:", error);
+      } finally {
+        setRecentPatientsLoading(false);
+      }
+    };
+
+    const fetchPendingTasks = async () => {
+      try {
+        setPendingTasksLoading(true);
+        const response = await fetch('/api/doctor/pending-tasks');
+        if (!response.ok) {
+          throw new Error('Failed to fetch pending tasks');
+        }
+        const data = await response.json();
+        setPendingTasks(data);
+      } catch (error) {
+        console.error("Error fetching pending tasks:", error);
+      } finally {
+        setPendingTasksLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchStats();
+      fetchAppointments();
+      fetchRecentPatients();
+      fetchPendingTasks();
+    }
+  }, [user]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -258,14 +310,14 @@ export default function DoctorDashboard() {
           </SidebarHeader>
           
           <SidebarContent className="px-4 py-6">
-            {navigationItems.map((section) => (
+            {navigationItems.map((section: any) => (
               <SidebarGroup key={section.title}>
                 <SidebarGroupLabel className="text-gray-600 font-medium mb-2">
                   {section.title}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {section.items.map((item) => (
+                    {section.items.map((item: any) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton 
                           asChild 
@@ -288,7 +340,7 @@ export default function DoctorDashboard() {
           <SidebarFooter className="border-t border-pink-100 p-4">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.avatarUrl || "/placeholder.svg?height=40&width=40"} />
+                <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
                 <AvatarFallback className="bg-pink-100 text-pink-700">{initials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
@@ -335,7 +387,7 @@ export default function DoctorDashboard() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatarUrl || "/placeholder.svg?height=40&width=40"} />
+                        <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
                         <AvatarFallback className="bg-pink-100 text-pink-700">{initials}</AvatarFallback>
                       </Avatar>
                     </Button>
@@ -375,9 +427,9 @@ export default function DoctorDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                      <p className="text-3xl font-bold text-gray-900">{todayStats.totalAppointments}</p>
+                      <p className="text-3xl font-bold text-gray-900">{statsLoading ? '...' : stats.todaysAppointments}</p>
                       <p className="text-sm text-green-600 mt-1">
-                        {todayStats.completedConsultations} completed
+                        Scheduled for today
                       </p>
                     </div>
                     <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
@@ -391,14 +443,14 @@ export default function DoctorDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Pending Patients</p>
-                      <p className="text-3xl font-bold text-yellow-600">{todayStats.pendingPatients}</p>
+                      <p className="text-sm font-medium text-gray-600">Total Patients</p>
+                      <p className="text-3xl font-bold text-yellow-600">{statsLoading ? '...' : stats.totalPatients}</p>
                       <p className="text-sm text-yellow-600 mt-1">
-                        Waiting for consultation
+                        Under your care
                       </p>
                     </div>
                     <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-3 rounded-xl">
-                      <Clock className="h-8 w-8 text-white" />
+                      <Users className="h-8 w-8 text-white" />
                     </div>
                   </div>
                 </CardContent>
@@ -409,7 +461,7 @@ export default function DoctorDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Emergency Calls</p>
-                      <p className="text-3xl font-bold text-red-600">{todayStats.emergencyCalls}</p>
+                      <p className="text-3xl font-bold text-red-600">{statsLoading ? '...' : stats.emergencyCalls}</p>
                       <p className="text-sm text-red-600 mt-1">
                         Urgent attention needed
                       </p>
@@ -421,23 +473,6 @@ export default function DoctorDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Avg Consultation</p>
-                      <p className="text-3xl font-bold text-blue-600">{todayStats.avgConsultationTime}m</p>
-                      <p className="text-sm text-blue-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        Efficient timing
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
-                      <Stethoscope className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
@@ -513,24 +548,35 @@ export default function DoctorDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {todayAppointments.map((appointment) => (
-                      <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-pink-100 p-2 rounded-lg">
-                            <Clock className="h-5 w-5 text-pink-600" />
+                    {appointmentsLoading ? (
+                      <p>Loading appointments...</p>
+                    ) : appointments.length > 0 ? (
+                      appointments.map((appointment: any) => (
+                        <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-pink-100 p-2 rounded-lg">
+                              <Clock className="h-5 w-5 text-pink-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{appointment.Patient.firstName} {appointment.Patient.lastName}</p>
+                              <p className="text-sm text-gray-600">{appointment.reason}</p>
+                              <p className="text-sm text-gray-500">{new Date(appointment.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{appointment.patientName}</p>
-                            <p className="text-sm text-gray-600">{appointment.condition} • {appointment.type}</p>
-                            <p className="text-sm text-gray-500">{appointment.time} • {appointment.room}</p>
+                          <div className="text-right">
+                            {getStatusBadge(appointment.status)}
+                            <Link href={`/doctor/patients/${appointment.Patient.id}?appointmentId=${appointment.id}`} passHref>
+                              <Button variant="outline" size="sm" className="h-8 mt-1">
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                            </Link>
                           </div>
                         </div>
-                        <div className="text-right">
-                          {getStatusBadge(appointment.status)}
-                          <p className="text-xs text-gray-500 mt-1">{appointment.patientId}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p>No appointments scheduled for today.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -550,28 +596,34 @@ export default function DoctorDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentPatients.map((patient) => (
+                    {recentPatientsLoading ? (
+                      <p>Loading recent patients...</p>
+                    ) : recentPatients.length > 0 ? (
+                      recentPatients.map((patient) => (
                       <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                         <div className="flex items-center space-x-4">
                           <div className="bg-blue-100 p-2 rounded-lg">
                             <User className="h-5 w-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
-                            <p className="text-sm text-gray-600">{patient.condition}</p>
-                            <p className="text-sm text-gray-500">
-                              BP: {patient.vitals.bp} • Temp: {patient.vitals.temp}
-                            </p>
+                            <p className="font-semibold text-gray-900">{patient.firstName} {patient.lastName} ({patient.age}y)</p>
+                            <p className="text-sm text-gray-600">Last Visit: {new Date(patient.lastVisit).toLocaleDateString()}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           {getStatusBadge(patient.status)}
-                          <p className="text-xs text-gray-500 mt-1">
-                            Next: {new Date(patient.nextAppointment).toLocaleDateString()}
-                          </p>
+                           <Link href={`/doctor/patients/${patient.id}`} passHref>
+                             <Button variant="outline" size="sm" className="h-8 mt-1">
+                               <Eye className="h-4 w-4 mr-1" />
+                               View
+                             </Button>
+                           </Link>
                         </div>
                       </div>
-                    ))}
+                    ))
+                    ) : (
+                      <p>No recent patients found.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -585,30 +637,36 @@ export default function DoctorDashboard() {
                   <CardDescription>Items requiring your attention</CardDescription>
                 </div>
                 <Badge className="bg-red-100 text-red-700">
-                  {pendingTasks.length} pending
+                  {pendingTasksLoading ? '...' : pendingTasks.length} pending
                 </Badge>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {pendingTasks.map((task) => (
-                    <div key={task.id} className={`p-4 rounded-xl border ${getPriorityColor(task.priority)}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          {getTaskIcon(task.type)}
-                          <div>
-                            <p className="font-semibold">{task.patient}</p>
-                            <p className="text-sm opacity-75">{task.description}</p>
+                  {pendingTasksLoading ? (
+                    <p>Loading tasks...</p>
+                  ) : pendingTasks.length > 0 ? (
+                    pendingTasks.map((task: any) => (
+                      <div key={task.id} className={`p-4 rounded-xl border ${getPriorityColor(task.priority)}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getTaskIcon(task.type)}
+                            <div>
+                              <p className="font-semibold">{task.Patient.firstName} {task.Patient.lastName}</p>
+                              <p className="text-sm opacity-75">{task.description}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge className={`${getPriorityColor(task.priority)} border-0`}>
+                              {task.priority}
+                            </Badge>
+                            <p className="text-xs opacity-75 mt-1">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Badge className={`${getPriorityColor(task.priority)} border-0`}>
-                            {task.priority}
-                          </Badge>
-                          <p className="text-xs opacity-75 mt-1">Due: {task.dueTime}</p>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p>No pending tasks.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
