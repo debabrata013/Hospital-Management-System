@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,15 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, MessageSquare, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
 
-// Mock data for the doctor dashboard
-const doctorInfo = {
-  name: "डॉ. प्रिया शर्मा",
-  specialization: "हृदय रोग विशेषज्ञ (Cardiologist)",
-  department: "कार्डियोलॉजी विभाग",
-  employeeId: "DOC001",
-  experience: "12 years"
-}
-
+// Mock data for dashboard widgets (to be replaced with API calls)
 const todayStats = {
   totalAppointments: 12,
   completedConsultations: 8,
@@ -185,7 +178,28 @@ const navigationItems = [
 ]
 
 export default function DoctorDashboard() {
-  const [notifications] = useState(5)
+  const { authState, logout } = useAuth();
+  const { user, isLoading } = authState;
+  const [notifications] = useState(5);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Please log in to view the dashboard.</div>;
+  }
+
+  // Use logged-in user data, with placeholders for details not in the auth state
+  const doctorInfo = {
+    name: `${user.firstName} ${user.lastName}`,
+    specialization: "Cardiologist", // Placeholder - to be fetched from a doctor profile API
+    department: "Cardiology Department", // Placeholder
+    employeeId: user.id,
+    experience: "12 years" // Placeholder
+  };
+
+  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -274,8 +288,8 @@ export default function DoctorDashboard() {
           <SidebarFooter className="border-t border-pink-100 p-4">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback className="bg-pink-100 text-pink-700">प्र</AvatarFallback>
+                <AvatarImage src={user.avatarUrl || "/placeholder.svg?height=40&width=40"} />
+                <AvatarFallback className="bg-pink-100 text-pink-700">{initials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{doctorInfo.name}</p>
@@ -321,24 +335,28 @@ export default function DoctorDashboard() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                        <AvatarFallback className="bg-pink-100 text-pink-700">प्र</AvatarFallback>
+                        <AvatarImage src={user.avatarUrl || "/placeholder.svg?height=40&width=40"} />
+                        <AvatarFallback className="bg-pink-100 text-pink-700">{initials}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuLabel>Doctor Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      Profile Settings
+                    <DropdownMenuItem asChild>
+                      <Link href="/doctor/settings">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile Settings
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      My Schedule
+                    <DropdownMenuItem asChild>
+                      <Link href="/doctor/schedule">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        My Schedule
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
+                    <DropdownMenuItem className="text-red-600" onSelect={() => logout()}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </DropdownMenuItem>
