@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,13 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { 
   FileText, Search, Eye, CheckCircle, Clock, 
   AlertTriangle, Pill, User, Calendar, RefreshCw
 } from 'lucide-react'
 import { usePrescriptions, useMedicines } from "@/hooks/usePharmacy"
-import { PharmacySidebar } from "@/components/pharmacy-sidebar"
 import { toast } from "sonner"
 
 export default function PrescriptionsManagement() {
@@ -80,66 +77,37 @@ export default function PrescriptionsManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
-      {/* Sidebar */}
-      <PharmacySidebar />
+    <main className="w-full min-h-screen p-6">
+      {/* Search */}
+      <div className="w-full mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search prescriptions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 border-pink-200 focus:border-pink-400"
+          />
+        </div>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
-          <div className="px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Prescriptions Management</h1>
-                <p className="text-gray-600">Process and dispense prescriptions</p>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={refetch}
-                  disabled={loading}
-                  className="text-gray-600 hover:text-pink-500"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <TabsList className="w-full grid grid-cols-2 lg:grid-cols-4 bg-pink-50 border border-pink-100">
+          <TabsTrigger value="viewer">Digital Viewer</TabsTrigger>
+          <TabsTrigger value="availability">Medicine Availability</TabsTrigger>
+          <TabsTrigger value="fulfillment">Fulfillment Status</TabsTrigger>
+          <TabsTrigger value="dosage">Dosage Confirmation</TabsTrigger>
+        </TabsList>
 
-        <div className="p-6">
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search prescriptions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 border-pink-200 focus:border-pink-400"
-              />
-            </div>
-          </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-pink-50 border border-pink-100">
-            <TabsTrigger value="viewer">Digital Viewer</TabsTrigger>
-            <TabsTrigger value="availability">Medicine Availability</TabsTrigger>
-            <TabsTrigger value="fulfillment">Fulfillment Status</TabsTrigger>
-            <TabsTrigger value="dosage">Dosage Confirmation</TabsTrigger>
-          </TabsList>
-
-          {/* Digital Prescription Viewer */}
-          <TabsContent value="viewer">
-            <Card>
-              <CardHeader>
-                <CardTitle>Digital Prescription Viewer</CardTitle>
-                <CardDescription>View prescriptions linked to doctors' modules</CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* Digital Prescription Viewer */}
+        <TabsContent value="viewer" className="w-full">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Digital Prescription Viewer</CardTitle>
+              <CardDescription>View prescriptions linked to doctors' modules</CardDescription>
+            </CardHeader>
+            <CardContent className="w-full">
+              <div className="w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -171,7 +139,7 @@ export default function PrescriptionsManagement() {
                                 View
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Prescription Details</DialogTitle>
                                 <DialogDescription>
@@ -179,7 +147,7 @@ export default function PrescriptionsManagement() {
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div>
                                     <Label>Patient</Label>
                                     <p className="font-medium">{prescription.patient_name}</p>
@@ -222,166 +190,165 @@ export default function PrescriptionsManagement() {
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Medicine Availability */}
-          <TabsContent value="availability">
-            <Card>
-              <CardHeader>
-                <CardTitle>Auto-suggest Medicine Availability</CardTitle>
-                <CardDescription>Check stock availability for prescribed medicines</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {prescriptions?.map((prescription) => (
-                    <div key={prescription.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold">{prescription.prescription_id}</h4>
-                        <Badge>{prescription.patient_name}</Badge>
-                      </div>
-                      <div className="space-y-2">
-                        {prescription.medications?.map((med: any, index: number) => {
-                          const availability = checkMedicineAvailability(med.medicine_name, med.quantity)
-                          return (
-                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                              <div>
-                                <p className="font-medium">{med.medicine_name}</p>
-                                <p className="text-sm text-gray-600">Required: {med.quantity}</p>
-                              </div>
-                              <div className="text-right">
-                                {availability.available ? (
-                                  <Badge className="bg-green-100 text-green-700">Available</Badge>
-                                ) : (
-                                  <div>
-                                    <Badge className="bg-red-100 text-red-700">
-                                      {availability.stock === 0 ? 'Out of Stock' : 'Insufficient'}
-                                    </Badge>
-                                    {availability.suggestion && (
-                                      <p className="text-xs text-orange-600 mt-1">{availability.suggestion}</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
+        {/* Medicine Availability */}
+        <TabsContent value="availability">
+          <Card>
+            <CardHeader>
+              <CardTitle>Auto-suggest Medicine Availability</CardTitle>
+              <CardDescription>Check stock availability for prescribed medicines</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {prescriptions?.map((prescription) => (
+                  <div key={prescription.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold">{prescription.prescription_id}</h4>
+                      <Badge>{prescription.patient_name}</Badge>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Fulfillment Status */}
-          <TabsContent value="fulfillment">
-            <Card>
-              <CardHeader>
-                <CardTitle>Real-time Prescription Fulfillment Status</CardTitle>
-                <CardDescription>Track prescription processing status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4">
-                  {prescriptions?.map((prescription) => (
-                    <div key={prescription.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold">{prescription.prescription_id}</h4>
-                          <p className="text-sm text-gray-600">{prescription.patient_name}</p>
-                        </div>
-                        {getStatusBadge(prescription.dispensing_status)}
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                          {new Date(prescription.prescription_date).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center">
-                          <Pill className="h-4 w-4 mr-1 text-gray-400" />
-                          {prescription.total_medications} medicines
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1 text-gray-400" />
-                          {prescription.dispensing_status === 'pending' ? 'Awaiting dispensing' : 'Completed'}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Dosage Confirmation */}
-          <TabsContent value="dosage">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dosage, Frequency & Quantity Confirmation</CardTitle>
-                <CardDescription>Verify medication details before dispensing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {prescriptions?.filter(p => p.dispensing_status === 'pending').map((prescription) => (
-                    <div key={prescription.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold">{prescription.prescription_id}</h4>
-                        <Badge className="bg-yellow-100 text-yellow-700">Pending Confirmation</Badge>
-                      </div>
-                      <div className="space-y-3">
-                        {prescription.medications?.map((med: any, index: number) => (
-                          <div key={index} className="p-3 border rounded-lg">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              <div>
-                                <Label className="text-xs text-gray-500">Medicine</Label>
-                                <p className="font-medium">{med.medicine_name}</p>
-                              </div>
-                              <div>
-                                <Label className="text-xs text-gray-500">Dosage</Label>
-                                <p className="font-medium">{med.dosage}</p>
-                              </div>
-                              <div>
-                                <Label className="text-xs text-gray-500">Frequency</Label>
-                                <p className="font-medium">{med.frequency}</p>
-                              </div>
-                              <div>
-                                <Label className="text-xs text-gray-500">Quantity</Label>
-                                <p className="font-medium">{med.quantity}</p>
-                              </div>
+                    <div className="space-y-2">
+                      {prescription.medications?.map((med: any, index: number) => {
+                        const availability = checkMedicineAvailability(med.medicine_name, med.quantity)
+                        return (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div>
+                              <p className="font-medium">{med.medicine_name}</p>
+                              <p className="text-sm text-gray-600">Required: {med.quantity}</p>
                             </div>
-                            <div className="mt-2 pt-2 border-t">
-                              <Label className="text-xs text-gray-500">Duration & Instructions</Label>
-                              <p className="text-sm">{med.duration}</p>
-                              {med.instructions && (
-                                <p className="text-sm text-gray-600 mt-1">{med.instructions}</p>
+                            <div className="text-right">
+                              {availability.available ? (
+                                <Badge className="bg-green-100 text-green-700">Available</Badge>
+                              ) : (
+                                <div>
+                                  <Badge className="bg-red-100 text-red-700">
+                                    {availability.stock === 0 ? 'Out of Stock' : 'Insufficient'}
+                                  </Badge>
+                                  {availability.suggestion && (
+                                    <p className="text-xs text-orange-600 mt-1">{availability.suggestion}</p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
-                        ))}
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Fulfillment Status */}
+        <TabsContent value="fulfillment">
+          <Card>
+            <CardHeader>
+              <CardTitle>Real-time Prescription Fulfillment Status</CardTitle>
+              <CardDescription>Track prescription processing status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                {prescriptions?.map((prescription) => (
+                  <div key={prescription.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold">{prescription.prescription_id}</h4>
+                        <p className="text-sm text-gray-600">{prescription.patient_name}</p>
                       </div>
-                      <div className="mt-4 flex space-x-2">
-                        <Button 
-                          onClick={() => handleDispense(prescription.prescription_id, 'Confirmed and dispensed')}
-                          className="bg-green-500 hover:bg-green-600"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Confirm & Dispense
-                        </Button>
-                        <Button variant="outline">
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          Query Doctor
-                        </Button>
+                      {getStatusBadge(prescription.dispensing_status)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                        {new Date(prescription.prescription_date).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center">
+                        <Pill className="h-4 w-4 mr-1 text-gray-400" />
+                        {prescription.total_medications} medicines
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                        {prescription.dispensing_status === 'pending' ? 'Awaiting dispensing' : 'Completed'}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        </div>
-      </div>
-    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Dosage Confirmation */}
+        <TabsContent value="dosage">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dosage, Frequency & Quantity Confirmation</CardTitle>
+              <CardDescription>Verify medication details before dispensing</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {prescriptions?.filter(p => p.dispensing_status === 'pending').map((prescription) => (
+                  <div key={prescription.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold">{prescription.prescription_id}</h4>
+                      <Badge className="bg-yellow-100 text-yellow-700">Pending Confirmation</Badge>
+                    </div>
+                    <div className="space-y-3">
+                      {prescription.medications?.map((med: any, index: number) => (
+                        <div key={index} className="p-3 border rounded-lg">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                              <Label className="text-xs text-gray-500">Medicine</Label>
+                              <p className="font-medium">{med.medicine_name}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Dosage</Label>
+                              <p className="font-medium">{med.dosage}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Frequency</Label>
+                              <p className="font-medium">{med.frequency}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Quantity</Label>
+                              <p className="font-medium">{med.quantity}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t">
+                            <Label className="text-xs text-gray-500">Duration & Instructions</Label>
+                            <p className="text-sm">{med.duration}</p>
+                            {med.instructions && (
+                              <p className="text-sm text-gray-600 mt-1">{med.instructions}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button 
+                        onClick={() => handleDispense(prescription.prescription_id, 'Confirmed and dispensed')}
+                        className="bg-green-500 hover:bg-green-600"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Confirm & Dispense
+                      </Button>
+                      <Button variant="outline">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Query Doctor
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </main>
   )
 }

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,10 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Package, AlertTriangle, Search, Plus, RefreshCw, 
-  Calendar, TrendingDown, ArrowUpDown, Clock, Truck
+  Calendar, TrendingDown, Clock, Truck
 } from 'lucide-react'
 import { useMedicines, useStock } from "@/hooks/usePharmacy"
-import { PharmacySidebar } from "@/components/pharmacy-sidebar"
 import { toast } from "sonner"
 
 export default function InventoryManagement() {
@@ -66,72 +64,37 @@ export default function InventoryManagement() {
   const needsReorder = (current: number, minimum: number) => current <= minimum
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
-      {/* Sidebar */}
-      <PharmacySidebar />
+    <main className="w-full min-h-screen p-6">
+      {/* Search */}
+      <div className="w-full mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search medicines..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 border-pink-200 focus:border-pink-400"
+          />
+        </div>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
-          <div className="px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-                <p className="text-gray-600">Manage stock levels, batches, and reorders</p>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={refreshData}
-                  disabled={loading || stockLoading}
-                  className="text-gray-600 hover:text-pink-500"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading || stockLoading ? 'animate-spin' : ''}`} />
-                </Button>
-                <Link href="/pharmacy/inventory/add">
-                  <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Medicine
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <TabsList className="w-full grid grid-cols-2 lg:grid-cols-4 bg-pink-50 border border-pink-100">
+          <TabsTrigger value="stock-levels">Real-time Stock</TabsTrigger>
+          <TabsTrigger value="batch-tracking">Batch & Expiry</TabsTrigger>
+          <TabsTrigger value="reorder-alerts">Auto Reorder</TabsTrigger>
+          <TabsTrigger value="stock-logs">Stock Logs</TabsTrigger>
+        </TabsList>
 
-        <div className="p-6">
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search medicines..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 border-pink-200 focus:border-pink-400"
-              />
-            </div>
-          </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-pink-50 border border-pink-100">
-            <TabsTrigger value="stock-levels">Real-time Stock</TabsTrigger>
-            <TabsTrigger value="batch-tracking">Batch & Expiry</TabsTrigger>
-            <TabsTrigger value="reorder-alerts">Auto Reorder</TabsTrigger>
-            <TabsTrigger value="stock-logs">Stock Logs</TabsTrigger>
-          </TabsList>
-
-          {/* Real-time Stock Levels */}
-          <TabsContent value="stock-levels">
-            <Card>
-              <CardHeader>
-                <CardTitle>Real-time Stock Levels</CardTitle>
-                <CardDescription>Current stock status of all medicines</CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* Real-time Stock Levels */}
+        <TabsContent value="stock-levels" className="w-full">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Real-time Stock Levels</CardTitle>
+              <CardDescription>Current stock status of all medicines</CardDescription>
+            </CardHeader>
+            <CardContent className="w-full">
+              <div className="w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -161,18 +124,20 @@ export default function InventoryManagement() {
                     })}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Batch Tracking & Expiry */}
-          <TabsContent value="batch-tracking">
-            <Card>
-              <CardHeader>
-                <CardTitle>Batch Number Tracking & Expiry Alerts</CardTitle>
-                <CardDescription>Monitor batch numbers and expiry dates</CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* Batch Tracking & Expiry */}
+        <TabsContent value="batch-tracking">
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch Number Tracking & Expiry Alerts</CardTitle>
+              <CardDescription>Monitor batch numbers and expiry dates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -211,18 +176,20 @@ export default function InventoryManagement() {
                     })}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Auto Reorder */}
-          <TabsContent value="reorder-alerts">
-            <Card>
-              <CardHeader>
-                <CardTitle>Automated Reordering</CardTitle>
-                <CardDescription>Medicines requiring reorder based on thresholds</CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* Auto Reorder */}
+        <TabsContent value="reorder-alerts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Automated Reordering</CardTitle>
+              <CardDescription>Medicines requiring reorder based on thresholds</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -255,52 +222,51 @@ export default function InventoryManagement() {
                     })}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Stock Logs */}
-          <TabsContent value="stock-logs">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stock Inward/Outward Logs</CardTitle>
-                <CardDescription>Track all stock movements</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stockData?.recent_transactions?.map((log: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className={`p-2 rounded-lg ${log.type === 'inward' ? 'bg-green-100' : 'bg-red-100'}`}>
-                          {log.type === 'inward' ? (
-                            <TrendingDown className="h-4 w-4 text-green-600 rotate-180" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-red-600" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{log.medicine_name}</p>
-                          <p className="text-sm text-gray-600">{log.type === 'inward' ? 'Stock In' : 'Stock Out'}</p>
-                        </div>
+        {/* Stock Logs */}
+        <TabsContent value="stock-logs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Stock Inward/Outward Logs</CardTitle>
+              <CardDescription>Track all stock movements</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stockData?.recent_transactions?.map((log: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className={`p-2 rounded-lg ${log.type === 'inward' ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {log.type === 'inward' ? (
+                          <TrendingDown className="h-4 w-4 text-green-600 rotate-180" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{log.quantity} units</p>
-                        <p className="text-sm text-gray-500">{new Date(log.created_at).toLocaleDateString()}</p>
+                      <div>
+                        <p className="font-medium">{log.medicine_name}</p>
+                        <p className="text-sm text-gray-600">{log.type === 'inward' ? 'Stock In' : 'Stock Out'}</p>
                       </div>
                     </div>
-                  )) || (
-                    <div className="text-center py-8">
-                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500">No stock movements recorded</p>
+                    <div className="text-right">
+                      <p className="font-semibold">{log.quantity} units</p>
+                      <p className="text-sm text-gray-500">{new Date(log.created_at).toLocaleDateString()}</p>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        </div>
-      </div>
-    </div>
+                  </div>
+                )) || (
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500">No stock movements recorded</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </main>
   )
 }
