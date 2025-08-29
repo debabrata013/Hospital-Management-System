@@ -32,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, MessageSquare, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
 
 
 const todayAppointments: any[] = [
@@ -138,7 +138,6 @@ const navigationItems = [
     items: [
       { title: "AI Assistant", icon: Brain, url: "/doctor/ai-tools" },
       { title: "Lab Results", icon: FlaskConical, url: "/doctor/lab-results" },
-      { title: "Messages", icon: MessageSquare, url: "/doctor/messages" },
     ]
   }
 ]
