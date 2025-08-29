@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   AlertTriangle,
   Phone,
-  MessageSquare,
   Plus,
   Search,
   Filter,
@@ -387,13 +386,6 @@ export default function EmergencyPage() {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => window.open(`sms:${contact.primaryPhone}`)}
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
                               onClick={() => {
                                 setSelectedContact(contact)
                                 setCallDialog(true)
@@ -645,14 +637,6 @@ export default function EmergencyPage() {
                       <Phone className="h-4 w-4 mr-2" />
                       Call
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => window.open(`sms:${selectedContact.primaryPhone}`)}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      SMS
-                    </Button>
                   </div>
                 </div>
 
@@ -668,14 +652,6 @@ export default function EmergencyPage() {
                     >
                       <Phone className="h-4 w-4 mr-2" />
                       Call
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => window.open(`sms:${selectedContact.alternatePhone}`)}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      SMS
                     </Button>
                   </div>
                 </div>

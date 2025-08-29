@@ -42,7 +42,6 @@ import {
   ClipboardList, 
   Clock, 
   AlertTriangle, 
-  MessageSquare,
   Pill,
   CheckCircle,
   Plus,
@@ -70,8 +69,7 @@ const staffStats = {
   completedTasks: 8,
   pendingVitals: 5,
   medicineDeliveries: 3,
-  shiftHours: 8,
-  unreadMessages: 4
+  shiftHours: 8
 }
 
 const assignedPatients = [
@@ -155,33 +153,6 @@ const pendingTasks = [
   }
 ]
 
-const recentMessages = [
-  {
-    id: "M001",
-    from: "Dr. Anil Kumar",
-    message: "Please check BP for patient in Room 101 every 2 hours",
-    time: "11:45 AM",
-    priority: "normal",
-    read: false
-  },
-  {
-    id: "M002",
-    from: "Admin",
-    message: "Shift change at 6 PM. Please complete handover notes",
-    time: "11:30 AM",
-    priority: "high",
-    read: false
-  },
-  {
-    id: "M003",
-    from: "Dr. Rajesh Gupta",
-    message: "ICU patient needs continuous monitoring. Alert if any changes",
-    time: "10:15 AM",
-    priority: "urgent",
-    read: true
-  }
-]
-
 const medicineSchedule = [
   {
     id: "MED001",
@@ -235,7 +206,6 @@ const navigationItems = [
   {
     title: "Communication",
     items: [
-      { title: "Messages", icon: MessageSquare, url: "/staff/messages" },
       { title: "Shift Assignments", icon: Calendar, url: "/staff/shifts" },
       { title: "Handover Notes", icon: FileText, url: "/staff/handover" },
     ]
@@ -507,24 +477,6 @@ export default function StaffDashboard() {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="border-red-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Unread Messages</p>
-                      <p className="text-3xl font-bold text-gray-900">{staffStats.unreadMessages}</p>
-                      <p className="text-sm text-red-600 flex items-center mt-1">
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        2 urgent
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
-                      <Bell className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Main Dashboard Grid */}
@@ -649,43 +601,6 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Recent Messages */}
-            <Card className="border-indigo-100">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold">Recent Messages</CardTitle>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/staff/messages">
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      View All
-                    </Link>
-                  </Button>
-                </div>
-                <CardDescription>Communication from doctors and admin</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentMessages.map((message) => (
-                    <div key={message.id} className={`p-3 rounded-lg ${message.read ? 'bg-gray-50' : 'bg-blue-50 border-l-4 border-blue-500'}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <p className="font-medium text-sm">{message.from}</p>
-                            {getPriorityBadge(message.priority)}
-                          </div>
-                          <p className="text-sm text-gray-600">{message.message}</p>
-                          <p className="text-xs text-gray-500 mt-2">{message.time}</p>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </main>
         </SidebarInset>
       </div>

@@ -42,7 +42,6 @@ import {
   CreditCard, 
   Clock, 
   AlertTriangle, 
-  MessageSquare,
   Phone,
   Search,
   Plus,
@@ -70,8 +69,7 @@ const receptionistStats = {
   pendingAppointments: 15,
   waitingPatients: 8,
   totalBills: 45,
-  emergencyContacts: 3,
-  unreadMessages: 12
+  emergencyContacts: 3
 }
 
 const patientQueue = [
@@ -180,33 +178,6 @@ const pendingBills = [
   }
 ]
 
-const recentMessages = [
-  {
-    id: "M001",
-    from: "Dr. Anil Kumar",
-    message: "Please arrange blood test report for P001. CBC and Sugar Test required.",
-    time: "11:45 AM",
-    priority: "normal",
-    read: false
-  },
-  {
-    id: "M002",
-    from: "Admin",
-    message: "Staff meeting today at 5 PM in conference room.",
-    time: "11:30 AM", 
-    priority: "high",
-    read: false
-  },
-  {
-    id: "M003",
-    from: "Dr. Priya Singh",
-    message: "Patient P002 needs follow-up appointment next week.",
-    time: "10:15 AM",
-    priority: "normal",
-    read: true
-  }
-]
-
 // Navigation items for receptionist
 const navigationItems = [
   {
@@ -228,7 +199,6 @@ const navigationItems = [
     title: "Operations",
     items: [
       { title: "Billing & Payments", icon: CreditCard, url: "/receptionist/billing" },
-      { title: "Messages", icon: MessageSquare, url: "/receptionist/messages" },
       { title: "Emergency Contacts", icon: Phone, url: "/receptionist/emergency" },
     ]
   }
@@ -510,24 +480,6 @@ export default function ReceptionistDashboard() {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="border-indigo-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Unread Messages</p>
-                      <p className="text-3xl font-bold text-gray-900">{receptionistStats.unreadMessages}</p>
-                      <p className="text-sm text-indigo-600 flex items-center mt-1">
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        5 from doctors
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-indigo-400 to-indigo-500 p-3 rounded-xl">
-                      <MessageSquare className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Main Dashboard Grid */}
@@ -690,45 +642,6 @@ export default function ReceptionistDashboard() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Recent Messages */}
-              <Card className="border-indigo-100">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold">Recent Messages</CardTitle>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/receptionist/messages">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        View All
-                      </Link>
-                    </Button>
-                  </div>
-                  <CardDescription>Communication with doctors and admin</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentMessages.map((message) => (
-                      <div key={message.id} className={`p-3 rounded-lg ${message.read ? 'bg-gray-50' : 'bg-pink-50 border-l-4 border-pink-500'}`}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <p className="font-medium text-sm">{message.from}</p>
-                              {message.priority === 'high' && (
-                                <Badge className="bg-red-100 text-red-700 text-xs">High</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600">{message.message}</p>
-                            <p className="text-xs text-gray-500 mt-2">{message.time}</p>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </main>
         </SidebarInset>
@@ -819,10 +732,6 @@ export default function ReceptionistDashboard() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    SMS
-                  </Button>
                   <Button size="sm" className="bg-green-500 hover:bg-green-600">
                     <Phone className="h-4 w-4 mr-2" />
                     Call

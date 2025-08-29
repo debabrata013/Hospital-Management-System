@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard, Bell, LogOut, Plus, FileText, AlertTriangle, Clock, Bed, Stethoscope, Pill, DollarSign, TrendingUp, Eye, MoreHorizontal, MapPin, MessageSquare } from 'lucide-react'
+import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard, Bell, LogOut, Plus, FileText, AlertTriangle, Clock, Bed, Stethoscope, Pill, DollarSign, TrendingUp, Eye, MoreHorizontal, MapPin } from 'lucide-react'
 
 // Mock data for the dashboard
 const branchInfo = {
@@ -194,7 +194,6 @@ const navigationItems = [
       { title: "Doctor Schedules", icon: UserCheck, url: "/admin/schedules" },
       { title: "Inventory/Pharmacy", icon: Package, url: "/admin/inventory" },
       { title: "Billing", icon: CreditCard, url: "/admin/billing" },
-      { title: "Messages", icon: MessageSquare, url: "/admin/messages" },
     ]
   }
 ]

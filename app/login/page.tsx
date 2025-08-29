@@ -295,52 +295,10 @@ function LoginForm() {
                 )}
               </Button>
 
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or</span>
-                </div>
-              </div>
+
 
               {/* Quick Login Options */}
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600 text-center">Quick login for demo:</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData({
-                        email: "doctor@hospital.com",
-                        password: "Doctor@123",
-                        rememberMe: false
-                      })
-                    }}
-                    className="border-pink-200 text-pink-600 hover:bg-pink-50 text-xs"
-                  >
-                    Demo Doctor
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData({
-                        email: "patient@hospital.com",
-                        password: "Patient@123",
-                        rememberMe: false
-                      })
-                    }}
-                    className="border-pink-200 text-pink-600 hover:bg-pink-50 text-xs"
-                  >
-                    Demo Patient
-                  </Button>
-                </div>
-              </div>
+            
             </form>
           </CardContent>
         </Card>
