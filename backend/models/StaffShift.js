@@ -1,4 +1,34 @@
-import mongoose from 'mongoose';
-const schema = new mongoose.Schema({});
-const StaffShift = mongoose.model('StaffShift', schema);
-export default StaffShift;
+const { DataTypes } = require('sequelize');
+
+module.exports = (sequelize) => {
+  const StaffShift = sequelize.define('StaffShift', {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    staffId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users',
+        key: 'id',
+      },
+    },
+    startTime: {
+      type: DataTypes.TIME,
+      allowNull: false,
+    },
+    endTime: {
+      type: DataTypes.TIME,
+      allowNull: false,
+    },
+    dayOfWeek: {
+      type: DataTypes.ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+      allowNull: false,
+    },
+  });
+
+  return StaffShift;
+};
+

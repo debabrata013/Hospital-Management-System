@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Heart, Globe, User, MenuIcon } from 'lucide-react';
+import { Heart, Globe, User as UserIcon, MenuIcon } from 'lucide-react';
+import { AuthState } from '@/lib/types';
 
 // Define the types for the props
 interface NavTranslations {
@@ -10,20 +11,6 @@ interface NavTranslations {
   about: string;
   contact: string;
   login: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  error: string | null;
 }
 
 interface NavbarProps {
@@ -72,7 +59,7 @@ export const Navbar = ({ t, language, toggleLanguage, authState, logout }: Navba
               <div className="flex items-center space-x-4">
                 <Link href={`/${authState.user.role}`}>
                   <Button variant="outline" className="rounded-full border-pink-200 text-pink-600 hover:bg-pink-50">
-                    <User className="w-4 h-4 mr-2" />
+                    <UserIcon className="w-4 h-4 mr-2" />
                     Dashboard
                   </Button>
                 </Link>

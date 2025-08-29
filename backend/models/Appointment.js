@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
-const Appointment = sequelize.define('Appointment', {
+module.exports = (sequelize) => {
+  const Appointment = sequelize.define('Appointment', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -25,6 +25,7 @@ const Appointment = sequelize.define('Appointment', {
     allowNull: true
   }
   // patientId and doctorId will be added via associations
-});
+  });
 
-module.exports = Appointment;
+  return Appointment;
+};

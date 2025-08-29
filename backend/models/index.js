@@ -1,46 +1,61 @@
-const sequelize = require('../config/database');
-const User = require('./User');
-const File = require('./File');
-const CleaningTask = require('./CleaningTask');
-const CleaningStaff = require('./CleaningStaff');
-const Patient = require('./Patient');
-const Appointment = require('./Appointment');
-const Task = require('./Task');
+const fs = require('fs');
+const path = require('path');
+const connectToDatabase = require('../config/database');
 
-const models = {
-  User,
-  File,
-  CleaningTask,
-  CleaningStaff,
-  Patient,
-  Appointment,
-  Task,
-};
+let db = null;
 
-// Define associations here if any
-// For example, a user can have many files:
-User.hasMany(File, { foreignKey: 'uploaderId', as: 'uploads' });
-File.belongsTo(User, { foreignKey: 'uploaderId', as: 'uploader' });
+async function initializeDatabase() {
+  if (db) {
+    return db;
+  }
 
-// A doctor (User) has many appointments
-User.hasMany(Appointment, { foreignKey: 'doctorId', as: 'doctorAppointments' });
-Appointment.belongsTo(User, { as: 'doctor', foreignKey: 'doctorId' });
+  console.log('Initializing database connection...');
+  const sequelize = await connectToDatabase();
+  const models = {};
 
-// A patient has many appointments
-Patient.hasMany(Appointment, { foreignKey: 'patientId', as: 'appointments' });
-Appointment.belongsTo(Patient, { as: 'patient', foreignKey: 'patientId' });
+  const modelsDir = __dirname;
+  console.log(`Loading models from: ${modelsDir}`);
 
-// A task is assigned to a user (doctor)
-User.hasMany(Task, { foreignKey: 'assignedTo', as: 'tasks' });
-Task.belongsTo(User, { as: 'assignee', foreignKey: 'assignedTo' });
+  const files = fs.readdirSync(modelsDir).filter(file => 
+    file.indexOf('.') !== 0 && file !== 'index.js' && file.slice(-3) === '.js'
+  );
 
-// A task is related to a patient
-Patient.hasMany(Task, { foreignKey: 'patientId', as: 'patientTasks' });
-Task.belongsTo(Patient, { as: 'patient', foreignKey: 'patientId' });
+  console.log(`Found model files: ${files.join(', ')}`);
 
-const db = {
-  ...models,
-  sequelize,
-};
+  // Temporarily disabled model loading to debug startup crash
+  /*
+  for (const file of files) {
+    try {
+      console.log(`Loading model: ${file}`);
+      const modelDefinition = require(path.join(modelsDir, file));
+      const model = modelDefinition(sequelize);
+      models[model.name] = model;
+      console.log(`Successfully loaded model: ${model.name}`);
+    } catch (error) {
+      console.error(`Failed to load model ${file}:`, error);
+      throw error;
+    }
+  }
+  */
 
-module.exports = db;
+  console.log('All models loaded. Setting up associations...');
+  // Temporarily disabled association to debug startup crash
+  /*
+  Object.keys(models).forEach(modelName => {
+    if (models[modelName].associate) {
+      console.log(`Associating model: ${modelName}`);
+      models[modelName].associate(models);
+    }
+  });
+  */
+
+  console.log('Associations complete. Database initialization finished.');
+  db = {
+    sequelize,
+    ...models,
+  };
+
+  return db;
+}
+
+module.exports = initializeDatabase;
