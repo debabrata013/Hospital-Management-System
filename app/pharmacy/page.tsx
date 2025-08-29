@@ -1,106 +1,53 @@
-/**
- * Pharmacy Dashboard - Main Landing Page
- * 
- * This is the central dashboard for the pharmacy module, providing pharmacists
- * with a comprehensive overview of pharmacy operations, key metrics, and quick
- * access to essential functions.
- * 
- * Key Features:
- * - Real-time pharmacy statistics and KPIs
- * - Recent prescriptions with quick dispensing actions
- * - Inventory alerts and stock notifications
- * - Quick navigation to all pharmacy modules
- * - Search functionality across prescriptions and medicines
- * - Responsive design for desktop and mobile devices
- * 
- * Dashboard Sections:
- * - Statistics Cards: Key metrics (total medicines, low stock, expiring items, total value)
- * - Recent Prescriptions: Latest prescriptions requiring attention
- * - Inventory Alerts: Stock warnings and expiry notifications
- * - Quick Actions: Fast access to common pharmacy tasks
- * - Navigation Links: Direct access to all pharmacy modules
- * 
- * State Management:
- * - Uses custom hooks for data fetching and state management
- * - Implements optimistic updates for better user experience
- * - Handles loading states and error conditions gracefully
- * - Real-time data synchronization with backend APIs
- * 
- * Integration Points:
- * - /api/pharmacy/stats - Dashboard statistics and metrics
- * - /api/pharmacy/prescriptions - Recent prescriptions data
- * - /api/pharmacy/alerts - Inventory and system alerts
- * - Custom hooks: usePharmacyStats, usePrescriptions, usePharmacyAlerts
- * 
- * @author Hospital Management System
- * @version 1.0
- * @since 2024-08-26
- */
-
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-// UI Components from shadcn/ui for consistent design system
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-// Lucide React icons for consistent iconography throughout the dashboard
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell
+} from 'recharts'
 import { 
   Heart, Package, AlertTriangle, TrendingUp, Search, Plus, Pill, 
-  FileText, BarChart3, Bell, Filter, Download, RefreshCw, Loader2 
+  FileText, BarChart3, Bell, Filter, Download, RefreshCw, Loader2,
+  Calendar, DollarSign, Activity, Clock, Users, TrendingDown
 } from 'lucide-react'
-// Custom hooks for pharmacy data management and API integration
 import { usePharmacyStats, usePrescriptions, usePharmacyAlerts } from "@/hooks/usePharmacy"
-// Toast notifications for user feedback and system messages
+import { PharmacySidebar } from "@/components/pharmacy-sidebar"
 import { toast } from "sonner"
 
-/**
- * PharmacyDashboard Component
- * 
- * Main functional component that renders the pharmacy dashboard interface.
- * Manages state for search functionality, tab navigation, and coordinates
- * data fetching through custom hooks.
- */
 export default function PharmacyDashboard() {
-  // Local state management for UI interactions
-  const [searchTerm, setSearchTerm] = useState("")           // Search input value for filtering
-  const [activeTab, setActiveTab] = useState("overview")     // Active tab selection for dashboard views
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeTab, setActiveTab] = useState("analytics")
 
-  // Custom hook for pharmacy statistics with comprehensive error handling
-  // Provides real-time metrics for dashboard KPI cards
   const { 
-    totalMedicines = 0,      // Total number of medicines in inventory
-    lowStock = 0,            // Count of medicines with low stock levels
-    expiringSoon = 0,        // Count of medicines expiring within threshold
-    totalValue = 0,          // Total monetary value of current inventory
-    loading: statsLoading = true,     // Loading state for statistics API
-    error: statsError,                // Error state for statistics fetching
-    refetch: refetchStats             // Function to manually refresh statistics
+    totalMedicines = 0,
+    lowStock = 0,
+    expiringSoon = 0,
+    totalValue = 0,
+    loading: statsLoading = true,
+    error: statsError,
+    refetch: refetchStats
   } = usePharmacyStats()
 
-  // Custom hook for prescriptions data with filtering and pagination
-  // Fetches recent prescriptions requiring pharmacist attention
   const { 
-    prescriptions = [],      // Array of recent prescription objects
-    statistics = {           // Prescription-related statistics object
+    prescriptions = [],
+    statistics = {
       total_prescriptions: 0,
       active_prescriptions: 0,
       completed_prescriptions: 0,
       pending_dispensing: 0
     },
-    loading: prescriptionsLoading = true,    // Loading state for prescriptions API
-    error: prescriptionsError,               // Error state for prescriptions fetching
-    refetch: refetchPrescriptions,           // Function to refresh prescriptions data
-    dispenseAllMedications                   // Function to dispense all medications in a prescription
+    loading: prescriptionsLoading = true,
+    error: prescriptionsError,
+    refetch: refetchPrescriptions
   } = usePrescriptions({ 
-    limit: 5,              // Limit to 5 most recent prescriptions for dashboard
-    status: 'active',      // Only show active prescriptions
-    pendingOnly: true      // Focus on prescriptions requiring dispensing action
+    limit: 10,
+    status: 'active'
   })
 
   const { 
@@ -109,48 +56,69 @@ export default function PharmacyDashboard() {
       outOfStock: [],
       expiringSoon: [],
       expired: [],
-      overstock: []
+      newPrescriptions: [],
+      refillReminders: []
     }, 
     summary: alertSummary = {
       lowStockCount: 0,
       outOfStockCount: 0,
       expiringSoonCount: 0,
       expiredCount: 0,
+      newPrescriptionsCount: 0,
+      refillRemindersCount: 0,
       totalAlerts: 0
     }, 
     loading: alertsLoading = true, 
     error: alertsError,
-    refetch: refetchAlerts,
-    markAlertsResolved 
+    refetch: refetchAlerts
   } = usePharmacyAlerts()
 
-  // Handle prescription dispensing
-  const handleDispensePrescription = async (prescriptionId: string) => {
-    try {
-      if (dispenseAllMedications) {
-        await dispenseAllMedications(prescriptionId, 'Dispensed from pharmacy dashboard')
-        toast.success('Prescription dispensed successfully')
-      }
-    } catch (error) {
-      console.error('Error dispensing prescription:', error)
-      toast.error('Failed to dispense prescription')
+  // Mock analytics data - replace with real API calls
+  const [analyticsData, setAnalyticsData] = useState({
+    stockConsumption: {
+      daily: [
+        { date: '2024-01-01', consumed: 120, restocked: 200 },
+        { date: '2024-01-02', consumed: 150, restocked: 100 },
+        { date: '2024-01-03', consumed: 180, restocked: 300 },
+        { date: '2024-01-04', consumed: 140, restocked: 150 },
+        { date: '2024-01-05', consumed: 160, restocked: 250 },
+      ],
+      weekly: [
+        { week: 'Week 1', consumed: 850, restocked: 1200 },
+        { week: 'Week 2', consumed: 920, restocked: 1100 },
+        { week: 'Week 3', consumed: 780, restocked: 1300 },
+        { week: 'Week 4', consumed: 1050, restocked: 1000 },
+      ],
+      monthly: [
+        { month: 'Jan', consumed: 3600, restocked: 4600 },
+        { month: 'Feb', consumed: 3200, restocked: 4200 },
+        { month: 'Mar', consumed: 3800, restocked: 4800 },
+      ]
+    },
+    fastSlowMoving: [
+      { name: 'Paracetamol', type: 'Fast', sales: 450, category: 'Analgesic' },
+      { name: 'Amoxicillin', type: 'Fast', sales: 320, category: 'Antibiotic' },
+      { name: 'Vitamin D', type: 'Slow', sales: 45, category: 'Supplement' },
+      { name: 'Insulin', type: 'Medium', sales: 180, category: 'Diabetes' },
+    ],
+    stockAging: [
+      { ageGroup: '0-30 days', value: 45, color: '#10B981' },
+      { ageGroup: '31-90 days', value: 30, color: '#F59E0B' },
+      { ageGroup: '91-180 days', value: 15, color: '#EF4444' },
+      { ageGroup: '180+ days', value: 10, color: '#6B7280' },
+    ],
+    profitAnalysis: [
+      { medicine: 'Paracetamol', cost: 2.5, selling: 5.0, profit: 2.5, margin: 50 },
+      { medicine: 'Amoxicillin', cost: 15.0, selling: 25.0, profit: 10.0, margin: 40 },
+      { medicine: 'Vitamin D', cost: 8.0, selling: 12.0, profit: 4.0, margin: 33 },
+    ],
+    dailySales: {
+      today: { total: 15420, transactions: 45, avgTransaction: 342 },
+      yesterday: { total: 12800, transactions: 38, avgTransaction: 337 },
+      growth: 20.4
     }
-  }
+  })
 
-  // Handle alert resolution
-  const handleResolveAlert = async (medicineIds: string[], alertType: string) => {
-    try {
-      if (markAlertsResolved) {
-        await markAlertsResolved(medicineIds)
-        toast.success(`${alertType} alerts resolved successfully`)
-      }
-    } catch (error) {
-      console.error('Error resolving alerts:', error)
-      toast.error('Failed to resolve alerts')
-    }
-  }
-
-  // Refresh all data
   const refreshAllData = async () => {
     try {
       const promises = []
@@ -166,102 +134,75 @@ export default function PharmacyDashboard() {
     }
   }
 
-  // Get recent prescriptions (limit to 3 for display)
-  const recentPrescriptions = prescriptions.slice(0, 3).map(prescription => ({
-    id: prescription.prescription_id,
-    patientName: prescription.patient_name,
-    doctor: prescription.doctor_name,
-    medicines: [`${prescription.total_medications} medicines`],
-    status: prescription.dispensing_status === 'pending' ? 'pending' : 'fulfilled',
-    date: new Date(prescription.prescription_date).toLocaleDateString(),
-    priority: 'normal'
-  }))
-
-  // Get low stock items from alerts
-  const lowStockItems = [...(alerts.lowStock || []), ...(alerts.outOfStock || [])].slice(0, 4).map(item => ({
-    name: item.name,
-    currentStock: item.current_stock,
-    minStock: item.minimum_stock,
-    category: item.category
-  }))
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                  <Heart className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
+      {/* Sidebar */}
+      <PharmacySidebar />
+
+      {/* Main Content */}
+      <div className="flex-1">
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
+          <div className="px-6 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Pharmacy Dashboard</h1>
+                <p className="text-gray-600">Analytics, alerts, and pharmacy operations overview</p>
+              </div>
+              
+              {/* <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshAllData}
+                  disabled={statsLoading || prescriptionsLoading || alertsLoading}
+                  className="text-gray-600 hover:text-pink-500"
+                >
+                  {statsLoading || prescriptionsLoading || alertsLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+                <div className="relative">
+                  <Bell className="h-6 w-6 text-gray-600 cursor-pointer hover:text-pink-500 transition-colors" />
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {alertsLoading ? '...' : alertSummary.totalAlerts}
+                  </div>
                 </div>
-                <span className="text-xl font-bold text-gray-800">आरोग्य अस्पताल</span>
-              </Link>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <div className="flex items-center space-x-2">
-                <Pill className="h-5 w-5 text-pink-500" />
-                <span className="text-lg font-semibold text-gray-700">Pharmacy</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={refreshAllData}
-                disabled={statsLoading || prescriptionsLoading || alertsLoading}
-                className="text-gray-600 hover:text-pink-500"
-              >
-                {statsLoading || prescriptionsLoading || alertsLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-              <div className="relative">
-                <Bell className="h-6 w-6 text-gray-600 cursor-pointer hover:text-pink-500 transition-colors" />
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {alertsLoading ? '...' : alertSummary.totalAlerts}
-                </div>
-              </div>
-              <div className="h-8 w-8 bg-gradient-to-r from-pink-400 to-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">P</span>
-              </div>
+              </div> */}
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pharmacy Dashboard</h1>
-          <p className="text-gray-600">Manage inventory, prescriptions, and pharmacy operations</p>
-        </div>
+        <div className="p-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Daily Sales</p>
+                  <p className="text-3xl font-bold text-green-600">₹{analyticsData.dailySales.today.total.toLocaleString()}</p>
+                  <p className="text-sm text-green-600 flex items-center mt-1">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    +{analyticsData.dailySales.growth}%
+                  </p>
+                </div>
+                <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Error Alert */}
-        {(statsError || prescriptionsError || alertsError) && (
-          <Alert className="mb-6 border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-700">
-              {statsError || prescriptionsError || alertsError}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Medicines</p>
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-3xl font-bold text-gray-900">{totalMedicines.toLocaleString()}</p>
-                  )}
+                  <p className="text-3xl font-bold text-gray-900">{totalMedicines.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">In inventory</p>
                 </div>
                 <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
                   <Package className="h-6 w-6 text-white" />
@@ -274,15 +215,12 @@ export default function PharmacyDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-3xl font-bold text-red-600">{lowStock}</p>
-                  )}
+                  <p className="text-sm font-medium text-gray-600">Active Prescriptions</p>
+                  <p className="text-3xl font-bold text-blue-600">{statistics.active_prescriptions}</p>
+                  <p className="text-sm text-blue-600">{statistics.pending_dispensing} pending</p>
                 </div>
-                <div className="bg-red-500 p-3 rounded-xl">
-                  <AlertTriangle className="h-6 w-6 text-white" />
+                <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                  <FileText className="h-6 w-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -292,311 +230,300 @@ export default function PharmacyDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-3xl font-bold text-orange-600">{expiringSoon}</p>
-                  )}
+                  <p className="text-sm font-medium text-gray-600">Total Alerts</p>
+                  <p className="text-3xl font-bold text-red-600">{alertSummary.totalAlerts}</p>
+                  <p className="text-sm text-red-600">Require attention</p>
                 </div>
-                <div className="bg-orange-500 p-3 rounded-xl">
+                <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
                   <AlertTriangle className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Value</p>
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-20 mt-1" />
-                  ) : (
-                    <p className="text-3xl font-bold text-green-600">₹{totalValue.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="bg-green-500 p-3 rounded-xl">
-                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <TabsList className="grid w-full sm:w-auto grid-cols-4 bg-pink-50 border border-pink-100">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-pink-600">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="inventory" className="data-[state=active]:bg-white data-[state=active]:text-pink-600">
-                Inventory
-              </TabsTrigger>
-              <TabsTrigger value="prescriptions" className="data-[state=active]:bg-white data-[state=active]:text-pink-600">
-                Prescriptions
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="data-[state=active]:bg-white data-[state=active]:text-pink-600">
-                Reports
-              </TabsTrigger>
-            </TabsList>
+          <TabsList className="grid w-full grid-cols-2 bg-pink-50 border border-pink-100">
+            <TabsTrigger value="analytics">Analytics & Reports</TabsTrigger>
+            <TabsTrigger value="alerts">Alerts & Notifications</TabsTrigger>
+          </TabsList>
 
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search medicines, prescriptions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl w-64"
-                />
-              </div>
-              <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-          </div>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Recent Prescriptions */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900">Recent Prescriptions</CardTitle>
-                    <CardDescription>Latest prescription requests</CardDescription>
-                  </div>
-                  <Link href="/pharmacy/prescriptions">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  {prescriptionsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="p-4 bg-gray-50 rounded-xl">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <Skeleton className="h-4 w-20 mb-2" />
-                              <Skeleton className="h-3 w-32 mb-1" />
-                              <Skeleton className="h-3 w-48" />
-                            </div>
-                            <div className="text-right">
-                              <Skeleton className="h-6 w-16 mb-1" />
-                              <Skeleton className="h-3 w-12" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : recentPrescriptions.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentPrescriptions.map((prescription) => (
-                        <div key={prescription.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <span className="font-semibold text-gray-900">{prescription.id}</span>
-                              <Badge 
-                                variant={prescription.priority === "high" ? "destructive" : "secondary"}
-                                className={prescription.priority === "high" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}
-                              >
-                                {prescription.priority}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-gray-600">{prescription.patientName} • {prescription.doctor}</p>
-                            <p className="text-xs text-gray-500">{prescription.medicines.join(", ")}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <Badge 
-                                variant={prescription.status === "fulfilled" ? "default" : "secondary"}
-                                className={prescription.status === "fulfilled" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}
-                              >
-                                {prescription.status}
-                              </Badge>
-                              {prescription.status === "pending" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDispensePrescription(prescription.id)}
-                                  className="text-xs px-2 py-1 h-6"
-                                >
-                                  Dispense
-                                </Button>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500">{prescription.date}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500">No recent prescriptions</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Low Stock Alert */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900 flex items-center">
-                      <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                      Low Stock Alert
-                    </CardTitle>
-                    <CardDescription>Items requiring immediate attention</CardDescription>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {lowStockItems.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleResolveAlert(
-                          [...(alerts.lowStock || []), ...(alerts.outOfStock || [])].map(item => item.medicine_id),
-                          'Low Stock'
-                        )}
-                        className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
-                      >
-                        Mark Resolved
-                      </Button>
-                    )}
-                    <Link href="/pharmacy/inventory">
-                      <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                        Manage Stock
-                      </Button>
-                    </Link>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {alertsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="p-4 bg-red-50 rounded-xl border border-red-100">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <Skeleton className="h-4 w-32 mb-1" />
-                              <Skeleton className="h-3 w-20" />
-                            </div>
-                            <div className="text-right">
-                              <Skeleton className="h-4 w-16 mb-1" />
-                              <Skeleton className="h-3 w-20" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : lowStockItems.length > 0 ? (
-                    <div className="space-y-4">
-                      {lowStockItems.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{item.name}</p>
-                            <p className="text-sm text-gray-600">{item.category}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-red-600">
-                              {item.currentStock} / {item.minStock}
-                            </p>
-                            <p className="text-xs text-gray-500">Current / Min</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500">All items are well stocked</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <Card className="border-pink-100">
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            {/* Stock Consumption Trends */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-                <CardDescription>Common pharmacy operations</CardDescription>
+                <CardTitle>Stock Consumption Trends</CardTitle>
+                <CardDescription>Daily, weekly, and monthly consumption patterns</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Link href="/pharmacy/inventory/add">
-                    <Button className="w-full h-20 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-2">
-                      <Plus className="h-6 w-6" />
-                      <span>Add Medicine</span>
-                    </Button>
-                  </Link>
-                  
-                  <Link href="/pharmacy/prescriptions">
-                    <Button variant="outline" className="w-full h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                      <FileText className="h-6 w-6" />
-                      <span>View Prescriptions</span>
-                    </Button>
-                  </Link>
-                  
-                  <Link href="/pharmacy/reports">
-                    <Button variant="outline" className="w-full h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                      <BarChart3 className="h-6 w-6" />
-                      <span>Generate Report</span>
-                    </Button>
-                  </Link>
-                  
-                  <Button variant="outline" className="w-full h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <Download className="h-6 w-6" />
-                    <span>Export Data</span>
-                  </Button>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={analyticsData.stockConsumption.daily}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="consumed" stroke="#EF4444" name="Consumed" />
+                      <Line type="monotone" dataKey="restocked" stroke="#10B981" name="Restocked" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="inventory">
-            <div className="text-center py-12">
-              <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Inventory Management</h3>
-              <p className="text-gray-600 mb-6">Detailed inventory management will be available here</p>
-              <Link href="/pharmacy/inventory">
-                <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl">
-                  Go to Inventory
-                </Button>
-              </Link>
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Fast vs Slow Moving */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Fast-moving vs Slow-moving Medicines</CardTitle>
+                  <CardDescription>Medicine performance analysis</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {analyticsData.fastSlowMoving.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-gray-600">{item.category}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={
+                            item.type === 'Fast' ? 'bg-green-100 text-green-700' :
+                            item.type === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }>
+                            {item.type}
+                          </Badge>
+                          <p className="text-sm text-gray-600 mt-1">{item.sales} units</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stock Aging */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Stock Aging Report</CardTitle>
+                  <CardDescription>Age distribution of current inventory</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={analyticsData.stockAging}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: ${value}%`}
+                        >
+                          {analyticsData.stockAging.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Profit Analysis & Daily Sales */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profit/Loss Analysis per Drug</CardTitle>
+                  <CardDescription>Cost analysis and profit margins</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {analyticsData.profitAnalysis.map((item, index) => (
+                      <div key={index} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{item.medicine}</h4>
+                          <Badge className="bg-green-100 text-green-700">{item.margin}% margin</Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">Cost</p>
+                            <p className="font-semibold">₹{item.cost}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Selling</p>
+                            <p className="font-semibold">₹{item.selling}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Profit</p>
+                            <p className="font-semibold text-green-600">₹{item.profit}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Sales Summary</CardTitle>
+                  <CardDescription>Today's sales performance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-green-600">₹{analyticsData.dailySales.today.total.toLocaleString()}</p>
+                      <p className="text-gray-600">Total Sales Today</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-600">{analyticsData.dailySales.today.transactions}</p>
+                        <p className="text-sm text-blue-600">Transactions</p>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <p className="text-2xl font-bold text-purple-600">₹{analyticsData.dailySales.today.avgTransaction}</p>
+                        <p className="text-sm text-purple-600">Avg Transaction</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2 text-green-600">
+                      <TrendingUp className="h-4 w-4" />
+                      <span className="font-medium">+{analyticsData.dailySales.growth}% vs yesterday</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
-          <TabsContent value="prescriptions">
-            <div className="text-center py-12">
-              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Prescription Management</h3>
-              <p className="text-gray-600 mb-6">Detailed prescription management will be available here</p>
-              <Link href="/pharmacy/prescriptions">
-                <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl">
-                  Go to Prescriptions
-                </Button>
-              </Link>
-            </div>
-          </TabsContent>
+          {/* Alerts Tab */}
+          <TabsContent value="alerts" className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Low Stock & Expiry Alerts */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+                    Stock & Expiry Alerts
+                  </CardTitle>
+                  <CardDescription>Low stock and near-expiry warnings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Low Stock Alerts */}
+                    <div>
+                      <h4 className="font-medium text-red-600 mb-2">Low Stock Alerts ({alertSummary.lowStockCount})</h4>
+                      <div className="space-y-2">
+                        {alerts.lowStock?.slice(0, 3).map((item: any, index: number) => (
+                          <div key={index} className="p-3 bg-red-50 border border-red-100 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm text-gray-600">{item.category}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-red-600">{item.current_stock} left</p>
+                                <p className="text-xs text-gray-500">Min: {item.minimum_stock}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-          <TabsContent value="reports">
-            <div className="text-center py-12">
-              <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Reports & Analytics</h3>
-              <p className="text-gray-600 mb-6">Detailed reports and analytics will be available here</p>
-              <Link href="/pharmacy/reports">
-                <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl">
-                  Go to Reports
-                </Button>
-              </Link>
+                    {/* Expiry Alerts */}
+                    <div>
+                      <h4 className="font-medium text-orange-600 mb-2">Near-expiry Warnings ({alertSummary.expiringSoonCount})</h4>
+                      <div className="space-y-2">
+                        {alerts.expiringSoon?.slice(0, 3).map((item: any, index: number) => (
+                          <div key={index} className="p-3 bg-orange-50 border border-orange-100 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm text-gray-600">Batch: {item.batch_number}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-orange-600">
+                                  {new Date(item.expiry_date).toLocaleDateString()}
+                                </p>
+                                <p className="text-xs text-gray-500">{item.current_stock} units</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Prescription & Refill Alerts */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 text-blue-500 mr-2" />
+                    Prescription & Refill Alerts
+                  </CardTitle>
+                  <CardDescription>New prescriptions and refill reminders</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* New Prescriptions */}
+                    <div>
+                      <h4 className="font-medium text-blue-600 mb-2">New Prescriptions Received ({alertSummary.newPrescriptionsCount})</h4>
+                      <div className="space-y-2">
+                        {alerts.newPrescriptions?.slice(0, 3).map((item: any, index: number) => (
+                          <div key={index} className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{item.prescription_id}</p>
+                                <p className="text-sm text-gray-600">{item.patient_name}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-blue-600">{item.doctor_name}</p>
+                                <p className="text-xs text-gray-500">{new Date(item.created_at).toLocaleTimeString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Refill Reminders */}
+                    <div>
+                      <h4 className="font-medium text-purple-600 mb-2">Refill Reminders for Inpatients ({alertSummary.refillRemindersCount})</h4>
+                      <div className="space-y-2">
+                        {alerts.refillReminders?.slice(0, 3).map((item: any, index: number) => (
+                          <div key={index} className="p-3 bg-purple-50 border border-purple-100 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{item.patient_name}</p>
+                                <p className="text-sm text-gray-600">{item.medicine_name}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-purple-600">Due: {new Date(item.due_date).toLocaleDateString()}</p>
+                                <p className="text-xs text-gray-500">Room: {item.room_number}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Quick Actions */}
+        
+        </div>
       </div>
     </div>
   )
