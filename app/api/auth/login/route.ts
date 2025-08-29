@@ -13,20 +13,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Find the user by email
-    const users = await executeQuery('SELECT * FROM users WHERE email = ?', [email]);
+    const users = await executeQuery('SELECT * FROM Users WHERE email = ?', [email]);
 
     if (users.length === 0) {
+      console.log(`Login attempt failed: User with email '${email}' not found.`);
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
     const user = users[0];
+    console.log(`Login attempt: User '${email}' found. Comparing password...`);
 
     // 3. Compare the provided password with the stored hash
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
+      console.log(`Login attempt failed: Invalid password for user '${email}'.`);
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
+
+    console.log(`Login successful for user '${email}'.`);
 
     // 4. Generate a JWT
     const token = jwt.sign(
@@ -39,7 +44,13 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json(
       {
         message: 'Login successful',
-        user: { id: user.id, name: user.name, email: user.email, role: user.role },
+        user: { 
+          id: user.id, 
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email, 
+          role: user.role 
+        },
       },
       { status: 200 }
     );

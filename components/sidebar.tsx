@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
   FileText,
@@ -41,15 +41,10 @@ const NAV_SECTIONS: {
 ];
 
 export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
-  const router = useRouter();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    // 👉 Clear session/token logic here
-    localStorage.removeItem("token"); // (example) remove token/session
-    alert("You have been logged out!");
-
-    // ✅ Redirect to login page
-    router.push("/login");
+    logout();
   };
 
   return (
