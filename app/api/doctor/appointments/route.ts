@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Appointment, Patient } from '@/backend/models';
 import { Op } from 'sequelize';
 import { authenticateUser } from '@/lib/auth-middleware';
+import db from '@/backend/models';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
 
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const { Appointment, Patient } = await db();
 
     const appointments = await Appointment.findAll({
       where: {

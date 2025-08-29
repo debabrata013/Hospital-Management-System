@@ -27,5 +27,16 @@ module.exports = (sequelize) => {
   // patientId and doctorId will be added via associations
   });
 
+  Appointment.associate = (models) => {
+    Appointment.belongsTo(models.Patient, {
+      foreignKey: 'patientId',
+      as: 'patient',
+    });
+    Appointment.belongsTo(models.User, {
+      foreignKey: 'doctorId',
+      as: 'doctor',
+    });
+  };
+
   return Appointment;
 };

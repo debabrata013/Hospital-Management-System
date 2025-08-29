@@ -8,12 +8,20 @@ module.exports = (sequelize) => {
       primaryKey: true,
     },
     roomNumber: {
-      type: DataTypes.STRING,
-      allowNull: false,
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: {
+            model: 'Rooms',
+            key: 'roomNumber',
+        }
     },
     assignedTo: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: 'CleaningStaffs',
+        key: 'id',
+      }
     },
     status: {
       type: DataTypes.ENUM('pending', 'in-progress', 'completed'),
@@ -36,6 +44,18 @@ module.exports = (sequelize) => {
   }, {
     timestamps: true,
   });
+
+  CleaningTask.associate = (models) => {
+    CleaningTask.belongsTo(models.Room, {
+      foreignKey: 'roomNumber',
+      targetKey: 'roomNumber', // Associate using the roomNumber
+      as: 'room',
+    });
+    CleaningTask.belongsTo(models.CleaningStaff, {
+      foreignKey: 'assignedTo', // This should be an ID
+      as: 'staff',
+    });
+  };
 
   return CleaningTask;
 };

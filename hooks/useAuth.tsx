@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import { User, AuthState } from '@/lib/types';
 
 // --- CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = '/api';
 
 interface LoginData {
   email: string;

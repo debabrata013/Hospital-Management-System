@@ -1,60 +1,85 @@
-const fs = require('fs');
-const path = require('path');
 const connectToDatabase = require('../config/database');
+
+// Import all models
+const AfterCareInstruction = require('./AfterCareInstruction');
+const Appointment = require('./Appointment');
+const AuditLog = require('./AuditLog');
+const Billing = require('./Billing');
+const CleaningStaff = require('./CleaningStaff');
+const CleaningTask = require('./CleaningTask');
+const DischargeSummary = require('./DischargeSummary');
+const File = require('./File');
+const LeaveRequest = require('./LeaveRequest');
+const Medicine = require('./Medicine');
+const Message = require('./Message');
+const Patient = require('./Patient');
+const Prescription = require('./Prescription');
+const Room = require('./Room');
+const StaffProfile = require('./StaffProfile');
+const StaffShift = require('./StaffShift');
+const Task = require('./Task');
+const TestReport = require('./TestReport');
+const User = require('./User');
 
 let db = null;
 
 async function initializeDatabase() {
+  console.log('[DB] Attempting to initialize database...');
   if (db) {
+    console.log('[DB] Database instance already exists. Returning...');
     return db;
   }
 
-  console.log('Initializing database connection...');
+  console.log('[DB] Connecting to database...');
   const sequelize = await connectToDatabase();
+  console.log('[DB] Database connection successful. Initializing models...');
+
+  const modelInitializers = {
+    AfterCareInstruction: AfterCareInstruction(sequelize),
+    Appointment: Appointment(sequelize),
+    AuditLog: AuditLog(sequelize),
+    Billing: Billing(sequelize),
+    CleaningStaff: CleaningStaff(sequelize),
+    CleaningTask: CleaningTask(sequelize),
+    DischargeSummary: DischargeSummary(sequelize),
+    File: File(sequelize),
+    LeaveRequest: LeaveRequest(sequelize),
+    Medicine: Medicine(sequelize),
+    Message: Message(sequelize),
+    Patient: Patient(sequelize),
+    Prescription: Prescription(sequelize),
+    Room: Room(sequelize),
+    StaffProfile: StaffProfile(sequelize),
+    StaffShift: StaffShift(sequelize),
+    Task: Task(sequelize),
+    TestReport: TestReport(sequelize),
+    User: User(sequelize),
+  };
+
   const models = {};
-
-  const modelsDir = __dirname;
-  console.log(`Loading models from: ${modelsDir}`);
-
-  const files = fs.readdirSync(modelsDir).filter(file => 
-    file.indexOf('.') !== 0 && file !== 'index.js' && file.slice(-3) === '.js'
-  );
-
-  console.log(`Found model files: ${files.join(', ')}`);
-
-  // Temporarily disabled model loading to debug startup crash
-  /*
-  for (const file of files) {
-    try {
-      console.log(`Loading model: ${file}`);
-      const modelDefinition = require(path.join(modelsDir, file));
-      const model = modelDefinition(sequelize);
-      models[model.name] = model;
-      console.log(`Successfully loaded model: ${model.name}`);
-    } catch (error) {
-      console.error(`Failed to load model ${file}:`, error);
-      throw error;
-    }
+  console.log('[DB] --- Loading Models ---');
+  for (const modelName in modelInitializers) {
+    console.log(`[DB] Loading model: ${modelName}`);
+    models[modelName] = modelInitializers[modelName];
   }
-  */
+  console.log('[DB] --- Finished Loading Models ---');
 
-  console.log('All models loaded. Setting up associations...');
-  // Temporarily disabled association to debug startup crash
-  /*
+  // Set up associations
+  console.log('[DB] --- Associating Models ---');
   Object.keys(models).forEach(modelName => {
     if (models[modelName].associate) {
-      console.log(`Associating model: ${modelName}`);
+      console.log(`[DB] Associating model: ${modelName}`);
       models[modelName].associate(models);
     }
   });
-  */
+  console.log('[DB] --- Finished Associating Models ---');
 
-  console.log('Associations complete. Database initialization finished.');
   db = {
     sequelize,
     ...models,
   };
 
+  console.log('[DB] Database initialization complete.');
   return db;
 }
 

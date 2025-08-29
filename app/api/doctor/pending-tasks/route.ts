@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Task, Patient } from '@/backend/models';
 import { authenticateUser } from '@/lib/auth-middleware';
+import db from '@/backend/models';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     const doctorId = user.id;
+
+    const { Task, Patient } = await db();
 
     const pendingTasks = await Task.findAll({
       where: {
