@@ -72,5 +72,48 @@ module.exports = (sequelize) => {
     timestamps: true, // Adds createdAt and updatedAt timestamps
   });
 
+  User.associate = (models) => {
+    User.hasMany(models.Appointment, {
+      foreignKey: 'doctorId',
+      as: 'appointments',
+    });
+    User.hasMany(models.Prescription, {
+      foreignKey: 'doctorId',
+      as: 'prescriptions',
+    });
+    User.hasMany(models.Task, {
+      foreignKey: 'assignedToId',
+      as: 'tasks',
+    });
+    User.hasMany(models.File, {
+      foreignKey: 'uploaderId',
+      as: 'uploadedFiles',
+    });
+    User.hasMany(models.AuditLog, {
+      foreignKey: 'userId',
+      as: 'auditLogs',
+    });
+    User.hasMany(models.LeaveRequest, {
+      foreignKey: 'userId',
+      as: 'leaveRequests',
+    });
+    User.hasMany(models.Message, {
+      foreignKey: 'senderId',
+      as: 'sentMessages',
+    });
+    User.hasMany(models.Message, {
+      foreignKey: 'receiverId',
+      as: 'receivedMessages',
+    });
+    User.hasOne(models.StaffProfile, {
+      foreignKey: 'userId',
+      as: 'staffProfile',
+    });
+    User.hasMany(models.StaffShift, {
+      foreignKey: 'staffId',
+      as: 'shifts',
+    });
+  };
+
   return User;
 };

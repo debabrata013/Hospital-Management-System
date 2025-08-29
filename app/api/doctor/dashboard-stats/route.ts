@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Op } from 'sequelize';
-import { Appointment } from '@/backend/models';
 import { authenticateUser } from '@/lib/auth-middleware';
-import sequelize from '@/backend/config/database';
+import db from '@/backend/models';
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,6 +22,8 @@ export async function GET(req: NextRequest) {
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const { Appointment, sequelize } = await db();
 
     // Fetch stats
     const todaysAppointments = await Appointment.count({

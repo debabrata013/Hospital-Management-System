@@ -33,5 +33,16 @@ module.exports = (sequelize) => {
     tableName: 'tasks',
   });
 
+  Task.associate = (models) => {
+    Task.belongsTo(models.User, {
+      foreignKey: 'assignedToId',
+      as: 'assignedTo',
+    });
+    Task.belongsTo(models.Patient, {
+      foreignKey: 'patientId',
+      as: 'patient',
+    });
+  };
+
   return Task;
 };

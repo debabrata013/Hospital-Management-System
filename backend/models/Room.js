@@ -65,5 +65,16 @@ module.exports = (sequelize) => {
     timestamps: true,
   });
 
+  Room.associate = (models) => {
+    Room.hasMany(models.Patient, {
+      foreignKey: 'roomId',
+      as: 'patients',
+    });
+    Room.hasMany(models.CleaningTask, {
+      foreignKey: 'roomNumber',
+      as: 'cleaningTasks',
+    });
+  };
+
   return Room;
 };

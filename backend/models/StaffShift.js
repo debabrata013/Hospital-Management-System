@@ -29,6 +29,13 @@ module.exports = (sequelize) => {
     },
   });
 
+  StaffShift.associate = (models) => {
+    StaffShift.belongsTo(models.User, {
+      foreignKey: 'staffId',
+      as: 'staff',
+    });
+  };
+
   return StaffShift;
 };
 

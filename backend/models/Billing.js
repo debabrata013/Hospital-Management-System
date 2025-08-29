@@ -22,5 +22,12 @@ module.exports = (sequelize) => {
   },
   });
 
+  Billing.associate = (models) => {
+    Billing.belongsTo(models.Patient, {
+      foreignKey: 'patientId',
+      as: 'patient',
+    });
+  };
+
   return Billing;
 };

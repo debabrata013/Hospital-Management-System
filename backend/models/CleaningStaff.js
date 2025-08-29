@@ -19,5 +19,12 @@ module.exports = (sequelize) => {
     timestamps: true,
   });
 
+  CleaningStaff.associate = (models) => {
+    CleaningStaff.hasMany(models.CleaningTask, {
+      foreignKey: 'assignedTo',
+      as: 'tasks',
+    });
+  };
+
   return CleaningStaff;
 };

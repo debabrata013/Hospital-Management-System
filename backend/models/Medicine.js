@@ -24,5 +24,12 @@ module.exports = (sequelize) => {
     },
   });
 
+  Medicine.associate = (models) => {
+    Medicine.hasMany(models.Prescription, {
+      foreignKey: 'medicineId',
+      as: 'prescriptions',
+    });
+  };
+
   return Medicine;
 };

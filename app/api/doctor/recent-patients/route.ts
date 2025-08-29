@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Appointment, Patient } from '@/backend/models';
-import sequelize from '@/backend/config/database';
 import { authenticateUser } from '@/lib/auth-middleware';
+import db from '@/backend/models';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     const doctorId = user.id;
+
+    const { Appointment, Patient, sequelize } = await db();
 
     const recentPatients = await Patient.findAll({
       attributes: [

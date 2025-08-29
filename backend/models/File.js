@@ -38,10 +38,10 @@ module.exports = (sequelize) => {
       },
     },
     patientId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID, // Corrected from INTEGER to UUID
       allowNull: true, // Not all files may be linked to a patient
       references: {
-        model: 'Users', // Assuming patients are also in the Users table
+        model: 'Patients', // Corrected from Users to Patients
         key: 'id',
       },
     },
@@ -50,6 +50,17 @@ module.exports = (sequelize) => {
     modelName: 'File',
     timestamps: true,
   });
+
+  File.associate = (models) => {
+    File.belongsTo(models.User, {
+      foreignKey: 'uploaderId',
+      as: 'uploader',
+    });
+    File.belongsTo(models.Patient, {
+      foreignKey: 'patientId',
+      as: 'patient',
+    });
+  };
 
   return File;
 };

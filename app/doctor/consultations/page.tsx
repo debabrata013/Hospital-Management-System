@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import Link from 'next/link';
 import { 
   Stethoscope, 
   Plus, 
@@ -20,9 +21,7 @@ import {
   Heart,
   Thermometer,
   Weight,
-  Zap,
-  Save,
-  Brain
+  Zap
 } from 'lucide-react'
 
 // Mock consultation data
@@ -79,14 +78,6 @@ const mockConsultations = [
   }
 ]
 
-// Mock new consultation form data
-const newConsultation = {
-  patientName: "मोहम्मद अली",
-  patientId: "P003",
-  age: 62,
-  gender: "Male",
-  appointmentTime: "11:00 AM"
-}
 
 export default function DoctorConsultationsPage() {
   const getStatusBadge = (status: string) => {
@@ -142,10 +133,12 @@ export default function DoctorConsultationsPage() {
             </h1>
             <p className="text-gray-600 mt-2">Add consultation notes, diagnosis, prescriptions, and vitals</p>
           </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
-            <Plus className="h-4 w-4 mr-2" />
-            New Consultation
-          </Button>
+          <Link href="/doctor/consultations/new">
+            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+              <Plus className="h-4 w-4 mr-2" />
+              New Consultation
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -200,158 +193,7 @@ export default function DoctorConsultationsPage() {
         </Card>
       </div>
 
-      {/* Current Consultation Form */}
-      <Card className="border-pink-100 mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Plus className="h-5 w-5 mr-2 text-pink-500" />
-            Current Consultation - {newConsultation.patientName}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Patient Info & Vitals */}
-            <div className="space-y-6">
-              {/* Patient Info */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Patient Information</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Name: <span className="font-medium">{newConsultation.patientName}</span></p>
-                    <p className="text-sm text-gray-600">ID: <span className="font-medium">{newConsultation.patientId}</span></p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Age: <span className="font-medium">{newConsultation.age} years</span></p>
-                    <p className="text-sm text-gray-600">Time: <span className="font-medium">{newConsultation.appointmentTime}</span></p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Vitals Entry */}
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-3">Enter Vitals (Required for every consultation)</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Blood Pressure</label>
-                    <Input placeholder="120/80" className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Temperature (°F)</label>
-                    <Input placeholder="98.6" className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Weight (kg)</label>
-                    <Input placeholder="70" className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Pulse (bpm)</label>
-                    <Input placeholder="72" className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Respiration</label>
-                    <Input placeholder="16" className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Oxygen Saturation (%)</label>
-                    <Input placeholder="98" className="mt-1" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Consultation Notes */}
-            <div className="space-y-6">
-              {/* Chief Complaint */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Chief Complaint</label>
-                <Textarea 
-                  placeholder="Patient's main concern or symptoms..."
-                  className="mt-1"
-                  rows={3}
-                />
-              </div>
-
-              {/* Clinical Notes */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Clinical Notes</label>
-                <Textarea 
-                  placeholder="Examination findings, observations, and clinical assessment..."
-                  className="mt-1"
-                  rows={4}
-                />
-              </div>
-
-              {/* Diagnosis */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Diagnosis</label>
-                <Textarea 
-                  placeholder="Primary and secondary diagnosis..."
-                  className="mt-1"
-                  rows={2}
-                />
-              </div>
-
-              {/* AI Assistant */}
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-purple-900 flex items-center">
-                    <Brain className="h-4 w-4 mr-2" />
-                    AI Assistant
-                  </h4>
-                  <Button variant="outline" size="sm" className="border-purple-200 text-purple-600 hover:bg-purple-100">
-                    Generate Summary
-                  </Button>
-                </div>
-                <p className="text-sm text-purple-700">
-                  Use AI to generate patient summary and diet plans. All AI recommendations require your approval before saving.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Prescription Section */}
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
-            <h4 className="font-semibold text-green-900 mb-3 flex items-center">
-              <Pill className="h-4 w-4 mr-2" />
-              Prescription
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <Input placeholder="Medicine name" />
-              <Input placeholder="Dosage" />
-              <Input placeholder="Frequency" />
-              <Input placeholder="Duration" />
-            </div>
-            <Button variant="outline" size="sm" className="border-green-200 text-green-600 hover:bg-green-100">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Medicine
-            </Button>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between mt-6">
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                <Brain className="h-4 w-4 mr-2" />
-                AI Diet Plan
-              </Button>
-              <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                <FileText className="h-4 w-4 mr-2" />
-                View History
-              </Button>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline">
-                Save Draft
-              </Button>
-              <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
-                <Save className="h-4 w-4 mr-2" />
-                Complete Consultation
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      
       {/* Recent Consultations */}
       <Card className="border-pink-100">
         <CardHeader className="flex flex-row items-center justify-between">

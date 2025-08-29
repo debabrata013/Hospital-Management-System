@@ -50,8 +50,7 @@ function extractToken(request: NextRequest): string | null {
 // Main authentication function
 export async function authenticateUser(request: NextRequest): Promise<AuthResult | NextResponse> {
   try {
-    const db = await initializeDatabase();
-    const { User } = db;
+        const { User } = await initializeDatabase();
 
     const token = extractToken(request);
     if (!token) {
@@ -191,8 +190,7 @@ export async function logAuditAction(
   ipAddress?: string
 ): Promise<void> {
   try {
-    const db = await initializeDatabase();
-    const { AuditLog } = db;
+    const { AuditLog } = await initializeDatabase();
     await AuditLog.create({
       userId,
       action,
@@ -207,6 +205,44 @@ export async function logAuditAction(
 
 // Middleware wrapper for API routes
 export function withAuth(
+  handler: (request: NextRequest, auth: AuthResult) => Promise<NextResponse>,
+  options: {
+    roles?: string[];
+    permissions?: { module: string; action: string };
+  } = {}
+) {
+  let dbInitialized = false;
+
+  return async (request: NextRequest): Promise<NextResponse> => {
+    try {
+      if (!dbInitialized) {
+        await initializeDatabase();
+        dbInitialized = true;
+      }
+
+      let auth: AuthResult | NextResponse;
+      if (options.roles) {
+        auth = await requireRole(options.roles)(request);
+      } else if (options.permissions) {
+        auth = await requirePermission(options.permissions.module, options.permissions.action)(request);
+      } else {
+        auth = await authenticateUser(request);
+      }
+
+      if (auth instanceof NextResponse) {
+        return auth;
+      }
+
+      return await handler(request, auth);
+    } catch (error) {
+      console.error('Auth middleware error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+  };
+}
+
+// Old implementation - to be replaced
+export function old_withAuth(
   handler: (request: NextRequest, auth: AuthResult) => Promise<NextResponse>,
   options: {
     roles?: string[];
