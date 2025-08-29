@@ -4,25 +4,10 @@ import { useState, useEffect, useCallback, createContext, useContext, ReactNode 
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
+import { User, AuthState } from '@/lib/types';
 
 // --- CONFIGURATION ---
 const API_BASE_URL = 'http://localhost:3000/api';
-
-// --- TYPES & INTERFACES ---
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
-
-interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  error: string | null;
-}
 
 interface LoginData {
   email: string;
