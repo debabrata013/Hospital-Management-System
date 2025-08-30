@@ -105,9 +105,17 @@ export class PharmacyService {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
     await executeQuery(query, [
-      id, data.name, data.generic_name, data.category, data.manufacturer,
-      data.unit_price, data.current_stock || 0, data.minimum_stock || 10,
-      data.maximum_stock || 1000, data.unit, data.description
+      id, 
+      data.name || null, 
+      data.generic_name || null, 
+      data.category || null, 
+      data.manufacturer || null,
+      data.unit_price || null, 
+      data.current_stock || 0, 
+      data.minimum_stock || 10,
+      data.maximum_stock || 1000, 
+      data.unit || null, 
+      data.description || null
     ])
     return this.getMedicineById(id)
   }
