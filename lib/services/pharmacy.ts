@@ -1,5 +1,4 @@
 import { executeQuery } from '@/lib/db/connection'
-import { v4 as uuidv4 } from 'uuid'
 
 export interface Medicine {
   id: string
@@ -98,7 +97,7 @@ export class PharmacyService {
   }
 
   async createMedicine(data: Partial<Medicine>) {
-    const id = uuidv4()
+    const id = crypto.randomUUID()
     const query = `
       INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock, unit, description)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -153,7 +152,7 @@ export class PharmacyService {
   }
 
   async createVendor(data: Partial<Vendor>) {
-    const id = uuidv4()
+    const id = crypto.randomUUID()
     const query = `
       INSERT INTO vendors (id, name, contact_person, phone, email, address, status)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -211,7 +210,7 @@ export class PharmacyService {
   }
 
   async createPrescription(data: any) {
-    const id = uuidv4()
+    const id = crypto.randomUUID()
     const prescriptionNumber = `RX-${Date.now()}`
     
     // Insert prescription
@@ -226,7 +225,7 @@ export class PharmacyService {
     // Insert prescription items
     let totalAmount = 0
     for (const item of data.items) {
-      const itemId = uuidv4()
+      const itemId = crypto.randomUUID()
       const itemTotal = item.quantity * item.unit_price
       totalAmount += itemTotal
 
@@ -262,7 +261,7 @@ export class PharmacyService {
       )
 
       // Record stock transaction
-      const transactionId = uuidv4()
+      const transactionId = crypto.randomUUID()
       await executeQuery(`
         INSERT INTO stock_transactions (id, medicine_id, transaction_type, quantity, unit_price, total_amount, reference_id, reference_type)
         VALUES (?, ?, 'sale', ?, ?, ?, ?, 'prescription')
