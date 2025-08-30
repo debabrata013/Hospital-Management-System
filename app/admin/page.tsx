@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,175 +31,119 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard, Bell, LogOut, Plus, FileText, AlertTriangle, Clock, Bed, Stethoscope, Pill, DollarSign, TrendingUp, Eye, MoreHorizontal, MapPin } from 'lucide-react'
+import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard, Bell, LogOut, Plus, FileText, AlertTriangle, Clock, Bed, Stethoscope, Pill, DollarSign, TrendingUp, Eye, MoreHorizontal, MapPin, MessageSquare } from 'lucide-react'
 
-// Mock data for the dashboard
+// Mock data for the dashboard (some parts are still mock)
 const branchInfo = {
   name: "आरोग्य अस्पताल - मुख्य शाखा",
   location: "नई दिल्ली",
   adminName: "डॉ. प्रिया शर्मा"
 }
 
-const todayStats = {
-  totalAppointments: 45,
-  completedAppointments: 28,
-  admittedPatients: 23,
-  availableBeds: 12,
-  criticalAlerts: 3,
-  todayRevenue: 15420
+interface DashboardStats {
+  totalAppointments: number;
+  completedAppointments: number;
+  admittedPatients: number;
+  availableBeds: number;
+  criticalAlerts: number;
+  todayRevenue: number;
 }
 
-const upcomingAppointments = [
-  {
-    id: "APT001",
-    patientName: "John Smith",
-    doctorName: "Dr. Michael Brown",
-    time: "09:30 AM",
-    type: "Consultation",
-    status: "confirmed",
-    department: "Cardiology"
-  },
-  {
-    id: "APT002", 
-    patientName: "Emily Davis",
-    doctorName: "Dr. Lisa Chen",
-    time: "10:15 AM",
-    type: "Follow-up",
-    status: "confirmed",
-    department: "Internal Medicine"
-  },
-  {
-    id: "APT003",
-    patientName: "Robert Wilson",
-    doctorName: "Dr. James Taylor",
-    time: "11:00 AM",
-    type: "Surgery Consultation",
-    status: "pending",
-    department: "Surgery"
-  },
-  {
-    id: "APT004",
-    patientName: "Maria Garcia",
-    doctorName: "Dr. Anna Rodriguez",
-    time: "11:45 AM",
-    type: "Checkup",
-    status: "confirmed",
-    department: "Pediatrics"
-  }
-]
+interface AdmittedPatient {
+  id: string;
+  name: string;
+  age: number;
+  condition: string;
+  roomNumber: string;
+  admissionDate: string;
+  status: string;
+  doctor: { name: string };
+}
 
-const admittedPatients = [
-  {
-    id: "P001",
-    name: "David Lee",
-    age: 45,
-    condition: "Post-Surgery Recovery",
-    doctor: "Dr. Michael Brown",
-    room: "ICU-101",
-    admissionDate: "2024-01-14",
-    status: "stable"
-  },
-  {
-    id: "P002",
-    name: "Jennifer White",
-    age: 32,
-    condition: "Pneumonia Treatment",
-    doctor: "Dr. Lisa Chen",
-    room: "Ward-205",
-    admissionDate: "2024-01-15",
-    status: "improving"
-  },
-  {
-    id: "P003",
-    name: "Thomas Anderson",
-    age: 58,
-    condition: "Cardiac Monitoring",
-    doctor: "Dr. James Taylor",
-    room: "CCU-301",
-    admissionDate: "2024-01-15",
-    status: "critical"
-  }
-]
+interface StockAlert {
+  id: string;
+  name: string;
+  quantity: number;
+  lowStockThreshold: number;
+  category: string;
+}
 
-const stockAlerts = [
-  {
-    medicine: "Amoxicillin 500mg",
-    currentStock: 15,
-    minRequired: 50,
-    category: "Antibiotic",
-    urgency: "high"
-  },
-  {
-    medicine: "Paracetamol 650mg",
-    currentStock: 45,
-    minRequired: 100,
-    category: "Analgesic",
-    urgency: "medium"
-  },
-  {
-    medicine: "Insulin Glargine",
-    currentStock: 8,
-    minRequired: 25,
-    category: "Diabetes",
-    urgency: "critical"
-  }
-]
+interface DoctorSchedule {
+  id: string;
+  name: string;
+  department: string;
+  status: string;
+  shifts: { dayOfWeek: string; startTime: string; endTime: string }[];
+}
 
-const doctorSchedules = [
-  {
-    name: "Dr. Michael Brown",
-    department: "Cardiology",
-    shift: "Morning (8:00 AM - 2:00 PM)",
-    status: "available",
-    patients: 8
-  },
-  {
-    name: "Dr. Lisa Chen", 
-    department: "Internal Medicine",
-    shift: "Full Day (8:00 AM - 6:00 PM)",
-    status: "busy",
-    patients: 12
-  },
-  {
-    name: "Dr. James Taylor",
-    department: "Surgery",
-    shift: "Afternoon (2:00 PM - 10:00 PM)",
-    status: "in_surgery",
-    patients: 6
-  }
-]
-
-// Navigation items
-const navigationItems = [
-  {
-    title: "Main",
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, url: "/admin", isActive: true },
-      { title: "Analytics", icon: TrendingUp, url: "/admin/analytics" },
-      { title: "Reports", icon: FileText, url: "/admin/reports" },
-    ]
-  },
-  {
-    title: "Patient Management",
-    items: [
-      { title: "Manage Patients", icon: Users, url: "/admin/patients" },
-      { title: "Appointments", icon: Calendar, url: "/admin/appointments" },
-      { title: "Admissions", icon: Bed, url: "/admin/admissions" },
-      { title: "Room Management", icon: Bed, url: "/admin/room-management" },
-    ]
-  },
-  {
-    title: "Operations",
-    items: [
-      { title: "Doctor Schedules", icon: UserCheck, url: "/admin/schedules" },
-      { title: "Inventory/Pharmacy", icon: Package, url: "/admin/inventory" },
-      { title: "Billing", icon: CreditCard, url: "/admin/billing" },
-    ]
-  }
-]
+interface Appointment {
+  id: string;
+  appointmentDate: string;
+  service: string;
+  status: string;
+  patient: { name: string };
+  doctor: { name: string; department: string };
+}
 
 export default function AdminDashboard() {
-  const [notifications] = useState(7)
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [admittedPatients, setAdmittedPatients] = useState<AdmittedPatient[]>([]);
+  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
+  const [doctorSchedules, setDoctorSchedules] = useState<DoctorSchedule[]>([]);
+  const [notifications] = useState(7);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statsRes, appointmentsRes, admittedPatientsRes, stockAlertsRes, doctorSchedulesRes] = await Promise.all([
+          fetch('/api/admin/dashboard-stats'),
+          fetch('/api/admin/appointments'),
+          fetch('/api/admin/admitted-patients'),
+          fetch('/api/admin/stock-alerts'),
+          fetch('/api/admin/doctor-schedules'),
+        ]);
+
+        if (!statsRes.ok) {
+          throw new Error('Failed to fetch dashboard stats');
+        }
+        if (!appointmentsRes.ok) {
+          throw new Error('Failed to fetch appointments');
+        }
+        if (!admittedPatientsRes.ok) {
+          throw new Error('Failed to fetch admitted patients');
+        }
+        if (!stockAlertsRes.ok) {
+          throw new Error('Failed to fetch stock alerts');
+        }
+        if (!doctorSchedulesRes.ok) {
+          throw new Error('Failed to fetch doctor schedules');
+        }
+
+        const statsData = await statsRes.json();
+        const appointmentsData = await appointmentsRes.json();
+        const admittedPatientsData = await admittedPatientsRes.json();
+        const stockAlertsData = await stockAlertsRes.json();
+        const doctorSchedulesData = await doctorSchedulesRes.json();
+
+        setStats(statsData);
+        setUpcomingAppointments(appointmentsData);
+        setAdmittedPatients(admittedPatientsData);
+        setStockAlerts(stockAlertsData);
+        setDoctorSchedules(doctorSchedulesData);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -235,6 +179,33 @@ export default function AdminDashboard() {
     }
   }
 
+  const getDoctorStatusVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'available': return 'default';
+      case 'busy': return 'destructive';
+      case 'on-leave': return 'outline';
+      default: return 'secondary';
+    }
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}:${minutes} ${ampm}`;
+  };
+
+  const todayStats = stats || {
+    totalAppointments: 0,
+    completedAppointments: 0,
+    admittedPatients: 0,
+    availableBeds: 0,
+    criticalAlerts: 0,
+    todayRevenue: 0,
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
@@ -253,31 +224,163 @@ export default function AdminDashboard() {
           </SidebarHeader>
           
           <SidebarContent className="px-4 py-6">
-            {navigationItems.map((section) => (
-              <SidebarGroup key={section.title}>
+            {/* Navigation items */}
+            <div>
+              {/* Main */}
+              <SidebarGroup>
                 <SidebarGroupLabel className="text-gray-600 font-medium mb-2">
-                  {section.title}
+                  Main
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {section.items.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton 
-                          asChild 
-                          isActive={item.isActive}
-                          className="w-full justify-start hover:bg-pink-50 data-[active=true]:bg-pink-100 data-[active=true]:text-pink-700"
-                        >
-                          <Link href={item.url} className="flex items-center space-x-3 px-3 py-2 rounded-lg">
-                            <item.icon className="h-5 w-5" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={true}
+                        className="w-full justify-start hover:bg-pink-50 data-[active=true]:bg-pink-100 data-[active=true]:text-pink-700"
+                      >
+                        <Link href="/admin" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <LayoutDashboard className="h-5 w-5" />
+                          <span>Dashboard</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/analytics" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <TrendingUp className="h-5 w-5" />
+                          <span>Analytics</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/reports" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <FileText className="h-5 w-5" />
+                          <span>Reports</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-            ))}
+
+              {/* Patient Management */}
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-gray-600 font-medium mb-2">
+                  Patient Management
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/patients" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <Users className="h-5 w-5" />
+                          <span>Manage Patients</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/appointments" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <Calendar className="h-5 w-5" />
+                          <span>Appointments</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/admissions" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <Bed className="h-5 w-5" />
+                          <span>Admissions</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/room-management" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <Bed className="h-5 w-5" />
+                          <span>Room Management</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              {/* Operations */}
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-gray-600 font-medium mb-2">
+                  Operations
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/schedules" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <UserCheck className="h-5 w-5" />
+                          <span>Doctor Schedules</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/inventory" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <Package className="h-5 w-5" />
+                          <span>Inventory/Pharmacy</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/billing" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <CreditCard className="h-5 w-5" />
+                          <span>Billing</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/messages" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <MessageSquare className="h-5 w-5" />
+                          <span>Messages</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </div>
           </SidebarContent>
           
           <SidebarFooter className="border-t border-pink-100 p-4">
@@ -487,20 +590,20 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {upcomingAppointments.map((appointment) => (
-                      <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-pink-100 p-2 rounded-lg">
-                            <Clock className="h-5 w-5 text-pink-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{appointment.patientName}</p>
-                            <p className="text-sm text-gray-600">{appointment.doctorName} • {appointment.department}</p>
-                            <p className="text-sm text-gray-500">{appointment.time} • {appointment.type}</p>
-                          </div>
+                    {upcomingAppointments.map((apt) => (
+                      <div key={apt.id} className="flex items-center space-x-4 p-3 hover:bg-pink-50 rounded-lg transition-colors">
+                        <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-pink-200">
+                          <AvatarFallback>{apt.patient.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{apt.patient.name}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            <span className="font-medium">{apt.doctor.name}</span> - {apt.doctor.department}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          {getStatusBadge(appointment.status)}
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-bold text-pink-600">{new Date(apt.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                          {getStatusBadge(apt.status)}
                         </div>
                       </div>
                     ))}
@@ -531,8 +634,8 @@ export default function AdminDashboard() {
                           </div>
                           <div>
                             <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
-                            <p className="text-sm text-gray-600">{patient.condition}</p>
-                            <p className="text-sm text-gray-500">{patient.doctor} • Room {patient.room}</p>
+                            <p className="text-sm text-gray-600">{patient.condition || 'N/A'}</p>
+                            <p className="text-sm text-gray-500">{patient.doctor?.name || 'N/A'} • Room {patient.roomNumber || 'N/A'}</p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -568,24 +671,24 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {stockAlerts.map((item, index) => (
-                      <div key={index} className={`p-4 rounded-xl border ${getUrgencyColor(item.urgency)}`}>
+                    {stockAlerts.map((item) => (
+                      <div key={item.id} className={`p-4 rounded-xl border ${getUrgencyColor('critical')}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <Pill className="h-5 w-5" />
                             <div>
-                              <p className="font-semibold">{item.medicine}</p>
-                              <p className="text-sm opacity-75">{item.category}</p>
+                              <p className="font-semibold">{item.name}</p>
+                              <p className="text-sm opacity-75">{item.category || 'N/A'}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold">{item.currentStock} / {item.minRequired}</p>
+                            <p className="font-bold">{item.quantity} / {item.lowStockThreshold}</p>
                             <p className="text-xs opacity-75">Current / Required</p>
                           </div>
                         </div>
                         <div className="mt-3">
                           <Progress 
-                            value={(item.currentStock / item.minRequired) * 100} 
+                            value={(item.quantity / item.lowStockThreshold) * 100} 
                             className="h-2"
                           />
                         </div>
@@ -610,24 +713,26 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {doctorSchedules.map((doctor, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-green-100 p-2 rounded-lg">
-                            <Stethoscope className="h-5 w-5 text-green-600" />
-                          </div>
+                    {doctorSchedules.map((doctor) => (
+                      <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Avatar>
+                            <AvatarImage src={`/avatars/doctor-${doctor.id}.png`} />
+                            <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
                           <div>
-                            <p className="font-semibold text-gray-900">{doctor.name}</p>
-                            <p className="text-sm text-gray-600">{doctor.department}</p>
-                            <p className="text-sm text-gray-500">{doctor.shift}</p>
+                            <p className="font-semibold">{doctor.name}</p>
+                            <p className="text-sm opacity-75">{doctor.department}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          {getStatusBadge(doctor.status)}
-                          <p className="text-xs text-gray-500 mt-1">
-                            {doctor.patients} patients today
-                          </p>
+                        <div className="text-sm text-center">
+                          {doctor.shifts && doctor.shifts.length > 0 ? (
+                            <p>{doctor.shifts[0].dayOfWeek}: {formatTime(doctor.shifts[0].startTime)} - {formatTime(doctor.shifts[0].endTime)}</p>
+                          ) : (
+                            <p>No shift assigned</p>
+                          )}
                         </div>
+                        <Badge variant={getDoctorStatusVariant(doctor.status)}>{doctor.status}</Badge>
                       </div>
                     ))}
                   </div>

@@ -1,42 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Op } from 'sequelize';
+import { Appointment, Patient, User } from '@/backend/models';
 import { authenticateUser } from '@/lib/auth-middleware';
-import db from '@/backend/models';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const authResult = await authenticateUser(request);
+    const authResult = await authenticateUser(req);
     if (authResult instanceof NextResponse) {
       return authResult;
     }
 
     const { user } = authResult;
-    if (user.role !== 'doctor') {
+    if (user.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const doctorId = user.id;
-
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const { Appointment, Patient } = await db();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
     const appointments = await Appointment.findAll({
       where: {
-        doctorId: doctorId,
         appointmentDate: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow,
+          [Op.between]: [startOfDay, endOfDay],
         },
       },
       include: [
         {
           model: Patient,
-          attributes: ['id', 'firstName', 'lastName'],
+          as: 'patient',
+          attributes: ['name'],
+        },
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['name', 'department'], // Assuming 'department' is in the User model
         },
       ],
       order: [['appointmentDate', 'ASC']],
@@ -45,6 +43,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(appointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
-    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -739,9 +739,9 @@ export default function LandingPage() {
               <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl p-8 shadow-2xl">
                 <ImageCarousel
                   images={[
-                    "/landingpage/pic1.jpeg",
-                    "/landingpage/pic2.jpeg",
-                    "/landingpage/founder.jpeg"
+                    "https://placehold.co/1200x800/E9D5FF/4C1D95?text=Hospital+View",
+                    "https://placehold.co/1200x800/FBCFE8/86198F?text=Patient+Care",
+                    "https://placehold.co/1200x800/E0E7FF/3730A3?text=Founder"
                   ]}
                   autoRotate={true}
                   rotationInterval={5000}
@@ -1478,7 +1478,7 @@ export default function LandingPage() {
             <div className="relative">
               <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl p-6 shadow-2xl">
                 <Image
-                  src="/pic3.jpeg"
+                  src="https://placehold.co/500x500/DDD6FE/312E81?text=Healthcare+Team"
                   alt="Healthcare Team - Arogya Hospital"
                   width={500}
                   height={400}
