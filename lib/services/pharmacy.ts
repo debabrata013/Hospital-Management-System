@@ -100,24 +100,29 @@ export class PharmacyService {
 
   async createMedicine(data: Partial<Medicine>) {
     const id = crypto.randomUUID()
-    const query = `
-      INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock, unit, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-    await executeQuery(query, [
-      id, 
-      data.name || null, 
-      data.generic_name || null, 
-      data.category || null, 
-      data.manufacturer || null,
-      data.unit_price || null, 
-      data.current_stock || 0, 
-      data.minimum_stock || 10,
-      data.maximum_stock || 1000, 
-      data.unit || null, 
-      data.description || null
-    ])
-    return this.getMedicineById(id)
+    try {
+      const query = `
+        INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock, unit, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+      await executeQuery(query, [
+        id, 
+        data.name || null, 
+        data.generic_name || null, 
+        data.category || null, 
+        data.manufacturer || null,
+        data.unit_price || null, 
+        data.current_stock || 0, 
+        data.minimum_stock || 10,
+        data.maximum_stock || 1000, 
+        data.unit || null, 
+        data.description || null
+      ])
+      return this.getMedicineById(id)
+    } catch (error) {
+      console.error('Error in createMedicine:', error)
+      throw new Error('Medicines table not available. Please set up the database first.')
+    }
   }
 
   async updateMedicine(id: string, data: Partial<Medicine>) {
