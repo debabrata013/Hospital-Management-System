@@ -142,7 +142,7 @@ export default function InventoryManagement() {
                         <p className="text-xs text-gray-500">Min: {medicine.minimum_stock}</p>
                       </div>
                     </TableCell>
-                    <TableCell>₹{medicine.unit_price?.toFixed(2)}</TableCell>
+                    <TableCell>₹{Number(medicine.unit_price || 0).toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className={status.color}>{status.label}</Badge>
                     </TableCell>
