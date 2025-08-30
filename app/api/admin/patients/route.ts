@@ -1,22 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Patient } from '@/backend/models';
-import { authenticateUser } from '@/lib/auth-middleware';
+
+export async function GET(req: NextRequest) {
+  try {
+    // Mock patients data
+    const patients = [
+      {
+        id: '1',
+        name: 'राम शर्मा',
+        age: 45,
+        phone: '9876543210',
+        status: 'Active'
+      },
+      {
+        id: '2',
+        name: 'सीता देवी',
+        age: 32,
+        phone: '9876543211',
+        status: 'Active'
+      }
+    ];
+
+    return NextResponse.json(patients);
+  } catch (error) {
+    console.error('Error fetching patients:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const authResult = await authenticateUser(req);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const body = await req.json();
-
-    const newPatient = await Patient.create(body);
+    
+    // Mock patient creation
+    const newPatient = {
+      id: Date.now().toString(),
+      ...body,
+      status: 'Active',
+      createdAt: new Date().toISOString()
+    };
 
     return NextResponse.json(newPatient, { status: 201 });
   } catch (error) {

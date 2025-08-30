@@ -1,32 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, StaffShift } from '@/backend/models';
-import { authenticateUser } from '@/lib/auth-middleware';
 
 export async function GET(req: NextRequest) {
   try {
-    const authResult = await authenticateUser(req);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+    // Mock doctor schedules data
+    const doctorSchedules = [
+      {
+        id: '1',
+        name: 'Dr. अमित गुप्ता',
+        department: 'Cardiology',
+        status: 'available',
+        shifts: [
+          {
+            dayOfWeek: 'Monday',
+            startTime: '09:00',
+            endTime: '17:00'
+          }
+        ]
+      },
+      {
+        id: '2',
+        name: 'Dr. प्रिया शर्मा',
+        department: 'Internal Medicine',
+        status: 'busy',
+        shifts: [
+          {
+            dayOfWeek: 'Monday',
+            startTime: '08:00',
+            endTime: '16:00'
+          }
+        ]
+      }
+    ];
 
-    const { user } = authResult;
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const doctors = await User.findAll({
-      where: { role: 'doctor' },
-      include: [
-        {
-          model: StaffShift,
-          as: 'shifts',
-          // You might want to filter for current or upcoming shifts
-        },
-      ],
-      attributes: ['id', 'name', 'department', 'status'],
-    });
-
-    return NextResponse.json(doctors);
+    return NextResponse.json(doctorSchedules);
   } catch (error) {
     console.error('Error fetching doctor schedules:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

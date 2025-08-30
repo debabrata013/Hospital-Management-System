@@ -1,44 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Op } from 'sequelize';
-import { Appointment, Patient, User } from '@/backend/models';
-import { authenticateUser } from '@/lib/auth-middleware';
 
 export async function GET(req: NextRequest) {
   try {
-    const authResult = await authenticateUser(req);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-
-    const appointments = await Appointment.findAll({
-      where: {
-        appointmentDate: {
-          [Op.between]: [startOfDay, endOfDay],
-        },
+    // Mock data for today's appointments
+    const appointments = [
+      {
+        id: '1',
+        appointmentDate: new Date().toISOString(),
+        service: 'General Consultation',
+        status: 'confirmed',
+        patient: { name: 'राज कुमार' },
+        doctor: { name: 'Dr. अमित गुप्ता', department: 'Cardiology' }
       },
-      include: [
-        {
-          model: Patient,
-          as: 'patient',
-          attributes: ['name'],
-        },
-        {
-          model: User,
-          as: 'doctor',
-          attributes: ['name', 'department'], // Assuming 'department' is in the User model
-        },
-      ],
-      order: [['appointmentDate', 'ASC']],
-    });
+      {
+        id: '2',
+        appointmentDate: new Date(Date.now() + 3600000).toISOString(),
+        service: 'Follow-up',
+        status: 'pending',
+        patient: { name: 'सुनीता देवी' },
+        doctor: { name: 'Dr. प्रिया शर्मा', department: 'Internal Medicine' }
+      }
+    ];
 
     return NextResponse.json(appointments);
   } catch (error) {

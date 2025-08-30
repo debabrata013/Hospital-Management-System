@@ -1,29 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Patient, User } from '@/backend/models';
-import { authenticateUser } from '@/lib/auth-middleware';
 
 export async function GET(req: NextRequest) {
   try {
-    const authResult = await authenticateUser(req);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const admittedPatients = await Patient.findAll({
-      where: { status: 'Admitted' },
-      include: [
-        {
-          model: User,
-          as: 'doctor',
-          attributes: ['name'],
-        },
-      ],
-    });
+    // Mock data for admitted patients
+    const admittedPatients = [
+      {
+        id: '1',
+        name: 'राम शर्मा',
+        age: 45,
+        condition: 'Heart Surgery Recovery',
+        roomNumber: '101',
+        admissionDate: '2024-01-15',
+        status: 'stable',
+        doctor: { name: 'Dr. अमित गुप्ता' }
+      },
+      {
+        id: '2',
+        name: 'सीता देवी',
+        age: 32,
+        condition: 'Post-operative Care',
+        roomNumber: '205',
+        admissionDate: '2024-01-16',
+        status: 'improving',
+        doctor: { name: 'Dr. प्रिया शर्मा' }
+      }
+    ];
 
     return NextResponse.json(admittedPatients);
   } catch (error) {

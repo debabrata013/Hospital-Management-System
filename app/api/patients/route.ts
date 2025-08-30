@@ -1,22 +1,13 @@
-import { NextResponse } from 'next/server';
-import { authenticateUser } from '@/lib/auth-middleware';
-import db from '@/backend/models';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
-  const authResult = await authenticateUser(request as any);
-  if (authResult instanceof NextResponse) {
-    return authResult;
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    const { Patient } = await db();
-    const patients = await Patient.findAll({
-      attributes: ['id', 'firstName', 'lastName'],
-      order: [['firstName', 'ASC']],
-    });
+    const patients = [
+      { id: '1', name: 'राम शर्मा', age: 45, phone: '9876543210' },
+      { id: '2', name: 'सीता देवी', age: 32, phone: '9876543211' }
+    ];
     return NextResponse.json(patients);
   } catch (error) {
-    console.error('Failed to fetch patients:', error);
-    return NextResponse.json({ error: 'Failed to fetch patients' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
