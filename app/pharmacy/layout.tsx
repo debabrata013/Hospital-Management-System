@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Package, FileText, BarChart3, Plus, Bell, LogOut, User } from 'lucide-react'
+import { Heart, LayoutDashboard, Package, FileText, BarChart3, Plus, Bell, LogOut, User, Building2 } from 'lucide-react'
 
 const navigationItems = [
   {
@@ -47,6 +47,7 @@ const navigationItems = [
     title: "संचालन (Operations)",
     items: [
       { title: "Prescriptions", icon: FileText, url: "/pharmacy/prescriptions" },
+      { title: "Vendors", icon: Building2, url: "/pharmacy/vendors" },
       { title: "Reports", icon: BarChart3, url: "/pharmacy/reports" },
     ]
   }
