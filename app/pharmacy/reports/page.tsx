@@ -456,7 +456,7 @@ export default function ReportsPage() {
                 />
                 <StatCard
                   title="Stock Value"
-                  value={`₹${reportData.inventory.summary?.total_stock_value?.toFixed(2) || '0.00'}`}
+                  value={`₹${Number(reportData.inventory.summary?.total_stock_value || 0).toFixed(2)}`}
                   icon={DollarSign}
                   color="green"
                 />
@@ -542,7 +542,7 @@ export default function ReportsPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <StatCard
                   title="Total Revenue"
-                  value={`₹${reportData.financial.summary?.total_revenue?.toFixed(2) || '0.00'}`}
+                  value={`₹${Number(reportData.financial.summary?.total_revenue || 0).toFixed(2)}`}
                   icon={DollarSign}
                   color="green"
                 />
@@ -554,7 +554,7 @@ export default function ReportsPage() {
                 />
                 <StatCard
                   title="Average Transaction"
-                  value={`₹${reportData.financial.summary?.average_transaction?.toFixed(2) || '0.00'}`}
+                  value={`₹${Number(reportData.financial.summary?.average_transaction || 0).toFixed(2)}`}
                   icon={TrendingUp}
                   color="purple"
                 />
