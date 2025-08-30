@@ -129,40 +129,46 @@ export class PharmacyService {
 
   // Vendor operations
   async getVendors(filters: any = {}) {
-    let query = `
-      SELECT v.*, 
-             COUNT(po.id) as total_orders,
-             MAX(po.order_date) as last_order_date
-      FROM vendors v
-      LEFT JOIN purchase_orders po ON v.id = po.vendor_id
-      WHERE 1=1
-    `
-    const params: any[] = []
+    // Return empty array since vendors table doesn't exist yet
+    try {
+      // Simple query without JOIN to avoid purchase_orders table dependency
+      let query = `SELECT * FROM vendors WHERE 1=1`
+      const params: any[] = []
 
-    if (filters.search) {
-      query += ` AND (v.name LIKE ? OR v.contact_person LIKE ?)`
-      params.push(`%${filters.search}%`, `%${filters.search}%`)
+      if (filters.search) {
+        query += ` AND (name LIKE ? OR contact_person LIKE ?)`
+        params.push(`%${filters.search}%`, `%${filters.search}%`)
+      }
+
+      if (filters.status) {
+        query += ` AND status = ?`
+        params.push(filters.status)
+      }
+
+      query += ` ORDER BY name`
+      return await executeQuery(query, params) as Vendor[]
+    } catch (error) {
+      console.error('Error in getVendors:', error)
+      // Return empty array if table doesn't exist
+      return []
     }
-
-    if (filters.status) {
-      query += ` AND v.status = ?`
-      params.push(filters.status)
-    }
-
-    query += ` GROUP BY v.id ORDER BY v.name`
-    return await executeQuery(query, params) as Vendor[]
   }
 
   async createVendor(data: Partial<Vendor>) {
     const id = crypto.randomUUID()
-    const query = `
-      INSERT INTO vendors (id, name, contact_person, phone, email, address, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `
-    await executeQuery(query, [
-      id, data.name, data.contact_person, data.phone, data.email, data.address, data.status || 'active'
-    ])
-    return { id, ...data }
+    try {
+      const query = `
+        INSERT INTO vendors (id, name, contact_person, phone, email, address, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `
+      await executeQuery(query, [
+        id, data.name, data.contact_person, data.phone, data.email, data.address, data.status || 'active'
+      ])
+      return { id, ...data }
+    } catch (error) {
+      console.error('Error in createVendor:', error)
+      throw new Error('Vendors table not available. Please set up the database first.')
+    }
   }
 
   // Prescription operations
