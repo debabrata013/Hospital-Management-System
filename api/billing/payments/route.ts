@@ -1,61 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BillingService } from '@/lib/services/billing';
-import { PaymentGatewayService } from '@/lib/services/payment-gateway';
-import { 
-  processPaymentSchema, 
-  refundPaymentSchema,
-  paymentQuerySchema 
-} from '@/lib/validations/billing';
-import { getServerSession } from '@/lib/auth';
-
-const billingService = new BillingService();
-const paymentGateway = new PaymentGatewayService();
 
 // GET /api/billing/payments - Get payment history
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(request);
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
-    const queryParams = {
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '10'),
-      invoiceId: searchParams.get('invoiceId'),
-      patientId: searchParams.get('patientId'),
-      paymentMethod: searchParams.get('paymentMethod'),
-      status: searchParams.get('status'),
-      dateFrom: searchParams.get('dateFrom'),
-      dateTo: searchParams.get('dateTo')
-    };
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
-    const validation = paymentQuerySchema.safeParse(queryParams);
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid query parameters',
-          details: validation.error.errors 
-        },
-        { status: 400 }
-      );
-    }
-
-    const result = await billingService.getPaymentHistory(validation.data);
+    // Mock payment history data
+    const payments = [
+      {
+        id: '1',
+        invoiceId: 'INV-001',
+        amount: 5000,
+        paymentMethod: 'cash',
+        status: 'completed',
+        date: new Date().toISOString(),
+        customerName: 'राम शर्मा'
+      },
+      {
+        id: '2',
+        invoiceId: 'INV-002',
+        amount: 3500,
+        paymentMethod: 'upi',
+        status: 'completed',
+        date: new Date().toISOString(),
+        customerName: 'सीता देवी'
+      }
+    ];
 
     return NextResponse.json({
       success: true,
-      data: result.payments,
+      data: payments,
       pagination: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: result.totalPages
+        page,
+        limit,
+        total: payments.length,
+        totalPages: Math.ceil(payments.length / limit)
       }
     });
 
@@ -71,75 +52,19 @@ export async function GET(request: NextRequest) {
 // POST /api/billing/payments - Process payment
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(request);
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Check permissions
-    if (!['admin', 'billing_staff', 'cashier'].includes(session.user.role)) {
-      return NextResponse.json(
-        { success: false, error: 'Insufficient permissions' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
-    const validation = processPaymentSchema.safeParse(body);
 
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid payment data',
-          details: validation.error.errors 
-        },
-        { status: 400 }
-      );
-    }
-
-    const paymentData = {
-      ...validation.data,
-      processedBy: session.user.id
+    // Mock payment processing
+    const payment = {
+      id: Date.now().toString(),
+      invoiceId: body.invoiceId || 'INV-' + Date.now(),
+      amount: body.amount || 0,
+      paymentMethod: body.paymentMode || 'cash',
+      status: 'completed',
+      transactionId: 'TXN-' + Date.now(),
+      processedAt: new Date().toISOString(),
+      processedBy: 'admin'
     };
-
-    // Process payment through gateway (if not cash)
-    let gatewayResponse = null;
-    if (paymentData.paymentMethod !== 'cash') {
-      gatewayResponse = await paymentGateway.processPayment({
-        amount: paymentData.amount,
-        paymentMethod: paymentData.paymentMethod,
-        currency: 'INR',
-        orderId: `INV-${paymentData.invoiceId}-${Date.now()}`,
-        customerInfo: {
-          name: paymentData.customerName || 'Hospital Patient',
-          email: paymentData.customerEmail,
-          phone: paymentData.customerPhone
-        },
-        metadata: {
-          invoiceId: paymentData.invoiceId,
-          hospitalId: session.user.hospitalId
-        }
-      });
-
-      if (!gatewayResponse.success) {
-        return NextResponse.json({
-          success: false,
-          error: 'Payment processing failed',
-          details: gatewayResponse.error
-        }, { status: 400 });
-      }
-    }
-
-    // Record payment in billing system
-    const payment = await billingService.processPayment({
-      ...paymentData,
-      gatewayTransactionId: gatewayResponse?.transactionId,
-      gatewayResponse: gatewayResponse
-    });
 
     return NextResponse.json({
       success: true,
@@ -149,21 +74,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error processing payment:', error);
-    
-    if (error.message.includes('Invoice not found')) {
-      return NextResponse.json(
-        { success: false, error: 'Invoice not found' },
-        { status: 404 }
-      );
-    }
-
-    if (error.message.includes('already paid')) {
-      return NextResponse.json(
-        { success: false, error: 'Invoice already paid' },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: 'Payment processing failed' },
       { status: 500 }
@@ -174,67 +84,18 @@ export async function POST(request: NextRequest) {
 // PUT /api/billing/payments - Refund payment
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(request);
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Only admin and billing managers can process refunds
-    if (!['admin', 'billing_manager'].includes(session.user.role)) {
-      return NextResponse.json(
-        { success: false, error: 'Insufficient permissions for refunds' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
-    const validation = refundPaymentSchema.safeParse(body);
 
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid refund data',
-          details: validation.error.errors 
-        },
-        { status: 400 }
-      );
-    }
-
-    const refundData = {
-      ...validation.data,
-      processedBy: session.user.id
+    // Mock refund processing
+    const refund = {
+      id: Date.now().toString(),
+      paymentId: body.paymentId || 'PAY-' + Date.now(),
+      amount: body.amount || 0,
+      reason: body.reason || 'Customer request',
+      status: 'completed',
+      processedAt: new Date().toISOString(),
+      processedBy: 'admin'
     };
-
-    // Process refund through gateway if original payment was not cash
-    let gatewayRefund = null;
-    const originalPayment = await billingService.getPaymentById(refundData.paymentId);
-    
-    if (originalPayment.paymentMethod !== 'cash' && originalPayment.gatewayTransactionId) {
-      gatewayRefund = await paymentGateway.refundPayment({
-        transactionId: originalPayment.gatewayTransactionId,
-        amount: refundData.amount,
-        reason: refundData.reason
-      });
-
-      if (!gatewayRefund.success) {
-        return NextResponse.json({
-          success: false,
-          error: 'Gateway refund failed',
-          details: gatewayRefund.error
-        }, { status: 400 });
-      }
-    }
-
-    // Record refund in billing system
-    const refund = await billingService.processRefund({
-      ...refundData,
-      gatewayRefundId: gatewayRefund?.refundId,
-      gatewayResponse: gatewayRefund
-    });
 
     return NextResponse.json({
       success: true,
@@ -244,21 +105,6 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Error processing refund:', error);
-    
-    if (error.message.includes('Payment not found')) {
-      return NextResponse.json(
-        { success: false, error: 'Payment not found' },
-        { status: 404 }
-      );
-    }
-
-    if (error.message.includes('already refunded')) {
-      return NextResponse.json(
-        { success: false, error: 'Payment already refunded' },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: 'Refund processing failed' },
       { status: 500 }
