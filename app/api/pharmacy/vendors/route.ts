@@ -8,16 +8,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const filters = {
       search: searchParams.get('search'),
-      category: searchParams.get('category'),
-      limit: searchParams.get('limit')
+      status: searchParams.get('status')
     }
 
-    const medicines = await pharmacyService.getMedicines(filters)
-    return NextResponse.json({ success: true, data: medicines })
+    const vendors = await pharmacyService.getVendors(filters)
+    return NextResponse.json({ success: true, data: vendors })
   } catch (error) {
-    console.error('Error fetching medicines:', error)
+    console.error('Error fetching vendors:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch medicines' },
+      { success: false, error: 'Failed to fetch vendors' },
       { status: 500 }
     )
   }
@@ -26,12 +25,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const medicine = await pharmacyService.createMedicine(data)
-    return NextResponse.json({ success: true, data: medicine }, { status: 201 })
+    const vendor = await pharmacyService.createVendor(data)
+    return NextResponse.json({ success: true, data: vendor }, { status: 201 })
   } catch (error) {
-    console.error('Error creating medicine:', error)
+    console.error('Error creating vendor:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create medicine' },
+      { success: false, error: 'Failed to create vendor' },
       { status: 500 }
     )
   }

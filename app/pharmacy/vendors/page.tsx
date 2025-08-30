@@ -11,65 +11,61 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { 
   Building2, Phone, Mail, MapPin, Plus, Search, 
-  Edit, Trash2, Package, TrendingUp
+  Edit, Trash2, Package, TrendingUp, Loader2, AlertTriangle
 } from 'lucide-react'
-
-interface Vendor {
-  id: string
-  name: string
-  contactPerson: string
-  phone: string
-  email: string
-  address: string
-  status: 'active' | 'inactive'
-  totalOrders: number
-  lastOrderDate: string
-}
+import { useVendors } from "@/hooks/usePharmacy"
+import { toast } from "sonner"
 
 export default function VendorManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [vendors] = useState<Vendor[]>([
-    {
-      id: '1',
-      name: 'MediSupply Co.',
-      contactPerson: 'राज कुमार',
-      phone: '9876543210',
-      email: 'raj@medisupply.com',
-      address: 'नई दिल्ली',
-      status: 'active',
-      totalOrders: 45,
-      lastOrderDate: '2024-01-20'
-    },
-    {
-      id: '2',
-      name: 'PharmaCorp Ltd.',
-      contactPerson: 'सुनीता शर्मा',
-      phone: '9876543211',
-      email: 'sunita@pharmacorp.com',
-      address: 'मुंबई',
-      status: 'active',
-      totalOrders: 32,
-      lastOrderDate: '2024-01-18'
-    }
-  ])
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newVendor, setNewVendor] = useState({
     name: '',
-    contactPerson: '',
+    contact_person: '',
     phone: '',
     email: '',
     address: ''
   })
 
-  const handleAddVendor = () => {
-    console.log('Adding vendor:', newVendor)
-    setNewVendor({ name: '', contactPerson: '', phone: '', email: '', address: '' })
+  const { vendors, loading, error, refetch, createVendor } = useVendors({
+    search: searchTerm || undefined
+  })
+
+  const handleAddVendor = async () => {
+    try {
+      await createVendor(newVendor)
+      setNewVendor({ name: '', contact_person: '', phone: '', email: '', address: '' })
+      setIsDialogOpen(false)
+      toast.success('Vendor added successfully')
+    } catch (error) {
+      toast.error('Failed to add vendor')
+    }
   }
 
-  const filteredVendors = vendors.filter(vendor =>
-    vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading vendors...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">Error loading vendors: {error}</p>
+          <Button onClick={refetch} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -79,7 +75,7 @@ export default function VendorManagement() {
           <p className="text-gray-600">Manage medicine suppliers and vendors</p>
         </div>
         
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -105,8 +101,8 @@ export default function VendorManagement() {
                 <Label htmlFor="contact">Contact Person</Label>
                 <Input
                   id="contact"
-                  value={newVendor.contactPerson}
-                  onChange={(e) => setNewVendor({...newVendor, contactPerson: e.target.value})}
+                  value={newVendor.contact_person}
+                  onChange={(e) => setNewVendor({...newVendor, contact_person: e.target.value})}
                   placeholder="Enter contact person name"
                 />
               </div>
@@ -177,31 +173,37 @@ export default function VendorManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVendors.map((vendor) => (
+              {vendors?.map((vendor: any) => (
                 <TableRow key={vendor.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Building2 className="h-8 w-8 text-blue-500" />
                       <div>
                         <p className="font-semibold">{vendor.name}</p>
-                        <p className="text-sm text-gray-500">{vendor.contactPerson}</p>
+                        <p className="text-sm text-gray-500">{vendor.contact_person}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {vendor.phone}
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {vendor.email}
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {vendor.address}
-                      </div>
+                      {vendor.phone && (
+                        <div className="flex items-center text-sm">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {vendor.phone}
+                        </div>
+                      )}
+                      {vendor.email && (
+                        <div className="flex items-center text-sm">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {vendor.email}
+                        </div>
+                      )}
+                      {vendor.address && (
+                        <div className="flex items-center text-sm">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {vendor.address}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -212,10 +214,15 @@ export default function VendorManagement() {
                   <TableCell>
                     <div className="flex items-center">
                       <Package className="h-4 w-4 mr-1 text-gray-400" />
-                      {vendor.totalOrders}
+                      {vendor.total_orders || 0}
                     </div>
                   </TableCell>
-                  <TableCell>{vendor.lastOrderDate}</TableCell>
+                  <TableCell>
+                    {vendor.last_order_date ? 
+                      new Date(vendor.last_order_date).toLocaleDateString() : 
+                      'No orders'
+                    }
+                  </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm">
@@ -230,6 +237,16 @@ export default function VendorManagement() {
               ))}
             </TableBody>
           </Table>
+          
+          {(!vendors || vendors.length === 0) && (
+            <div className="text-center py-8">
+              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No vendors found</p>
+              {searchTerm && (
+                <p className="text-sm text-gray-400">Try adjusting your search terms</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

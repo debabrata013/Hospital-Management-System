@@ -1,615 +1,322 @@
-import Medicine from '@/models/Medicine';
-import Prescription from '@/models/Prescription';
-import { BillingService } from './billing';
-import { NotificationService } from './notification';
+import { executeQuery } from '@/lib/db/connection'
+import { v4 as uuidv4 } from 'uuid'
+
+export interface Medicine {
+  id: string
+  name: string
+  generic_name?: string
+  category: string
+  manufacturer?: string
+  unit_price: number
+  current_stock: number
+  minimum_stock: number
+  maximum_stock: number
+  unit: string
+  description?: string
+}
+
+export interface Vendor {
+  id: string
+  name: string
+  contact_person?: string
+  phone?: string
+  email?: string
+  address?: string
+  status: 'active' | 'inactive'
+}
+
+export interface Prescription {
+  id: string
+  prescription_number: string
+  patient_id: string
+  patient_name: string
+  doctor_id: string
+  doctor_name: string
+  status: 'pending' | 'dispensed' | 'partially_dispensed' | 'cancelled'
+  total_amount: number
+  items?: PrescriptionItem[]
+}
+
+export interface PrescriptionItem {
+  id: string
+  medicine_id: string
+  medicine_name: string
+  quantity: number
+  dosage: string
+  frequency: string
+  duration: string
+  instructions?: string
+  unit_price: number
+  total_price: number
+  dispensed_quantity: number
+}
 
 export class PharmacyService {
-  private billingService: BillingService;
-  private notificationService: NotificationService;
+  // Medicine operations
+  async getMedicines(filters: any = {}) {
+    let query = `
+      SELECT m.*, 
+             COUNT(mb.id) as batch_count,
+             SUM(CASE WHEN mb.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN mb.quantity ELSE 0 END) as expiring_stock
+      FROM medicines m
+      LEFT JOIN medicine_batches mb ON m.id = mb.medicine_id
+      WHERE 1=1
+    `
+    const params: any[] = []
 
-  constructor() {
-    this.billingService = new BillingService();
-    this.notificationService = new NotificationService();
+    if (filters.search) {
+      query += ` AND (m.name LIKE ? OR m.generic_name LIKE ?)`
+      params.push(`%${filters.search}%`, `%${filters.search}%`)
+    }
+
+    if (filters.category) {
+      query += ` AND m.category = ?`
+      params.push(filters.category)
+    }
+
+    query += ` GROUP BY m.id ORDER BY m.name`
+
+    if (filters.limit) {
+      query += ` LIMIT ?`
+      params.push(parseInt(filters.limit))
+    }
+
+    return await executeQuery(query, params) as Medicine[]
   }
 
-  // ==================== MEDICINE MANAGEMENT ====================
-
-  async createMedicine(medicineData: any, userId: string) {
-    try {
-      const medicine = new Medicine({
-        ...medicineData,
-        createdBy: userId,
-        lastUpdatedBy: userId
-      });
-
-      await medicine.save();
-
-      // Log audit trail
-      await this.logAuditTrail({
-        action: 'CREATE_MEDICINE',
-        entityType: 'MEDICINE',
-        entityId: medicine._id.toString(),
-        userId,
-        details: {
-          medicineName: medicine.medicineName,
-          category: medicine.category,
-          manufacturer: medicine.manufacturer
-        },
-        riskLevel: 'LOW'
-      });
-
-      return medicine;
-    } catch (error) {
-      console.error('Error creating medicine:', error);
-      throw new Error('Failed to create medicine');
-    }
+  async getMedicineById(id: string) {
+    const query = `
+      SELECT m.*, 
+             GROUP_CONCAT(CONCAT(mb.batch_number, ':', mb.quantity, ':', mb.expiry_date) SEPARATOR '|') as batches
+      FROM medicines m
+      LEFT JOIN medicine_batches mb ON m.id = mb.medicine_id
+      WHERE m.id = ?
+      GROUP BY m.id
+    `
+    const results = await executeQuery(query, [id]) as any[]
+    return results[0] || null
   }
 
-  async updateMedicine(medicineId: string, updates: any, userId: string) {
-    try {
-      const medicine = await Medicine.findById(medicineId);
-      if (!medicine) {
-        throw new Error('Medicine not found');
-      }
-
-      // Store original values for audit
-      const originalValues = {
-        medicineName: medicine.medicineName,
-        pricing: medicine.pricing,
-        inventory: medicine.inventory
-      };
-
-      Object.assign(medicine, updates);
-      medicine.lastUpdatedBy = userId;
-      await medicine.save();
-
-      // Log audit trail
-      await this.logAuditTrail({
-        action: 'UPDATE_MEDICINE',
-        entityType: 'MEDICINE',
-        entityId: medicineId,
-        userId,
-        details: {
-          originalValues,
-          updatedValues: updates
-        },
-        riskLevel: 'MEDIUM'
-      });
-
-      return medicine;
-    } catch (error) {
-      console.error('Error updating medicine:', error);
-      throw new Error('Failed to update medicine');
-    }
+  async createMedicine(data: Partial<Medicine>) {
+    const id = uuidv4()
+    const query = `
+      INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock, unit, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+    await executeQuery(query, [
+      id, data.name, data.generic_name, data.category, data.manufacturer,
+      data.unit_price, data.current_stock || 0, data.minimum_stock || 10,
+      data.maximum_stock || 1000, data.unit, data.description
+    ])
+    return this.getMedicineById(id)
   }
 
-  async getMedicines(queryParams: any) {
-    try {
-      const {
-        page = 1,
-        limit = 20,
-        search,
-        category,
-        manufacturer,
-        stockStatus,
-        expiryStatus,
-        sortBy = 'medicineName',
-        sortOrder = 'asc'
-      } = queryParams;
-
-      const skip = (page - 1) * limit;
-      const query: any = { isActive: true };
-
-      // Build search query
-      if (search) {
-        query.$or = [
-          { medicineName: { $regex: search, $options: 'i' } },
-          { genericName: { $regex: search, $options: 'i' } },
-          { brandName: { $regex: search, $options: 'i' } },
-          { medicineId: { $regex: search, $options: 'i' } }
-        ];
-      }
-
-      if (category) {
-        query.category = category;
-      }
-
-      if (manufacturer) {
-        query.manufacturer = { $regex: manufacturer, $options: 'i' };
-      }
-
-      // Stock status filter
-      if (stockStatus) {
-        switch (stockStatus) {
-          case 'Out of Stock':
-            query['inventory.currentStock'] = 0;
-            break;
-          case 'Low Stock':
-            query.$expr = { $lte: ['$inventory.currentStock', '$inventory.minimumStock'] };
-            break;
-          case 'Overstock':
-            query.$expr = { $gte: ['$inventory.currentStock', '$inventory.maximumStock'] };
-            break;
-          case 'In Stock':
-            query.$expr = { 
-              $and: [
-                { $gt: ['$inventory.currentStock', '$inventory.minimumStock'] },
-                { $lt: ['$inventory.currentStock', '$inventory.maximumStock'] }
-              ]
-            };
-            break;
-        }
-      }
-
-      // Expiry status filter
-      if (expiryStatus) {
-        const now = new Date();
-        const alertDate = new Date();
-        alertDate.setDate(alertDate.getDate() + 90); // 90 days from now
-
-        switch (expiryStatus) {
-          case 'Expiring Soon':
-            query['batches.expiryDate'] = { $lte: alertDate, $gt: now };
-            query['batches.status'] = 'Active';
-            query['batches.quantity'] = { $gt: 0 };
-            break;
-          case 'Expired':
-            query['batches.expiryDate'] = { $lte: now };
-            query['batches.status'] = 'Active';
-            break;
-          case 'Valid':
-            query['batches.expiryDate'] = { $gt: alertDate };
-            query['batches.status'] = 'Active';
-            break;
-        }
-      }
-
-      // Sort configuration
-      const sortConfig: any = {};
-      sortConfig[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-      const [medicines, total] = await Promise.all([
-        Medicine.find(query)
-          .populate('createdBy', 'name')
-          .populate('lastUpdatedBy', 'name')
-          .sort(sortConfig)
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-        Medicine.countDocuments(query)
-      ]);
-
-      return {
-        medicines,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit)
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching medicines:', error);
-      throw new Error('Failed to fetch medicines');
-    }
+  async updateMedicine(id: string, data: Partial<Medicine>) {
+    const query = `
+      UPDATE medicines 
+      SET name = ?, generic_name = ?, category = ?, manufacturer = ?, unit_price = ?, 
+          minimum_stock = ?, maximum_stock = ?, unit = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `
+    await executeQuery(query, [
+      data.name, data.generic_name, data.category, data.manufacturer,
+      data.unit_price, data.minimum_stock, data.maximum_stock, data.unit,
+      data.description, id
+    ])
+    return this.getMedicineById(id)
   }
 
-  async getMedicineById(medicineId: string) {
-    try {
-      const medicine = await Medicine.findById(medicineId)
-        .populate('createdBy', 'name')
-        .populate('lastUpdatedBy', 'name')
-        .populate('stockMovements.performedBy', 'name');
+  // Vendor operations
+  async getVendors(filters: any = {}) {
+    let query = `
+      SELECT v.*, 
+             COUNT(po.id) as total_orders,
+             MAX(po.order_date) as last_order_date
+      FROM vendors v
+      LEFT JOIN purchase_orders po ON v.id = po.vendor_id
+      WHERE 1=1
+    `
+    const params: any[] = []
 
-      if (!medicine) {
-        throw new Error('Medicine not found');
-      }
-
-      return medicine;
-    } catch (error) {
-      console.error('Error fetching medicine:', error);
-      throw new Error('Failed to fetch medicine');
+    if (filters.search) {
+      query += ` AND (v.name LIKE ? OR v.contact_person LIKE ?)`
+      params.push(`%${filters.search}%`, `%${filters.search}%`)
     }
+
+    if (filters.status) {
+      query += ` AND v.status = ?`
+      params.push(filters.status)
+    }
+
+    query += ` GROUP BY v.id ORDER BY v.name`
+    return await executeQuery(query, params) as Vendor[]
   }
 
-  // ==================== BATCH MANAGEMENT ====================
-
-  async addBatch(batchData: any, userId: string) {
-    try {
-      const { medicineId, ...batchInfo } = batchData;
-      
-      const medicine = await Medicine.findById(medicineId);
-      if (!medicine) {
-        throw new Error('Medicine not found');
-      }
-
-      // Check if batch already exists
-      const existingBatch = medicine.batches.find(b => b.batchNo === batchInfo.batchNo);
-      if (existingBatch) {
-        throw new Error('Batch number already exists for this medicine');
-      }
-
-      // Add batch to medicine
-      medicine.batches.push({
-        ...batchInfo,
-        purchaseDate: new Date(),
-        status: 'Active'
-      });
-
-      // Update current stock
-      medicine.inventory.currentStock += batchInfo.quantity;
-
-      // Add stock movement
-      medicine.stockMovements.push({
-        movementType: 'Purchase',
-        quantity: batchInfo.quantity,
-        batchNo: batchInfo.batchNo,
-        performedBy: userId,
-        reason: 'New batch added',
-        movementDate: new Date()
-      });
-
-      medicine.lastUpdatedBy = userId;
-      await medicine.save();
-
-      // Check if reorder alert should be cleared
-      if (medicine.inventory.currentStock > medicine.inventory.reorderLevel) {
-        await this.clearLowStockAlert(medicineId);
-      }
-
-      // Log audit trail
-      await this.logAuditTrail({
-        action: 'ADD_BATCH',
-        entityType: 'MEDICINE',
-        entityId: medicineId,
-        userId,
-        details: {
-          batchNo: batchInfo.batchNo,
-          quantity: batchInfo.quantity,
-          expiryDate: batchInfo.expiryDate,
-          costPrice: batchInfo.costPrice
-        },
-        riskLevel: 'LOW'
-      });
-
-      return medicine;
-    } catch (error) {
-      console.error('Error adding batch:', error);
-      throw new Error(error.message || 'Failed to add batch');
-    }
+  async createVendor(data: Partial<Vendor>) {
+    const id = uuidv4()
+    const query = `
+      INSERT INTO vendors (id, name, contact_person, phone, email, address, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `
+    await executeQuery(query, [
+      id, data.name, data.contact_person, data.phone, data.email, data.address, data.status || 'active'
+    ])
+    return { id, ...data }
   }
 
-  async updateBatch(medicineId: string, batchNo: string, updates: any, userId: string) {
-    try {
-      const medicine = await Medicine.findById(medicineId);
-      if (!medicine) {
-        throw new Error('Medicine not found');
-      }
+  // Prescription operations
+  async getPrescriptions(filters: any = {}) {
+    let query = `
+      SELECT p.*, 
+             COUNT(pi.id) as item_count,
+             SUM(pi.total_price) as calculated_total
+      FROM prescriptions p
+      LEFT JOIN prescription_items pi ON p.id = pi.prescription_id
+      WHERE 1=1
+    `
+    const params: any[] = []
 
-      const batch = medicine.batches.find(b => b.batchNo === batchNo);
-      if (!batch) {
-        throw new Error('Batch not found');
-      }
-
-      const originalQuantity = batch.quantity;
-      Object.assign(batch, updates);
-
-      // Update current stock if quantity changed
-      if (updates.quantity !== undefined) {
-        const quantityDifference = updates.quantity - originalQuantity;
-        medicine.inventory.currentStock += quantityDifference;
-
-        // Add stock movement for adjustment
-        if (quantityDifference !== 0) {
-          medicine.stockMovements.push({
-            movementType: 'Adjustment',
-            quantity: quantityDifference,
-            batchNo: batchNo,
-            performedBy: userId,
-            reason: 'Batch quantity adjustment',
-            movementDate: new Date()
-          });
-        }
-      }
-
-      medicine.lastUpdatedBy = userId;
-      await medicine.save();
-
-      // Log audit trail
-      await this.logAuditTrail({
-        action: 'UPDATE_BATCH',
-        entityType: 'MEDICINE',
-        entityId: medicineId,
-        userId,
-        details: {
-          batchNo,
-          updates,
-          originalQuantity,
-          newQuantity: batch.quantity
-        },
-        riskLevel: 'MEDIUM'
-      });
-
-      return medicine;
-    } catch (error) {
-      console.error('Error updating batch:', error);
-      throw new Error(error.message || 'Failed to update batch');
+    if (filters.status) {
+      query += ` AND p.status = ?`
+      params.push(filters.status)
     }
+
+    if (filters.search) {
+      query += ` AND (p.patient_name LIKE ? OR p.doctor_name LIKE ? OR p.prescription_number LIKE ?)`
+      params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`)
+    }
+
+    query += ` GROUP BY p.id ORDER BY p.created_at DESC`
+
+    if (filters.limit) {
+      query += ` LIMIT ?`
+      params.push(parseInt(filters.limit))
+    }
+
+    return await executeQuery(query, params) as Prescription[]
   }
 
-  // ==================== STOCK MANAGEMENT ====================
-
-  async recordStockMovement(movementData: any, userId: string) {
-    try {
-      const { medicineId, movementType, quantity, batchNo, reason, referenceId, notes } = movementData;
-
-      const medicine = await Medicine.findById(medicineId);
-      if (!medicine) {
-        throw new Error('Medicine not found');
-      }
-
-      // Validate batch if specified
-      if (batchNo) {
-        const batch = medicine.batches.find(b => b.batchNo === batchNo);
-        if (!batch) {
-          throw new Error('Batch not found');
-        }
-
-        // For outgoing movements, check if sufficient stock exists
-        if (['Sale', 'Transfer', 'Expired', 'Damaged'].includes(movementType)) {
-          if (batch.quantity < quantity) {
-            throw new Error('Insufficient stock in the specified batch');
-          }
-          batch.quantity -= quantity;
-          medicine.inventory.currentStock -= quantity;
-        } else {
-          // For incoming movements
-          batch.quantity += quantity;
-          medicine.inventory.currentStock += quantity;
-        }
-      } else {
-        // For movements without specific batch
-        if (['Sale', 'Transfer', 'Expired', 'Damaged'].includes(movementType)) {
-          if (medicine.inventory.currentStock < quantity) {
-            throw new Error('Insufficient stock');
-          }
-          medicine.inventory.currentStock -= quantity;
-        } else {
-          medicine.inventory.currentStock += quantity;
-        }
-      }
-
-      // Add stock movement record
-      medicine.stockMovements.push({
-        movementType,
-        quantity: ['Sale', 'Transfer', 'Expired', 'Damaged'].includes(movementType) ? -quantity : quantity,
-        batchNo,
-        reason,
-        referenceId,
-        notes,
-        performedBy: userId,
-        movementDate: new Date()
-      });
-
-      medicine.lastUpdatedBy = userId;
-      await medicine.save();
-
-      // Check for stock alerts
-      await this.checkStockAlerts(medicine);
-
-      // Log audit trail
-      await this.logAuditTrail({
-        action: 'STOCK_MOVEMENT',
-        entityType: 'MEDICINE',
-        entityId: medicineId,
-        userId,
-        details: {
-          movementType,
-          quantity,
-          batchNo,
-          reason,
-          currentStock: medicine.inventory.currentStock
-        },
-        riskLevel: movementType === 'Sale' ? 'LOW' : 'MEDIUM'
-      });
-
-      return medicine;
-    } catch (error) {
-      console.error('Error recording stock movement:', error);
-      throw new Error(error.message || 'Failed to record stock movement');
+  async getPrescriptionById(id: string) {
+    const prescriptionQuery = `SELECT * FROM prescriptions WHERE id = ?`
+    const itemsQuery = `SELECT * FROM prescription_items WHERE prescription_id = ?`
+    
+    const [prescription] = await executeQuery(prescriptionQuery, [id]) as any[]
+    const items = await executeQuery(itemsQuery, [id]) as PrescriptionItem[]
+    
+    if (prescription) {
+      prescription.items = items
     }
+    
+    return prescription
   }
 
-  async getStockMovements(queryParams: any) {
-    try {
-      const {
-        page = 1,
-        limit = 20,
-        medicineId,
-        movementType,
-        dateFrom,
-        dateTo,
-        performedBy,
-        sortBy = 'movementDate',
-        sortOrder = 'desc'
-      } = queryParams;
+  async createPrescription(data: any) {
+    const id = uuidv4()
+    const prescriptionNumber = `RX-${Date.now()}`
+    
+    // Insert prescription
+    const prescriptionQuery = `
+      INSERT INTO prescriptions (id, prescription_number, patient_id, patient_name, doctor_id, doctor_name, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending')
+    `
+    await executeQuery(prescriptionQuery, [
+      id, prescriptionNumber, data.patient_id, data.patient_name, data.doctor_id, data.doctor_name
+    ])
 
-      const skip = (page - 1) * limit;
-      const matchQuery: any = {};
+    // Insert prescription items
+    let totalAmount = 0
+    for (const item of data.items) {
+      const itemId = uuidv4()
+      const itemTotal = item.quantity * item.unit_price
+      totalAmount += itemTotal
 
-      if (medicineId) {
-        matchQuery._id = medicineId;
-      }
-
-      const pipeline: any[] = [
-        { $match: matchQuery },
-        { $unwind: '$stockMovements' },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'stockMovements.performedBy',
-            foreignField: '_id',
-            as: 'stockMovements.performedByUser'
-          }
-        },
-        {
-          $addFields: {
-            'stockMovements.performedByUser': { $arrayElemAt: ['$stockMovements.performedByUser', 0] }
-          }
-        }
-      ];
-
-      // Add filters
-      const movementMatch: any = {};
-      
-      if (movementType) {
-        movementMatch['stockMovements.movementType'] = movementType;
-      }
-
-      if (dateFrom || dateTo) {
-        movementMatch['stockMovements.movementDate'] = {};
-        if (dateFrom) {
-          movementMatch['stockMovements.movementDate'].$gte = new Date(dateFrom);
-        }
-        if (dateTo) {
-          movementMatch['stockMovements.movementDate'].$lte = new Date(dateTo);
-        }
-      }
-
-      if (performedBy) {
-        movementMatch['stockMovements.performedBy'] = performedBy;
-      }
-
-      if (Object.keys(movementMatch).length > 0) {
-        pipeline.push({ $match: movementMatch });
-      }
-
-      // Sort
-      const sortConfig: any = {};
-      sortConfig[`stockMovements.${sortBy}`] = sortOrder === 'desc' ? -1 : 1;
-      pipeline.push({ $sort: sortConfig });
-
-      // Pagination
-      pipeline.push({ $skip: skip });
-      pipeline.push({ $limit: limit });
-
-      // Project final structure
-      pipeline.push({
-        $project: {
-          medicineId: '$medicineId',
-          medicineName: '$medicineName',
-          movement: '$stockMovements'
-        }
-      });
-
-      const movements = await Medicine.aggregate(pipeline);
-
-      // Get total count
-      const countPipeline = [...pipeline.slice(0, -3)]; // Remove sort, skip, limit, project
-      countPipeline.push({ $count: 'total' });
-      const countResult = await Medicine.aggregate(countPipeline);
-      const total = countResult[0]?.total || 0;
-
-      return {
-        movements,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit)
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching stock movements:', error);
-      throw new Error('Failed to fetch stock movements');
+      const itemQuery = `
+        INSERT INTO prescription_items (id, prescription_id, medicine_id, medicine_name, quantity, dosage, frequency, duration, instructions, unit_price, total_price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+      await executeQuery(itemQuery, [
+        itemId, id, item.medicine_id, item.medicine_name, item.quantity,
+        item.dosage, item.frequency, item.duration, item.instructions,
+        item.unit_price, itemTotal
+      ])
     }
+
+    // Update total amount
+    await executeQuery(`UPDATE prescriptions SET total_amount = ? WHERE id = ?`, [totalAmount, id])
+
+    return this.getPrescriptionById(id)
   }
 
-  // ==================== HELPER METHODS ====================
+  async dispensePrescription(id: string, items: any[]) {
+    // Update prescription items with dispensed quantities
+    for (const item of items) {
+      await executeQuery(
+        `UPDATE prescription_items SET dispensed_quantity = ? WHERE id = ?`,
+        [item.dispensed_quantity, item.id]
+      )
 
-  private async checkStockAlerts(medicine: any) {
-    try {
-      // Check low stock alert
-      if (medicine.inventory.currentStock <= medicine.inventory.reorderLevel) {
-        await this.sendLowStockAlert(medicine);
-      }
+      // Update medicine stock
+      await executeQuery(
+        `UPDATE medicines SET current_stock = current_stock - ? WHERE id = ?`,
+        [item.dispensed_quantity, item.medicine_id]
+      )
 
-      // Check expiry alerts
-      const expiringBatches = medicine.expiringBatches;
-      if (expiringBatches.length > 0) {
-        await this.sendExpiryAlert(medicine, expiringBatches);
-      }
-    } catch (error) {
-      console.error('Error checking stock alerts:', error);
+      // Record stock transaction
+      const transactionId = uuidv4()
+      await executeQuery(`
+        INSERT INTO stock_transactions (id, medicine_id, transaction_type, quantity, unit_price, total_amount, reference_id, reference_type)
+        VALUES (?, ?, 'sale', ?, ?, ?, ?, 'prescription')
+      `, [transactionId, item.medicine_id, item.dispensed_quantity, item.unit_price, item.dispensed_quantity * item.unit_price, id])
     }
+
+    // Update prescription status
+    const allDispensed = items.every(item => item.dispensed_quantity >= item.quantity)
+    const status = allDispensed ? 'dispensed' : 'partially_dispensed'
+    
+    await executeQuery(`UPDATE prescriptions SET status = ? WHERE id = ?`, [status, id])
+
+    return this.getPrescriptionById(id)
   }
 
-  private async sendLowStockAlert(medicine: any) {
-    try {
-      if (!medicine.alerts.lowStockAlert) return;
-
-      const alertData = {
-        type: 'LOW_STOCK',
-        title: 'Low Stock Alert',
-        message: `${medicine.medicineName} is running low. Current stock: ${medicine.inventory.currentStock}, Minimum required: ${medicine.inventory.minimumStock}`,
-        priority: 'HIGH',
-        data: {
-          medicineId: medicine._id,
-          medicineName: medicine.medicineName,
-          currentStock: medicine.inventory.currentStock,
-          minimumStock: medicine.inventory.minimumStock,
-          reorderLevel: medicine.inventory.reorderLevel
-        }
-      };
-
-      await this.notificationService.sendAlert(alertData);
-    } catch (error) {
-      console.error('Error sending low stock alert:', error);
-    }
+  // Stock alerts
+  async getStockAlerts() {
+    const query = `
+      SELECT m.*, 
+             mb.batch_number, mb.expiry_date, mb.quantity as batch_quantity,
+             CASE 
+               WHEN m.current_stock = 0 THEN 'out_of_stock'
+               WHEN m.current_stock <= m.minimum_stock THEN 'low_stock'
+               WHEN mb.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'expiring'
+               ELSE 'normal'
+             END as alert_type
+      FROM medicines m
+      LEFT JOIN medicine_batches mb ON m.id = mb.medicine_id
+      WHERE m.current_stock <= m.minimum_stock 
+         OR mb.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      ORDER BY alert_type, m.name
+    `
+    return await executeQuery(query, [])
   }
 
-  private async sendExpiryAlert(medicine: any, expiringBatches: any[]) {
-    try {
-      if (!medicine.alerts.expiryAlert) return;
-
-      const alertData = {
-        type: 'EXPIRY_ALERT',
-        title: 'Medicine Expiry Alert',
-        message: `${medicine.medicineName} has ${expiringBatches.length} batch(es) expiring soon`,
-        priority: 'MEDIUM',
-        data: {
-          medicineId: medicine._id,
-          medicineName: medicine.medicineName,
-          expiringBatches: expiringBatches.map(batch => ({
-            batchNo: batch.batchNo,
-            expiryDate: batch.expiryDate,
-            quantity: batch.quantity
-          }))
-        }
-      };
-
-      await this.notificationService.sendAlert(alertData);
-    } catch (error) {
-      console.error('Error sending expiry alert:', error);
+  // Dashboard statistics
+  async getDashboardStats() {
+    const queries = {
+      totalMedicines: `SELECT COUNT(*) as count FROM medicines`,
+      lowStock: `SELECT COUNT(*) as count FROM medicines WHERE current_stock <= minimum_stock`,
+      expiringSoon: `SELECT COUNT(DISTINCT m.id) as count FROM medicines m JOIN medicine_batches mb ON m.id = mb.medicine_id WHERE mb.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)`,
+      totalValue: `SELECT SUM(current_stock * unit_price) as value FROM medicines`,
+      totalPrescriptions: `SELECT COUNT(*) as count FROM prescriptions WHERE DATE(created_at) = CURDATE()`,
+      activePrescriptions: `SELECT COUNT(*) as count FROM prescriptions WHERE status = 'pending'`,
+      completedPrescriptions: `SELECT COUNT(*) as count FROM prescriptions WHERE status = 'dispensed' AND DATE(created_at) = CURDATE()`,
+      pendingDispensing: `SELECT COUNT(*) as count FROM prescriptions WHERE status IN ('pending', 'partially_dispensed')`
     }
-  }
 
-  private async clearLowStockAlert(medicineId: string) {
-    try {
-      // Implementation to clear/mark resolved low stock alerts
-      // This would integrate with your notification system
-    } catch (error) {
-      console.error('Error clearing low stock alert:', error);
+    const results: any = {}
+    for (const [key, query] of Object.entries(queries)) {
+      const [result] = await executeQuery(query, []) as any[]
+      results[key] = result.count || result.value || 0
     }
-  }
 
-  private async logAuditTrail(auditData: any) {
-    try {
-      // Implementation for audit logging
-      // This would integrate with your audit system
-      console.log('Audit Trail:', auditData);
-    } catch (error) {
-      console.error('Error logging audit trail:', error);
-    }
+    return results
   }
 }
