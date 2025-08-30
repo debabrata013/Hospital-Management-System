@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -132,6 +133,7 @@ const navigationItems = [
 
 export default function SuperAdminDashboard() {
   const [notifications] = useState(5)
+  const router = useRouter()
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -155,6 +157,13 @@ export default function SuperAdminDashboard() {
         return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
     }
   }
+
+  const handleLogout = () => {
+    // Clear any auth data if needed
+    // localStorage.removeItem("token") // Example
+    router.push("/login")
+  }
+  
 
   return (
     <SidebarProvider>
@@ -269,10 +278,10 @@ export default function SuperAdminDashboard() {
                       Security
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+  <LogOut className="mr-2 h-4 w-4" />
+  Logout
+</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
