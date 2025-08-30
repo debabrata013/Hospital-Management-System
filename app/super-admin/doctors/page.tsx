@@ -9,11 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { 
-  UserCheck, 
-  Plus, 
-  Search, 
-  Filter,
+import {
+  UserCheck,
+  Plus,
+  Search,
   Edit,
   Trash2,
   Eye,
@@ -23,7 +22,6 @@ import {
   Calendar,
   Award,
   Clock,
-  X
 } from 'lucide-react'
 
 // Doctor interface
@@ -141,7 +139,7 @@ export default function DoctorsPage() {
   // Form validation
   const validateForm = (data: DoctorFormData): string[] => {
     const errors: string[] = []
-    
+
     if (!data.name.trim()) errors.push("Name is required")
     if (!data.email.trim()) errors.push("Email is required")
     if (!data.phone.trim()) errors.push("Phone is required")
@@ -150,26 +148,26 @@ export default function DoctorsPage() {
     if (!data.experience.trim()) errors.push("Experience is required")
     if (!data.qualification.trim()) errors.push("Qualification is required")
     if (!data.licenseNumber.trim()) errors.push("License number is required")
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (data.email && !emailRegex.test(data.email)) {
       errors.push("Please enter a valid email address")
     }
-    
+
     // Phone validation
     const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/
     if (data.phone && !phoneRegex.test(data.phone)) {
       errors.push("Please enter a valid phone number")
     }
-    
+
     return errors
   }
 
   // Add new doctor
   const handleAddDoctor = (formData: DoctorFormData) => {
     const errors = validateForm(formData)
-    
+
     if (errors.length > 0) {
       toast({
         title: "Validation Error",
@@ -186,16 +184,16 @@ export default function DoctorsPage() {
       availability: "Available",
       patientsToday: 0,
       rating: 0,
-      joinDate: new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: '2-digit' 
+      joinDate: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit'
       })
     }
 
     setDoctors([...doctors, newDoctor])
     setIsAddDialogOpen(false)
-    
+
     toast({
       title: "Success",
       description: `Dr. ${formData.name} has been added successfully!`,
@@ -218,11 +216,11 @@ export default function DoctorsPage() {
   // Filter doctors
   const filteredDoctors = doctors.filter(doctor => {
     const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doctor.department.toLowerCase().includes(searchTerm.toLowerCase())
-    
+                          doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          doctor.department.toLowerCase().includes(searchTerm.toLowerCase())
+
     const matchesSpecialization = selectedSpecialization === "all" || !selectedSpecialization || doctor.specialization === selectedSpecialization
-    
+
     return matchesSearch && matchesSpecialization
   })
 
@@ -253,34 +251,34 @@ export default function DoctorsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <UserCheck className="h-8 w-8 mr-3 text-pink-500" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-pink-500" />
               Manage Doctors
             </h1>
-            <p className="text-gray-600 mt-2">Manage hospital doctors, schedules, and specializations</p>
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">Manage hospital doctors, schedules, and specializations</p>
           </div>
-          
+
           {/* Add New Doctor Dialog */}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+              <Button className="w-full sm:w-auto bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Doctor
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-xs sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center">
                   <Plus className="h-5 w-5 mr-2 text-pink-500" />
                   Add New Doctor
                 </DialogTitle>
               </DialogHeader>
-              
+
               <AddDoctorForm onSubmit={handleAddDoctor} onCancel={() => {
                 setIsAddDialogOpen(false)
               }} />
@@ -290,57 +288,57 @@ export default function DoctorsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Doctors</p>
-                <p className="text-2xl font-bold text-gray-900">{doctors.length}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Doctors</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{doctors.length}</p>
               </div>
-              <Stethoscope className="h-8 w-8 text-pink-500" />
+              <Stethoscope className="h-6 w-6 sm:h-8 sm:w-8 text-pink-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Available Now</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Available Now</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">
                   {doctors.filter(d => d.availability === 'Available').length}
                 </p>
               </div>
-              <UserCheck className="h-8 w-8 text-green-500" />
+              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Specializations</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Specializations</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
                   {new Set(doctors.map(d => d.specialization)).size}
                 </p>
               </div>
-              <Award className="h-8 w-8 text-blue-500" />
+              <Award className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-pink-100">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Avg Rating</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
                   {(doctors.reduce((sum, d) => sum + d.rating, 0) / doctors.length).toFixed(1)}
                 </p>
               </div>
-              <Award className="h-8 w-8 text-purple-500" />
+              <Award className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -348,13 +346,13 @@ export default function DoctorsPage() {
 
       {/* Search and Filter */}
       <Card className="border-pink-100 mb-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  placeholder="Search doctors by name, specialization, or department..." 
+                <Input
+                  placeholder="Search doctors by name, specialization, or department..."
                   className="pl-10 border-pink-200 focus:border-pink-400"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -362,7 +360,7 @@ export default function DoctorsPage() {
               </div>
             </div>
             <Select value={selectedSpecialization} onValueChange={setSelectedSpecialization}>
-              <SelectTrigger className="w-48 border-pink-200 text-pink-600">
+              <SelectTrigger className="w-full md:w-48 border-pink-200 text-pink-600">
                 <SelectValue placeholder="Filter by Specialization" />
               </SelectTrigger>
               <SelectContent>
@@ -391,16 +389,16 @@ export default function DoctorsPage() {
             <div className="space-y-4">
               {filteredDoctors.map((doctor) => (
                 <div key={doctor.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
                     <div className="flex items-center space-x-4">
-                      <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg">
+                      <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-12 w-12 sm:h-16 sm:w-16 flex items-center justify-center font-bold text-md sm:text-lg">
                         {doctor.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 text-lg">{doctor.name}</h3>
-                        <p className="text-sm text-gray-600 font-medium">{doctor.specialization} • {doctor.department}</p>
+                        <h3 className="font-semibold text-gray-900 text-lg sm:text-xl">{doctor.name}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600 font-medium">{doctor.specialization} • {doctor.department}</p>
                         <p className="text-xs text-gray-500">{doctor.qualification}</p>
-                        <div className="flex items-center space-x-4 mt-2">
+                        <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 mt-2">
                           <div className="flex items-center text-xs text-gray-500">
                             <Mail className="h-3 w-3 mr-1" />
                             {doctor.email}
@@ -416,37 +414,37 @@ export default function DoctorsPage() {
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-6">
-                      <div className="text-center">
+
+                    <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 w-full sm:w-auto">
+                      <div className="text-center w-full sm:w-auto">
                         <p className="text-sm font-medium text-gray-900">Today's Patients</p>
-                        <p className="text-2xl font-bold text-pink-600">{doctor.patientsToday}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-pink-600">{doctor.patientsToday}</p>
                       </div>
-                      
-                      <div className="text-center">
+
+                      <div className="text-center w-full sm:w-auto">
                         <p className="text-sm font-medium text-gray-900">Rating</p>
-                        <p className="text-2xl font-bold text-yellow-600">⭐ {doctor.rating}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-yellow-600">⭐ {doctor.rating}</p>
                       </div>
-                      
-                      <div className="text-right">
+
+                      <div className="text-right w-full sm:w-auto">
                         <div className="space-y-2">
                           {getStatusBadge(doctor.status)}
                           {getAvailabilityBadge(doctor.availability)}
                         </div>
                         <p className="text-xs text-gray-500 mt-2">Joined: {doctor.joinDate}</p>
                       </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+
+                      <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50 flex-1 sm:flex-none">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50 flex-1 sm:flex-none">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-red-200 text-red-600 hover:bg-red-50"
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-red-200 text-red-600 hover:bg-red-50 flex-1 sm:flex-none"
                           onClick={() => handleDeleteDoctor(doctor.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -467,26 +465,26 @@ export default function DoctorsPage() {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button 
-              variant="outline" 
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button
+              variant="outline"
               className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2"
               onClick={() => setIsAddDialogOpen(true)}
             >
               <Plus className="h-6 w-6" />
-              <span>Add Doctor</span>
+              <span className="text-center">Add Doctor</span>
             </Button>
             <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <Calendar className="h-6 w-6" />
-              <span>Manage Schedules</span>
+              <span className="text-center">Manage Schedules</span>
             </Button>
             <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <Award className="h-6 w-6" />
-              <span>Performance Review</span>
+              <span className="text-center">Performance Review</span>
             </Button>
             <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
               <Mail className="h-6 w-6" />
-              <span>Send Notifications</span>
+              <span className="text-center">Send Notifications</span>
             </Button>
           </div>
         </CardContent>
@@ -548,7 +546,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
           <Input
@@ -560,7 +558,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
           <Input
@@ -571,7 +569,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">License Number *</label>
           <Input
@@ -582,7 +580,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Specialization *</label>
           <Select value={formData.specialization || undefined} onValueChange={(value) => handleInputChange('specialization', value)}>
@@ -596,7 +594,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Department *</label>
           <Select value={formData.department || undefined} onValueChange={(value) => handleInputChange('department', value)}>
@@ -610,7 +608,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Experience *</label>
           <Input
@@ -621,7 +619,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Qualification *</label>
           <Input
@@ -632,7 +630,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact</label>
           <Input
@@ -643,7 +641,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
           />
         </div>
       </div>
-      
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
         <Textarea
@@ -654,7 +652,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
           rows={3}
         />
       </div>
-      
+
       <div className="flex justify-end space-x-3 pt-4">
         <Button type="button" variant="outline" onClick={() => {
           resetForm()
