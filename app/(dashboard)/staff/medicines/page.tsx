@@ -16,12 +16,8 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  User,
-  Calendar,
   Package,
-  Plus,
-  Eye,
-  XCircle
+  Eye
 } from 'lucide-react'
 
 // Mock data for medicine deliveries
@@ -156,7 +152,6 @@ export default function StaffMedicinesPage() {
 
   const pendingMedicines = medicineSchedule.filter(med => med.status === "pending")
   const deliveredMedicines = medicineSchedule.filter(med => med.status === "delivered")
-  const overdueMedicines = medicineSchedule.filter(med => med.status === "missed")
 
   const markAsDelivered = (medicineId: string) => {
     console.log(`Marking medicine ${medicineId} as delivered`)
@@ -167,23 +162,23 @@ export default function StaffMedicinesPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="flex items-center justify-between h-16 px-6">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center justify-between h-auto md:h-16 px-4 md:px-6 py-3 gap-3">
+          <div className="flex items-center space-x-3">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/staff" className="flex items-center space-x-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back to Dashboard</span>
+                <span className="hidden sm:inline">Back to Dashboard</span>
               </Link>
             </Button>
-            <div className="h-6 w-px bg-gray-300" />
+            <div className="hidden sm:block h-6 w-px bg-gray-300" />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Medicine Delivery</h1>
-              <p className="text-sm text-gray-500">Track and deliver patient medications</p>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900">Medicine Delivery</h1>
+              <p className="text-xs md:text-sm text-gray-500">Track and deliver patient medications</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <Badge variant="outline" className="bg-green-50 text-green-700">
+          <div className="w-full md:w-auto flex justify-end">
+            <Badge variant="outline" className="bg-green-50 text-green-700 text-xs md:text-sm">
               {pendingMedicines.length} Pending Deliveries
             </Badge>
           </div>
@@ -191,89 +186,89 @@ export default function StaffMedicinesPage() {
       </div>
 
       {/* Main Content */}
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
           <Card className="border-green-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Medicines</p>
-                  <p className="text-3xl font-bold text-gray-900">{medicineSchedule.length}</p>
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Total Medicines</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">{medicineSchedule.length}</p>
                 </div>
-                <div className="bg-green-100 p-3 rounded-xl">
-                  <Package className="h-8 w-8 text-green-600" />
+                <div className="bg-green-100 p-2 md:p-3 rounded-xl">
+                  <Package className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-yellow-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-3xl font-bold text-gray-900">{pendingMedicines.length}</p>
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Pending</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">{pendingMedicines.length}</p>
                 </div>
-                <div className="bg-yellow-100 p-3 rounded-xl">
-                  <Clock className="h-8 w-8 text-yellow-600" />
+                <div className="bg-yellow-100 p-2 md:p-3 rounded-xl">
+                  <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-blue-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Delivered</p>
-                  <p className="text-3xl font-bold text-gray-900">{deliveredMedicines.length}</p>
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Delivered</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">{deliveredMedicines.length}</p>
                 </div>
-                <div className="bg-blue-100 p-3 rounded-xl">
-                  <CheckCircle className="h-8 w-8 text-blue-600" />
+                <div className="bg-blue-100 p-2 md:p-3 rounded-xl">
+                  <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-red-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">High Priority</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs md:text-sm font-medium text-gray-600">High Priority</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">
                     {medicineSchedule.filter(med => med.priority === 'high').length}
                   </p>
                 </div>
-                <div className="bg-red-100 p-3 rounded-xl">
-                  <AlertTriangle className="h-8 w-8 text-red-600" />
+                <div className="bg-red-100 p-2 md:p-3 rounded-xl">
+                  <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-red-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
+        {/* Tabs and Search */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <TabsList className="grid w-full max-w-md grid-cols-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <TabsList className="grid grid-cols-4 w-full md:w-auto">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="delivered">Delivered</TabsTrigger>
               <TabsTrigger value="overdue">Overdue</TabsTrigger>
             </TabsList>
             
-            <div className="flex items-center space-x-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search medicines..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 w-full sm:w-64"
                 />
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
@@ -292,43 +287,43 @@ export default function StaffMedicinesPage() {
                 <div className="space-y-4">
                   {filteredMedicines.map((medicine) => (
                     <Card key={medicine.id} className="border hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-4">
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+                          <div className="flex items-start sm:items-center space-x-4">
                             {getRouteIcon(medicine.route)}
                             <div>
-                              <h3 className="text-lg font-semibold">{medicine.medicine}</h3>
-                              <p className="text-gray-600">
+                              <h3 className="text-base md:text-lg font-semibold">{medicine.medicine}</h3>
+                              <p className="text-gray-600 text-sm md:text-base">
                                 {medicine.patientName} • Room {medicine.roomNumber}
                               </p>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-xs md:text-sm text-gray-500">
                                 {medicine.dosage} • {medicine.route} • {medicine.frequency}
                               </p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center space-x-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             <div className="text-center">
-                              <p className="text-sm font-medium text-gray-600">Due Time</p>
-                              <p className="text-lg font-semibold">{medicine.scheduledTime}</p>
+                              <p className="text-xs md:text-sm font-medium text-gray-600">Due Time</p>
+                              <p className="text-sm md:text-lg font-semibold">{medicine.scheduledTime}</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-sm font-medium text-gray-600">Priority</p>
+                              <p className="text-xs md:text-sm font-medium text-gray-600">Priority</p>
                               {getPriorityBadge(medicine.priority)}
                             </div>
                             <div className="text-center">
-                              <p className="text-sm font-medium text-gray-600">Status</p>
+                              <p className="text-xs md:text-sm font-medium text-gray-600">Status</p>
                               {getStatusBadge(medicine.status)}
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
+                            <div className="flex flex-wrap gap-2">
+                              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                                 <Eye className="h-4 w-4 mr-2" />
                                 Details
                               </Button>
                               {medicine.status === 'pending' && (
                                 <Button 
                                   size="sm" 
-                                  className="bg-green-500 hover:bg-green-600"
+                                  className="bg-green-500 hover:bg-green-600 w-full sm:w-auto"
                                   onClick={() => {
                                     setSelectedMedicine(medicine)
                                     setDeliveryDialog(true)
@@ -342,7 +337,7 @@ export default function StaffMedicinesPage() {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs md:text-sm mb-4">
                           <div>
                             <span className="font-medium text-gray-600">Prescribed by: </span>
                             <span>{medicine.prescribedBy}</span>
@@ -360,7 +355,7 @@ export default function StaffMedicinesPage() {
                         </div>
                         
                         {medicine.notes && (
-                          <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                          <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-xs md:text-sm">
                             <div className="flex items-start space-x-2">
                               <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
                               <div>
@@ -392,16 +387,16 @@ export default function StaffMedicinesPage() {
           {selectedMedicine && (
             <div className="space-y-4 py-4">
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg">{selectedMedicine.medicine}</h3>
-                <p className="text-gray-600">
+                <h3 className="font-semibold text-base md:text-lg">{selectedMedicine.medicine}</h3>
+                <p className="text-gray-600 text-sm">
                   {selectedMedicine.patientName} • Room {selectedMedicine.roomNumber}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs md:text-sm text-gray-500">
                   {selectedMedicine.dosage} • {selectedMedicine.route}
                 </p>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-3 text-xs md:text-sm">
                 <div className="flex items-center justify-between p-3 border rounded">
                   <span className="font-medium">Scheduled Time:</span>
                   <span>{selectedMedicine.scheduledTime}</span>
@@ -411,6 +406,8 @@ export default function StaffMedicinesPage() {
                   <span>{new Date().toLocaleTimeString()}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 border rounded">
+                 
+
                   <span className="font-medium">Prescribed by:</span>
                   <span>{selectedMedicine.prescribedBy}</span>
                 </div>
