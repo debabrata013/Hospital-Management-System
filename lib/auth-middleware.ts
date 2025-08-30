@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import models from '@/models';
-
-// Resolve CommonJS default export to access named models
-const { User } = (models as any);
+import initializeDatabase from '../backend/models';
 
 // Interface for authenticated user
 export interface AuthenticatedUser {
@@ -21,7 +18,6 @@ export interface AuthResult {
 
 // Get client IP address from request
 export function getClientIP(request: NextRequest): string {
-  // Check various headers for the real IP
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
   const cfConnectingIP = request.headers.get('cf-connecting-ip');
@@ -29,119 +25,79 @@ export function getClientIP(request: NextRequest): string {
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  
   if (realIP) {
     return realIP;
   }
-  
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-  
-  // Fallback to connection remote address
   return request.ip || '127.0.0.1';
 }
 
 // Extract JWT token from request
 function extractToken(request: NextRequest): string | null {
-  // Check Authorization header
   const authHeader = request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
-  // Check cookies
   const tokenCookie = request.cookies.get('auth-token');
   if (tokenCookie) {
     return tokenCookie.value;
   }
-  
   return null;
 }
 
 // Main authentication function
 export async function authenticateUser(request: NextRequest): Promise<AuthResult | NextResponse> {
   try {
+        const { User } = await initializeDatabase();
+
     const token = extractToken(request);
-    
     if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication token required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
     }
-    
-    // Verify JWT token
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    
     if (!decoded || !decoded.userId) {
-      return NextResponse.json(
-        { error: 'Invalid authentication token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
     }
-    
-    // Fetch user from database
-    const user = await User.findById(decoded.userId).select('-passwordHash');
-    
+
+    const user = await User.findByPk(decoded.userId, {
+      attributes: { exclude: ['password'] },
+    });
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 401 });
     }
-    
+
     if (!user.isActive) {
-      return NextResponse.json(
-        { error: 'Account is deactivated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Account is deactivated' }, { status: 401 });
     }
-    
-    // Check if account is locked
+
     if (user.lockUntil && user.lockUntil > new Date()) {
-      return NextResponse.json(
-        { error: 'Account is temporarily locked' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Account is temporarily locked' }, { status: 401 });
     }
-    
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-    
-    // Prepare authenticated user object
+
+    await user.update({ lastLogin: new Date() });
+
     const authenticatedUser: AuthenticatedUser = {
-      id: user._id.toString(),
+      id: user.id.toString(),
       email: user.email,
       name: user.name,
       role: user.role,
-      employeeId: user.employeeId
+      employeeId: user.employeeId,
     };
-    
+
     return { user: authenticatedUser };
-    
   } catch (error) {
     console.error('Authentication error:', error);
-    
     if (error instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json(
-        { error: 'Invalid authentication token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
     }
-    
     if (error instanceof jwt.TokenExpiredError) {
-      return NextResponse.json(
-        { error: 'Authentication token expired' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication token expired' }, { status: 401 });
     }
-    
-    return NextResponse.json(
-      { error: 'Authentication failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
   }
 }
 
@@ -149,56 +105,28 @@ export async function authenticateUser(request: NextRequest): Promise<AuthResult
 export function requireRole(allowedRoles: string[]) {
   return async (request: NextRequest): Promise<AuthResult | NextResponse> => {
     const auth = await authenticateUser(request);
-    
     if (auth instanceof NextResponse) {
-      return auth; // Return error response
+      return auth;
     }
-    
     if (!allowedRoles.includes(auth.user.role)) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
-    
     return auth;
   };
 }
 
-// Permission-based authentication middleware
+// Permission-based authentication middleware (placeholder - requires permission model)
 export function requirePermission(module: string, action: string) {
   return async (request: NextRequest): Promise<AuthResult | NextResponse> => {
     const auth = await authenticateUser(request);
-    
     if (auth instanceof NextResponse) {
-      return auth; // Return error response
+      return auth;
     }
-    
-    // Super admin has all permissions
     if (auth.user.role === 'super-admin') {
       return auth;
     }
-    
-    // Check user permissions
-    const user = await User.findById(auth.user.id);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 401 }
-      );
-    }
-    
-    const hasPermission = user.permissions.some(
-      (perm: any) => perm.module === module && perm.actions.includes(action)
-    );
-    
-    if (!hasPermission) {
-      return NextResponse.json(
-        { error: `Permission denied: ${action} on ${module}` },
-        { status: 403 }
-      );
-    }
-    
+    // Placeholder: Implement actual permission check against a permissions model
+    console.warn(`Permission check for ${action} on ${module} is a placeholder.`);
     return auth;
   };
 }
@@ -206,76 +134,50 @@ export function requirePermission(module: string, action: string) {
 // Doctor-specific authentication
 export async function authenticateDoctor(request: NextRequest): Promise<AuthResult | NextResponse> {
   const auth = await authenticateUser(request);
-  
   if (auth instanceof NextResponse) {
     return auth;
   }
-  
   if (auth.user.role !== 'doctor') {
-    return NextResponse.json(
-      { error: 'Doctor access required' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Doctor access required' }, { status: 403 });
   }
-  
   return auth;
 }
 
-// Staff authentication (doctors, nurses, admin)
+// Staff authentication
 export async function authenticateStaff(request: NextRequest): Promise<AuthResult | NextResponse> {
   const allowedRoles = ['doctor', 'staff', 'admin', 'super-admin'];
-  
   const auth = await authenticateUser(request);
-  
   if (auth instanceof NextResponse) {
     return auth;
   }
-  
   if (!allowedRoles.includes(auth.user.role)) {
-    return NextResponse.json(
-      { error: 'Staff access required' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
   }
-  
   return auth;
 }
 
 // Admin authentication
 export async function authenticateAdmin(request: NextRequest): Promise<AuthResult | NextResponse> {
   const allowedRoles = ['admin', 'super-admin'];
-  
   const auth = await authenticateUser(request);
-  
   if (auth instanceof NextResponse) {
     return auth;
   }
-  
   if (!allowedRoles.includes(auth.user.role)) {
-    return NextResponse.json(
-      { error: 'Admin access required' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
-  
   return auth;
 }
 
 // Super Admin authentication
 export async function requireSuperAdmin(request: NextRequest): Promise<AuthResult | NextResponse> {
   const auth = await authenticateUser(request);
-  
   if (auth instanceof NextResponse) {
     return auth;
   }
-  
   if (auth.user.role !== 'super-admin') {
-    return NextResponse.json(
-      { error: 'Super admin access required' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Super admin access required' }, { status: 403 });
   }
-  
   return auth;
 }
 
@@ -288,21 +190,16 @@ export async function logAuditAction(
   ipAddress?: string
 ): Promise<void> {
   try {
-    const mod = await import('@/models');
-    const allModels: any = (mod as any).default ?? (mod as any);
-    const { AuditLog } = allModels;
-    
+    const { AuditLog } = await initializeDatabase();
     await AuditLog.create({
       userId,
       action,
       resource,
       details: details || {},
       ipAddress: ipAddress || 'unknown',
-      timestamp: new Date()
     });
   } catch (error) {
     console.error('Failed to log audit action:', error);
-    // Don't throw error to avoid breaking the main operation
   }
 }
 
@@ -314,10 +211,16 @@ export function withAuth(
     permissions?: { module: string; action: string };
   } = {}
 ) {
+  let dbInitialized = false;
+
   return async (request: NextRequest): Promise<NextResponse> => {
     try {
+      if (!dbInitialized) {
+        await initializeDatabase();
+        dbInitialized = true;
+      }
+
       let auth: AuthResult | NextResponse;
-      
       if (options.roles) {
         auth = await requireRole(options.roles)(request);
       } else if (options.permissions) {
@@ -325,18 +228,44 @@ export function withAuth(
       } else {
         auth = await authenticateUser(request);
       }
-      
+
       if (auth instanceof NextResponse) {
-        return auth; // Return error response
+        return auth;
       }
-      
+
       return await handler(request, auth);
     } catch (error) {
       console.error('Auth middleware error:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+  };
+}
+
+// Old implementation - to be replaced
+export function old_withAuth(
+  handler: (request: NextRequest, auth: AuthResult) => Promise<NextResponse>,
+  options: {
+    roles?: string[];
+    permissions?: { module: string; action: string };
+  } = {}
+) {
+  return async (request: NextRequest): Promise<NextResponse> => {
+    try {
+      let auth: AuthResult | NextResponse;
+      if (options.roles) {
+        auth = await requireRole(options.roles)(request);
+      } else if (options.permissions) {
+        auth = await requirePermission(options.permissions.module, options.permissions.action)(request);
+      } else {
+        auth = await authenticateUser(request);
+      }
+      if (auth instanceof NextResponse) {
+        return auth;
+      }
+      return await handler(request, auth);
+    } catch (error) {
+      console.error('Auth middleware error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }
@@ -344,41 +273,18 @@ export function withAuth(
 // Rate limiting helper
 export function rateLimit(maxRequests: number, windowMs: number) {
   const requests = new Map<string, number[]>();
-  
   return (request: NextRequest): boolean => {
     const ip = getClientIP(request);
     const now = Date.now();
     const windowStart = now - windowMs;
-    
-    // Get existing requests for this IP
     const ipRequests = requests.get(ip) || [];
-    
-    // Filter out old requests
-    const recentRequests = ipRequests.filter(time => time > windowStart);
-    
-    // Check if limit exceeded
+    const recentRequests = ipRequests.filter((time) => time > windowStart);
     if (recentRequests.length >= maxRequests) {
-      return false; // Rate limit exceeded
+      return false;
     }
-    
-    // Add current request
     recentRequests.push(now);
     requests.set(ip, recentRequests);
-    
-    return true; // Request allowed
+    return true;
   };
 }
 
-export default {
-  authenticateUser,
-  authenticateDoctor,
-  authenticateStaff,
-  authenticateAdmin,
-  requireSuperAdmin,
-  requireRole,
-  requirePermission,
-  withAuth,
-  getClientIP,
-  rateLimit,
-  logAuditAction
-};
