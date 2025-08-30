@@ -1,29 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Op, literal } from 'sequelize';
-import db from '@/backend/models';
-import { authenticateUser } from '@/lib/auth-middleware';
-
-const { Medicine } = db;
 
 export async function GET(req: NextRequest) {
   try {
-    const authResult = await authenticateUser(req);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const stockAlerts = await Medicine.findAll({
-      where: {
-        quantity: {
-          [Op.lte]: literal('lowStockThreshold'),
-        },
+    // Mock stock alerts data
+    const stockAlerts = [
+      {
+        id: '1',
+        name: 'Paracetamol 500mg',
+        quantity: 15,
+        lowStockThreshold: 50,
+        category: 'Pain Relief'
       },
-    });
+      {
+        id: '2',
+        name: 'Insulin Injection',
+        quantity: 8,
+        lowStockThreshold: 25,
+        category: 'Diabetes'
+      },
+      {
+        id: '3',
+        name: 'Surgical Gloves',
+        quantity: 20,
+        lowStockThreshold: 100,
+        category: 'Medical Supplies'
+      }
+    ];
 
     return NextResponse.json(stockAlerts);
   } catch (error) {
