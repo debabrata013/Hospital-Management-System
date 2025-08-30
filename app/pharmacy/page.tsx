@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,73 +8,65 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Package, AlertTriangle, TrendingUp, FileText, BarChart3, 
-  RefreshCw, DollarSign, Building2, Wifi, WifiOff
+  RefreshCw, DollarSign, Building2, Loader2
 } from 'lucide-react'
-import StockAlerts from "@/components/pharmacy/StockAlerts"
-import { pharmacyOfflineManager } from "@/lib/pharmacy-offline"
+import { usePharmacyStats, usePrescriptions, useStockAlerts } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
 
 export default function PharmacyDashboard() {
   const [activeTab, setActiveTab] = useState("analytics")
-  const [isOnline, setIsOnline] = useState(true)
 
-  useEffect(() => {
-    // Initialize offline manager
-    pharmacyOfflineManager.init()
-    
-    // Monitor online status
-    const handleOnline = () => {
-      setIsOnline(true)
-      pharmacyOfflineManager.syncOfflineData()
-      toast.success("Back online! Syncing data...")
-    }
-    
-    const handleOffline = () => {
-      setIsOnline(false)
-      toast.warning("Working offline. Data will sync when connection is restored.")
-    }
+  const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = usePharmacyStats()
+  const { prescriptions, loading: prescriptionsLoading, refetch: refetchPrescriptions } = usePrescriptions({ limit: 5 })
+  const { alerts, loading: alertsLoading, refetch: refetchAlerts } = useStockAlerts()
 
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
+  const refreshAllData = async () => {
+    try {
+      await Promise.all([refetchStats(), refetchPrescriptions(), refetchAlerts()])
+      toast.success('Data refreshed successfully')
+    } catch (error) {
+      toast.error('Failed to refresh data')
     }
-  }, [])
+  }
 
-  // Mock data for dashboard
-  const stats = {
-    totalMedicines: 1250,
-    lowStock: 15,
-    expiringSoon: 8,
-    totalValue: 450000,
-    totalPrescriptions: 45,
-    activePrescriptions: 12,
-    completedPrescriptions: 33,
-    pendingDispensing: 5
+  if (statsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading pharmacy dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (statsError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">Error loading dashboard: {statsError}</p>
+          <Button onClick={refetchStats} className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with Online Status */}
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Pharmacy Dashboard</h1>
           <p className="text-gray-600">Medicine inventory and prescription management</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-            isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-          }`}>
-            {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-            {isOnline ? 'Online' : 'Offline'}
-          </div>
-          <Button variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
+        <Button onClick={refreshAllData} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Quick Stats */}
@@ -84,7 +76,7 @@ export default function PharmacyDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Medicines</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalMedicines}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats?.totalMedicines || 0}</p>
               </div>
               <Package className="h-8 w-8 text-blue-500" />
             </div>
@@ -96,7 +88,7 @@ export default function PharmacyDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                <p className="text-3xl font-bold text-red-600">{stats.lowStock}</p>
+                <p className="text-3xl font-bold text-red-600">{stats?.lowStock || 0}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-red-500" />
             </div>
@@ -108,7 +100,7 @@ export default function PharmacyDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
-                <p className="text-3xl font-bold text-orange-600">{stats.expiringSoon}</p>
+                <p className="text-3xl font-bold text-orange-600">{stats?.expiringSoon || 0}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-orange-500" />
             </div>
@@ -120,7 +112,7 @@ export default function PharmacyDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Value</p>
-                <p className="text-3xl font-bold text-green-600">₹{stats.totalValue.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-green-600">₹{(stats?.totalValue || 0).toLocaleString()}</p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
             </div>
@@ -185,19 +177,19 @@ export default function PharmacyDashboard() {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span>Total Prescriptions</span>
-                    <Badge>{stats.totalPrescriptions}</Badge>
+                    <Badge>{stats?.totalPrescriptions || 0}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span>Active</span>
-                    <Badge variant="secondary">{stats.activePrescriptions}</Badge>
+                    <Badge variant="secondary">{stats?.activePrescriptions || 0}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span>Completed</span>
-                    <Badge variant="outline">{stats.completedPrescriptions}</Badge>
+                    <Badge variant="outline">{stats?.completedPrescriptions || 0}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span>Pending Dispensing</span>
-                    <Badge variant="destructive">{stats.pendingDispensing}</Badge>
+                    <Badge variant="destructive">{stats?.pendingDispensing || 0}</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -211,19 +203,19 @@ export default function PharmacyDashboard() {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span>Total Items</span>
-                    <span className="font-semibold">{stats.totalMedicines}</span>
+                    <span className="font-semibold">{stats?.totalMedicines || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>In Stock</span>
-                    <span className="font-semibold text-green-600">{stats.totalMedicines - stats.lowStock}</span>
+                    <span className="font-semibold text-green-600">{(stats?.totalMedicines || 0) - (stats?.lowStock || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Low Stock</span>
-                    <span className="font-semibold text-red-600">{stats.lowStock}</span>
+                    <span className="font-semibold text-red-600">{stats?.lowStock || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Total Value</span>
-                    <span className="font-semibold">₹{stats.totalValue.toLocaleString()}</span>
+                    <span className="font-semibold">₹{(stats?.totalValue || 0).toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>
@@ -232,7 +224,50 @@ export default function PharmacyDashboard() {
         </TabsContent>
 
         <TabsContent value="alerts">
-          <StockAlerts />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Stock Alerts
+              </CardTitle>
+              <CardDescription>Medicines requiring immediate attention</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {alertsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {alerts?.map((alert: any) => (
+                    <div key={alert.id} className={`p-3 rounded-lg border ${
+                      alert.alert_type === 'out_of_stock' ? 'bg-red-50 border-red-200' :
+                      alert.alert_type === 'low_stock' ? 'bg-yellow-50 border-yellow-200' :
+                      alert.alert_type === 'expiring' ? 'bg-orange-50 border-orange-200' :
+                      'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">{alert.name}</p>
+                          <p className="text-sm opacity-75">
+                            {alert.batch_number && `Batch: ${alert.batch_number}`}
+                            {alert.expiry_date && ` • Expires: ${new Date(alert.expiry_date).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">{alert.current_stock}/{alert.minimum_stock}</p>
+                          <p className="text-xs opacity-75">Current/Min</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(!alerts || alerts.length === 0) && (
+                    <p className="text-center text-gray-500 py-8">No alerts at this time</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="prescriptions">
@@ -242,22 +277,37 @@ export default function PharmacyDashboard() {
               <CardDescription>Latest prescription activities</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-semibold">राम शर्मा</p>
-                    <p className="text-sm text-gray-500">Prescription #RX-001</p>
-                  </div>
-                  <Badge>Pending</Badge>
+              {prescriptionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-semibold">सीता देवी</p>
-                    <p className="text-sm text-gray-500">Prescription #RX-002</p>
-                  </div>
-                  <Badge variant="secondary">Dispensed</Badge>
+              ) : (
+                <div className="space-y-4">
+                  {prescriptions?.map((prescription: any) => (
+                    <div key={prescription.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-semibold">{prescription.patient_name}</p>
+                        <p className="text-sm text-gray-500">
+                          {prescription.prescription_number} • Dr. {prescription.doctor_name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {prescription.item_count} items • ₹{prescription.calculated_total?.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                      <Badge variant={
+                        prescription.status === 'dispensed' ? 'default' :
+                        prescription.status === 'pending' ? 'destructive' :
+                        'secondary'
+                      }>
+                        {prescription.status}
+                      </Badge>
+                    </div>
+                  ))}
+                  {(!prescriptions || prescriptions.length === 0) && (
+                    <p className="text-center text-gray-500 py-8">No prescriptions found</p>
+                  )}
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
