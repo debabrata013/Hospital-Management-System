@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
+
 import { 
   Sidebar,
   SidebarContent,
@@ -86,6 +88,7 @@ interface Appointment {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();   // ✅ correctly initialized router
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +97,12 @@ export default function AdminDashboard() {
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
   const [doctorSchedules, setDoctorSchedules] = useState<DoctorSchedule[]>([]);
   const [notifications] = useState(7);
+
+  const handleLogout = () => {
+    // Clear any auth data if needed
+    // localStorage.removeItem("token")
+    router.push("/login");   // ✅ redirect works
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -450,10 +459,10 @@ export default function AdminDashboard() {
                       Branch Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+  <LogOut className="mr-2 h-4 w-4" />
+  Logout
+</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
