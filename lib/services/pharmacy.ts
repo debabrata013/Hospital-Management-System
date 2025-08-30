@@ -102,8 +102,8 @@ export class PharmacyService {
     const id = crypto.randomUUID()
     try {
       const query = `
-        INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock, unit, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
       await executeQuery(query, [
         id, 
@@ -115,7 +115,6 @@ export class PharmacyService {
         data.current_stock || 0, 
         data.minimum_stock || 10,
         data.maximum_stock || 1000, 
-        data.unit || null, 
         data.description || null
       ])
       return this.getMedicineById(id)
