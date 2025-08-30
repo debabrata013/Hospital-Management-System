@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { ChevronDown, User, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -17,6 +18,8 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onSectionChange }: DashboardHeaderProps) {
+  const router = useRouter()
+
   const user = {
     firstName: "Sarah",
     lastName: "Johnson",
@@ -24,8 +27,15 @@ export function DashboardHeader({ onSectionChange }: DashboardHeaderProps) {
     avatar: "/patient-avatar.png",
   }
 
-  const handleProfileClick = () => onSectionChange?.("profile")
-  const handleSettingsClick = () => onSectionChange?.("settings")
+  const handleProfileClick = () => {
+    // Keep the old behavior — profile section handled by sidebar/dashboard
+    onSectionChange?.("profile")
+  }
+
+  const handleSettingsClick = () => {
+    // Navigate directly to super-admin/settings
+    router.push("/super-admin/settings")
+  }
 
   return (
     <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200">
@@ -77,6 +87,6 @@ export function DashboardHeader({ onSectionChange }: DashboardHeaderProps) {
           </DropdownMenu>
         </div>
       </div>
-    </header>
-  )
+    </header>
+  )
 }
