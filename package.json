@@ -9,7 +9,8 @@
     "lint": "next lint",
     "init-db": "node scripts/init-db.js",
     "setup-pharmacy": "node scripts/setup-pharmacy-db.js",
-    "test-api": "node scripts/test-pharmacy-api.js"
+    "test-api": "node scripts/test-pharmacy-api.js",
+    "clear-cache": "rm -rf .next && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
