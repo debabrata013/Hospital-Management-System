@@ -291,7 +291,7 @@ export default function PharmacyDashboard() {
                           {prescription.prescription_number} • Dr. {prescription.doctor_name}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {prescription.item_count} items • ₹{prescription.calculated_total?.toFixed(2) || '0.00'}
+                          {prescription.item_count} items • ₹{Number(prescription.calculated_total || 0).toFixed(2)}
                         </p>
                       </div>
                       <Badge variant={
