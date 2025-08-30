@@ -62,9 +62,9 @@ export default function PharmacyLayout({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
+      <div className="min-h-screen flex w-full overflow-hidden bg-gradient-to-br from-pink-50 to-white">
         {/* Sidebar */}
-        <Sidebar className="border-pink-100">
+        <Sidebar className="border-pink-100 shrink-0">
           <SidebarHeader className="border-b border-pink-100 p-6">
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
@@ -153,7 +153,7 @@ export default function PharmacyLayout({
         </Sidebar>
 
         {/* Main Content */}
-        <SidebarInset className="flex-1 w-full">
+        <SidebarInset className="flex-1 w-full overflow-x-hidden">
           {/* Top Navigation */}
           <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50 w-full">
             <div className="flex items-center justify-between h-16 px-6 w-full">
@@ -201,7 +201,7 @@ export default function PharmacyLayout({
           </header>
 
           {/* Page Content */}
-          {children}
+          <main className="p-6 w-full">{children}</main>
         </SidebarInset>
       </div>
     </SidebarProvider>
