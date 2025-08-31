@@ -8,13 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "init-db": "node scripts/init-db.js",
-    "init-admin-db": "node scripts/init-admin-db.js",
     "setup-pharmacy": "node scripts/setup-pharmacy-db.js",
     "test-api": "node scripts/test-pharmacy-api.js",
-        "test-admin": "node scripts/test-admin-apis.js",
-        "test-patient": "node scripts/test-patient-creation.js",
-    "setup-appointments": "node scripts/create-appointments-schema.js",
-    "create-sample-appointments": "node scripts/create-sample-appointments.js",
     "clear-cache": "rm -rf .next && npm run build"
   },
   "dependencies": {

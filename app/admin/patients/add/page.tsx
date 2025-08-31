@@ -22,19 +22,19 @@ import { useState } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  age: z.coerce.number().int().min(1, "Age must be at least 1 year."),
+  age: z.coerce.number().int().positive("Age must be a positive number."),
   gender: z.enum(["Male", "Female", "Other"]),
   contactNumber: z.string().min(10, "Contact number must be at least 10 digits."),
   emergencyContact: z.string().min(10, "Emergency contact must be at least 10 digits."),
   address: z.string().optional(),
-  diagnosis: z.string().min(2, "Diagnosis is required.").optional(),
-  admissionDate: z.string().optional(),
-  expectedDischargeDate: z.string().optional(),
+  diagnosis: z.string().min(2, "Diagnosis is required."),
+  admissionDate: z.string(),
+  expectedDischargeDate: z.string(),
   doctorName: z.string().optional(),
   department: z.string().optional(),
   insuranceProvider: z.string().optional(),
   insuranceNumber: z.string().optional(),
-  roomId: z.string().optional(),
+  roomId: z.string().min(1, "Room ID is required."),
 });
 
 export default function AddPatientPage() {
@@ -46,14 +46,13 @@ export default function AddPatientPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      age: 25,
-      gender: "Male",
+      age: 0,
       contactNumber: "",
       emergencyContact: "",
       address: "",
       diagnosis: "",
-      admissionDate: "",
-      expectedDischargeDate: "",
+      admissionDate: new Date().toISOString().split('T')[0],
+      expectedDischargeDate: new Date().toISOString().split('T')[0],
       doctorName: "",
       department: "",
       insuranceProvider: "",
@@ -82,7 +81,7 @@ export default function AddPatientPage() {
         description: "New patient has been added successfully.",
       });
 
-             router.push('/admin/patients');
+      router.push('/admin/patients');
       router.refresh();
 
     } catch (error) {
@@ -138,7 +137,7 @@ export default function AddPatientPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Gender</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select gender" />
