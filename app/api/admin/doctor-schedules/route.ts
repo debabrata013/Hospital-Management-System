@@ -1,40 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import mysql from 'mysql2/promise'
 
-export async function GET(req: NextRequest) {
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'hospital_management',
+  port: parseInt(process.env.DB_PORT || '3306')
+}
+
+export async function GET(request: NextRequest) {
   try {
-    // Mock doctor schedules data
-    const doctorSchedules = [
-      {
-        id: '1',
-        name: 'Dr. अमित गुप्ता',
-        department: 'Cardiology',
-        status: 'available',
-        shifts: [
-          {
-            dayOfWeek: 'Monday',
-            startTime: '09:00',
-            endTime: '17:00'
-          }
-        ]
-      },
-      {
-        id: '2',
-        name: 'Dr. प्रिया शर्मा',
-        department: 'Internal Medicine',
-        status: 'busy',
-        shifts: [
-          {
-            dayOfWeek: 'Monday',
-            startTime: '08:00',
-            endTime: '16:00'
-          }
-        ]
-      }
-    ];
+    const connection = await mysql.createConnection(dbConfig)
 
-    return NextResponse.json(doctorSchedules);
+    const [rows] = await connection.execute(`
+      SELECT 
+        u.id,
+        u.name,
+        sp.department,
+        sp.employee_type as status,
+        sp.work_location
+      FROM users u
+      LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+      WHERE u.role = 'doctor' AND u.is_active = 1
+      ORDER BY u.name ASC
+      LIMIT 10
+    `)
+
+    await connection.end()
+
+    // Transform the data to match the expected format
+    const doctorSchedules = (rows as any[]).map(row => ({
+      id: row.id,
+      name: row.name,
+      department: row.department || 'General Medicine',
+      status: row.status || 'full-time',
+      shifts: [
+        { dayOfWeek: 'Monday', startTime: '09:00', endTime: '17:00' },
+        { dayOfWeek: 'Tuesday', startTime: '09:00', endTime: '17:00' },
+        { dayOfWeek: 'Wednesday', startTime: '09:00', endTime: '17:00' },
+        { dayOfWeek: 'Thursday', startTime: '09:00', endTime: '17:00' },
+        { dayOfWeek: 'Friday', startTime: '09:00', endTime: '17:00' }
+      ]
+    }))
+
+    return NextResponse.json(doctorSchedules)
   } catch (error) {
-    console.error('Error fetching doctor schedules:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error fetching doctor schedules:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch doctor schedules' },
+      { status: 500 }
+    )
   }
 }
