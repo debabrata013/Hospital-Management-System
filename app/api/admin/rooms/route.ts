@@ -1,92 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth-simple'
+import mysql from 'mysql2/promise'
 
-// Mock data - replace with database operations
-let rooms = [
-  {
-    id: '1',
-    roomNumber: '101',
-    type: 'General',
-    floor: 1,
-    capacity: 2,
-    currentOccupancy: 1,
-    status: 'Occupied',
-    lastCleaned: '2024-01-10',
-    nextCleaningDue: '2024-01-12',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-10'
-  },
-  {
-    id: '2',
-    roomNumber: '102',
-    type: 'Private',
-    floor: 1,
-    capacity: 1,
-    currentOccupancy: 0,
-    status: 'Available',
-    lastCleaned: '2024-01-11',
-    nextCleaningDue: '2024-01-13',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-11'
-  },
-  {
-    id: '3',
-    roomNumber: '201',
-    type: 'ICU',
-    floor: 2,
-    capacity: 1,
-    currentOccupancy: 1,
-    status: 'Occupied',
-    lastCleaned: '2024-01-09',
-    nextCleaningDue: '2024-01-11',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-09'
-  },
-  {
-    id: '4',
-    roomNumber: '202',
-    type: 'Semi-Private',
-    floor: 2,
-    capacity: 2,
-    currentOccupancy: 0,
-    status: 'Cleaning Required',
-    lastCleaned: '2024-01-08',
-    nextCleaningDue: '2024-01-10',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-08'
-  }
-]
-
-let patients = [
-  {
-    id: '1',
-    name: 'John Doe',
-    admissionDate: '2024-01-08',
-    expectedDischargeDate: '2024-01-15',
-    roomId: '1',
-    diagnosis: 'Pneumonia',
-    medications: ['Amoxicillin', 'Paracetamol'],
-    notes: 'Patient responding well to treatment',
-    status: 'Admitted',
-    createdAt: '2024-01-08',
-    updatedAt: '2024-01-08',
-    actualDischargeDate: undefined as string | undefined
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    admissionDate: '2024-01-09',
-    expectedDischargeDate: '2024-01-16',
-    roomId: '3',
-    diagnosis: 'Heart Attack',
-    medications: ['Aspirin', 'Nitroglycerin'],
-    notes: 'Critical condition, monitoring required',
-    status: 'Admitted',
-    createdAt: '2024-01-09',
-    updatedAt: '2024-01-09',
-    actualDischargeDate: undefined
-  }
-]
+const dbConfig = {
+  host: process.env.DB_HOST || 'srv2047.hstgr.io',
+  user: process.env.DB_USER || 'u153229971_admin',
+  password: process.env.DB_PASSWORD || 'Admin!2025',
+  database: process.env.DB_NAME || 'u153229971_Hospital',
+  port: parseInt(process.env.DB_PORT || '3306')
+}
 
 // GET - Fetch all rooms with optional filters
 export async function GET(request: NextRequest) {
@@ -100,38 +22,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Insufficient permissions.' }, { status: 403 })
     }
 
+    const connection = await mysql.createConnection(dbConfig)
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const type = searchParams.get('type')
     const floor = searchParams.get('floor')
     const search = searchParams.get('search')
 
-    let filteredRooms = [...rooms]
+    try {
+      let query = `
+        SELECT 
+          id,
+          room_number,
+          room_name,
+          room_type,
+          floor,
+          capacity,
+          current_occupancy,
+          status,
+          daily_rate,
+          description,
+          created_at,
+          updated_at
+        FROM rooms
+        WHERE 1=1
+      `
+      const params: any[] = []
 
-    if (status && status !== 'all') {
-      filteredRooms = filteredRooms.filter(room => room.status === status)
+      if (status && status !== 'all') {
+        query += ' AND status = ?'
+        params.push(status)
+      }
+
+      if (type && type !== 'all') {
+        query += ' AND room_type = ?'
+        params.push(type)
+      }
+
+      if (floor) {
+        query += ' AND floor = ?'
+        params.push(parseInt(floor))
+      }
+
+      if (search) {
+        query += ' AND (room_number LIKE ? OR room_name LIKE ? OR room_type LIKE ?)'
+        const searchTerm = `%${search}%`
+        params.push(searchTerm, searchTerm, searchTerm)
+      }
+
+      query += ' ORDER BY room_number'
+
+      const [rooms] = await connection.execute(query, params)
+
+      return NextResponse.json({
+        success: true,
+        data: rooms,
+        total: Array.isArray(rooms) ? rooms.length : 0
+      })
+
+    } finally {
+      await connection.end()
     }
-
-    if (type && type !== 'all') {
-      filteredRooms = filteredRooms.filter(room => room.type === type)
-    }
-
-    if (floor) {
-      filteredRooms = filteredRooms.filter(room => room.floor === parseInt(floor))
-    }
-
-    if (search) {
-      filteredRooms = filteredRooms.filter(room => 
-        room.roomNumber.toLowerCase().includes(search.toLowerCase()) ||
-        room.type.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: filteredRooms,
-      total: filteredRooms.length
-    })
 
   } catch (error) {
     console.error('Error fetching rooms:', error)
@@ -153,126 +104,198 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { action, ...data } = body
+    const connection = await mysql.createConnection(dbConfig)
 
-    if (action === 'createRoom') {
-      // Create new room
-      const newRoom = {
-        id: Date.now().toString(),
-        ...data,
-        currentOccupancy: 0,
-        status: 'Available',
-        lastCleaned: new Date().toISOString().split('T')[0],
-        nextCleaningDue: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+    try {
+      await connection.beginTransaction()
+
+      if (action === 'createRoom') {
+        // Create new room
+        const [result] = await connection.execute(`
+          INSERT INTO rooms 
+          (room_number, room_name, room_type, floor, capacity, current_occupancy, status, daily_rate, description)
+          VALUES (?, ?, ?, ?, ?, 0, 'Available', ?, ?)
+        `, [
+          data.roomNumber,
+          data.roomName || '',
+          data.roomType,
+          data.floor,
+          data.capacity,
+          data.dailyRate || 0,
+          data.description || ''
+        ])
+
+        const roomId = (result as any).insertId
+
+        // Get the created room
+        const [rooms] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ?
+        `, [roomId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          data: rooms[0],
+          message: 'Room created successfully'
+        }, { status: 201 })
+
+      } else if (action === 'admitPatient') {
+        // Admit patient to room
+        const { patientData, roomId } = data
+
+        // Check if room exists and is available
+        const [roomRows] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ? AND status = 'Available'
+        `, [roomId])
+
+        if (!Array.isArray(roomRows) || roomRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Room not found or not available' }, { status: 400 })
+        }
+
+        const room = roomRows[0] as any
+
+        if (room.current_occupancy >= room.capacity) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Room is at full capacity' }, { status: 400 })
+        }
+
+        // Create patient record
+        const [patientResult] = await connection.execute(`
+          INSERT INTO patients 
+          (name, contact_number, gender, date_of_birth, address, emergency_contact, medical_history)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [
+          patientData.name,
+          patientData.contactNumber || '',
+          patientData.gender || 'Unknown',
+          patientData.dateOfBirth || null,
+          patientData.address || '',
+          patientData.emergencyContact || '',
+          patientData.medicalHistory || ''
+        ])
+
+        const patientId = (patientResult as any).insertId
+
+        // Create room assignment
+        const [assignmentResult] = await connection.execute(`
+          INSERT INTO room_assignments 
+          (room_id, patient_id, admission_date, expected_discharge_date, diagnosis, notes, status)
+          VALUES (?, ?, NOW(), ?, ?, ?, 'Active')
+        `, [
+          roomId,
+          patientId,
+          patientData.expectedDischargeDate,
+          patientData.diagnosis || '',
+          patientData.notes || ''
+        ])
+
+        // Update room status
+        const newOccupancy = room.current_occupancy + 1
+        const newStatus = newOccupancy >= room.capacity ? 'Occupied' : 'Available'
+
+        await connection.execute(`
+          UPDATE rooms 
+          SET current_occupancy = ?, status = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [newOccupancy, newStatus, roomId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          data: { 
+            patientId, 
+            assignmentId: (assignmentResult as any).insertId,
+            room: { ...room, current_occupancy: newOccupancy, status: newStatus }
+          },
+          message: 'Patient admitted successfully'
+        }, { status: 201 })
+
+      } else if (action === 'dischargePatient') {
+        // Discharge patient from room
+        const { patientId } = data
+
+        // Get patient assignment
+        const [assignments] = await connection.execute(`
+          SELECT * FROM room_assignments WHERE patient_id = ? AND status = 'Active'
+        `, [patientId])
+
+        if (!Array.isArray(assignments) || assignments.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Patient not found or not admitted' }, { status: 404 })
+        }
+
+        const assignment = assignments[0] as any
+
+        // Update assignment status
+        await connection.execute(`
+          UPDATE room_assignments 
+          SET status = 'Discharged', actual_discharge_date = NOW(), updated_at = NOW()
+          WHERE id = ?
+        `, [assignment.id])
+
+        // Update room occupancy
+        const [roomRows] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ?
+        `, [assignment.room_id])
+
+        if (Array.isArray(roomRows) && roomRows.length > 0) {
+          const room = roomRows[0] as any
+          const newOccupancy = Math.max(0, room.current_occupancy - 1)
+          const newStatus = newOccupancy === 0 ? 'Cleaning Required' : 'Available'
+
+          await connection.execute(`
+            UPDATE rooms 
+            SET current_occupancy = ?, status = ?, updated_at = NOW()
+            WHERE id = ?
+          `, [newOccupancy, newStatus, assignment.room_id])
+        }
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          message: 'Patient discharged successfully'
+        })
+
+      } else if (action === 'updateRoomStatus') {
+        // Update room status (e.g., after cleaning completion)
+        const { roomId, status } = data
+        
+        const [roomRows] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ?
+        `, [roomId])
+
+        if (!Array.isArray(roomRows) || roomRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+        }
+
+        await connection.execute(`
+          UPDATE rooms 
+          SET status = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [status, roomId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          message: 'Room status updated successfully'
+        })
+
+      } else {
+        await connection.rollback()
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
       }
 
-      rooms.push(newRoom)
-
-      return NextResponse.json({
-        success: true,
-        data: newRoom,
-        message: 'Room created successfully'
-      }, { status: 201 })
-
-    } else if (action === 'admitPatient') {
-      // Admit patient to room
-      const { patientData, roomId } = data
-
-      // Check if room is available
-      const room = rooms.find(r => r.id === roomId)
-      if (!room) {
-        return NextResponse.json({ error: 'Room not found' }, { status: 404 })
-      }
-
-      if (room.status !== 'Available') {
-        return NextResponse.json({ error: 'Room is not available' }, { status: 400 })
-      }
-
-      if (room.currentOccupancy >= room.capacity) {
-        return NextResponse.json({ error: 'Room is at full capacity' }, { status: 400 })
-      }
-
-      // Create patient record
-      const newPatient = {
-        id: Date.now().toString(),
-        ...patientData,
-        roomId,
-        status: 'Admitted',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-
-      patients.push(newPatient)
-
-      // Update room status
-      room.currentOccupancy += 1
-      room.status = room.currentOccupancy >= room.capacity ? 'Occupied' : 'Occupied'
-      room.updatedAt = new Date().toISOString()
-
-      return NextResponse.json({
-        success: true,
-        data: { patient: newPatient, room },
-        message: 'Patient admitted successfully'
-      }, { status: 201 })
-
-    } else if (action === 'dischargePatient') {
-      // Discharge patient from room
-      const { patientId } = data
-
-      const patient = patients.find(p => p.id === patientId)
-      if (!patient) {
-        return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
-      }
-
-      if (patient.status === 'Discharged') {
-        return NextResponse.json({ error: 'Patient already discharged' }, { status: 400 })
-      }
-
-      // Update patient status
-      patient.status = 'Discharged'
-      patient.actualDischargeDate = new Date().toISOString().split('T')[0]
-      patient.updatedAt = new Date().toISOString()
-
-      // Update room status
-      const room = rooms.find(r => r.id === patient.roomId)
-      if (room) {
-        room.currentOccupancy = Math.max(0, room.currentOccupancy - 1)
-        room.status = room.currentOccupancy === 0 ? 'Cleaning Required' : 'Occupied'
-        room.updatedAt = new Date().toISOString()
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: { patient, room },
-        message: 'Patient discharged successfully'
-      })
-
-    } else if (action === 'updateRoomStatus') {
-      // Update room status (e.g., after cleaning completion)
-      const { roomId, status } = data
-      
-      const room = rooms.find(r => r.id === roomId)
-      if (!room) {
-        return NextResponse.json({ error: 'Room not found' }, { status: 404 })
-      }
-
-      room.status = status
-      room.updatedAt = new Date().toISOString()
-
-      if (status === 'Available') {
-        room.lastCleaned = new Date().toISOString().split('T')[0]
-        room.nextCleaningDue = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: room,
-        message: 'Room status updated successfully'
-      })
-
-    } else {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+    } catch (error) {
+      await connection.rollback()
+      throw error
+    } finally {
+      await connection.end()
     }
 
   } catch (error) {
@@ -295,49 +318,117 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const { action, ...data } = body
+    const connection = await mysql.createConnection(dbConfig)
 
-    if (action === 'updateRoom') {
-      const { roomId, ...updateData } = data
-      const roomIndex = rooms.findIndex(r => r.id === roomId)
+    try {
+      await connection.beginTransaction()
 
-      if (roomIndex === -1) {
-        return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+      if (action === 'updateRoom') {
+        const { roomId, ...updateData } = data
+        
+        const [roomRows] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ?
+        `, [roomId])
+
+        if (!Array.isArray(roomRows) || roomRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+        }
+
+        // Build update query dynamically
+        const updateFields = []
+        const updateValues = []
+        
+        Object.entries(updateData).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            updateFields.push(`${key} = ?`)
+            updateValues.push(value)
+          }
+        })
+
+        if (updateFields.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+        }
+
+        updateValues.push(roomId)
+        await connection.execute(`
+          UPDATE rooms 
+          SET ${updateFields.join(', ')}, updated_at = NOW()
+          WHERE id = ?
+        `, updateValues)
+
+        // Get updated room
+        const [updatedRooms] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ?
+        `, [roomId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          data: updatedRooms[0],
+          message: 'Room updated successfully'
+        })
+
+      } else if (action === 'updatePatient') {
+        const { patientId, ...updateData } = data
+        
+        const [patientRows] = await connection.execute(`
+          SELECT * FROM patients WHERE id = ?
+        `, [patientId])
+
+        if (!Array.isArray(patientRows) || patientRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+        }
+
+        // Build update query dynamically
+        const updateFields = []
+        const updateValues = []
+        
+        Object.entries(updateData).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            updateFields.push(`${key} = ?`)
+            updateValues.push(value)
+          }
+        })
+
+        if (updateFields.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+        }
+
+        updateValues.push(patientId)
+        await connection.execute(`
+          UPDATE patients 
+          SET ${updateFields.join(', ')}
+          WHERE id = ?
+        `, updateValues)
+
+        // Get updated patient
+        const [updatedPatients] = await connection.execute(`
+          SELECT * FROM patients WHERE id = ?
+        `, [patientId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          data: updatedPatients[0],
+          message: 'Patient updated successfully'
+        })
+
+      } else {
+        await connection.rollback()
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
       }
 
-      rooms[roomIndex] = {
-        ...rooms[roomIndex],
-        ...updateData,
-        updatedAt: new Date().toISOString()
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: rooms[roomIndex],
-        message: 'Room updated successfully'
-      })
-
-    } else if (action === 'updatePatient') {
-      const { patientId, ...updateData } = data
-      const patientIndex = patients.findIndex(p => p.id === patientId)
-
-      if (patientIndex === -1) {
-        return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
-      }
-
-      patients[patientIndex] = {
-        ...patients[patientIndex],
-        ...updateData,
-        updatedAt: new Date().toISOString()
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: patients[patientIndex],
-        message: 'Patient updated successfully'
-      })
-
-    } else {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+    } catch (error) {
+      await connection.rollback()
+      throw error
+    } finally {
+      await connection.end()
     }
 
   } catch (error) {
@@ -361,52 +452,105 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const roomId = searchParams.get('roomId')
     const patientId = searchParams.get('patientId')
+    const connection = await mysql.createConnection(dbConfig)
 
-    if (roomId) {
-      // Check if room has patients
-      const hasPatients = patients.some(p => p.roomId === roomId && p.status === 'Admitted')
-      if (hasPatients) {
-        return NextResponse.json({ error: 'Cannot delete room with admitted patients' }, { status: 400 })
-      }
+    try {
+      await connection.beginTransaction()
 
-      const roomIndex = rooms.findIndex(r => r.id === roomId)
-      if (roomIndex === -1) {
-        return NextResponse.json({ error: 'Room not found' }, { status: 404 })
-      }
+      if (roomId) {
+        // Check if room has patients
+        const [assignments] = await connection.execute(`
+          SELECT COUNT(*) as count FROM room_assignments 
+          WHERE room_id = ? AND status = 'Active'
+        `, [roomId])
 
-      rooms.splice(roomIndex, 1)
-
-      return NextResponse.json({
-        success: true,
-        message: 'Room deleted successfully'
-      })
-
-    } else if (patientId) {
-      const patientIndex = patients.findIndex(p => p.id === patientId)
-      if (patientIndex === -1) {
-        return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
-      }
-
-      // Update room occupancy if patient was admitted
-      const patient = patients[patientIndex]
-      if (patient.status === 'Admitted') {
-        const room = rooms.find(r => r.id === patient.roomId)
-        if (room) {
-          room.currentOccupancy = Math.max(0, room.currentOccupancy - 1)
-          room.status = room.currentOccupancy === 0 ? 'Cleaning Required' : 'Occupied'
-          room.updatedAt = new Date().toISOString()
+        if (assignments[0].count > 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Cannot delete room with admitted patients' }, { status: 400 })
         }
+
+        const [roomRows] = await connection.execute(`
+          SELECT * FROM rooms WHERE id = ?
+        `, [roomId])
+
+        if (!Array.isArray(roomRows) || roomRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+        }
+
+        await connection.execute(`
+          DELETE FROM rooms WHERE id = ?
+        `, [roomId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          message: 'Room deleted successfully'
+        })
+
+      } else if (patientId) {
+        const [patientRows] = await connection.execute(`
+          SELECT * FROM patients WHERE id = ?
+        `, [patientId])
+
+        if (!Array.isArray(patientRows) || patientRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+        }
+
+        // Update room occupancy if patient was admitted
+        const [assignments] = await connection.execute(`
+          SELECT * FROM room_assignments 
+          WHERE patient_id = ? AND status = 'Active'
+        `, [patientId])
+
+        if (Array.isArray(assignments) && assignments.length > 0) {
+          const assignment = assignments[0] as any
+          const [roomRows] = await connection.execute(`
+            SELECT * FROM rooms WHERE id = ?
+          `, [assignment.room_id])
+
+          if (Array.isArray(roomRows) && roomRows.length > 0) {
+            const room = roomRows[0] as any
+            const newOccupancy = Math.max(0, room.current_occupancy - 1)
+            const newStatus = newOccupancy === 0 ? 'Cleaning Required' : 'Available'
+
+            await connection.execute(`
+              UPDATE rooms 
+              SET current_occupancy = ?, status = ?, updated_at = NOW()
+              WHERE id = ?
+            `, [newOccupancy, newStatus, assignment.room_id])
+          }
+        }
+
+        // Delete patient assignments first
+        await connection.execute(`
+          DELETE FROM room_assignments WHERE patient_id = ?
+        `, [patientId])
+
+        // Delete patient
+        await connection.execute(`
+          DELETE FROM patients WHERE id = ?
+        `, [patientId])
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          message: 'Patient deleted successfully'
+        })
+
+      } else {
+        await connection.rollback()
+        return NextResponse.json({ error: 'Room ID or Patient ID required' }, { status: 400 })
       }
 
-      patients.splice(patientIndex, 1)
-
-      return NextResponse.json({
-        success: true,
-        message: 'Patient deleted successfully'
-      })
-
-    } else {
-      return NextResponse.json({ error: 'Room ID or Patient ID required' }, { status: 400 })
+    } catch (error) {
+      await connection.rollback()
+      throw error
+    } finally {
+      await connection.end()
     }
 
   } catch (error) {

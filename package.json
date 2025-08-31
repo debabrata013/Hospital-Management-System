@@ -10,7 +10,12 @@
     "init-db": "node scripts/init-db.js",
     "setup-pharmacy": "node scripts/setup-pharmacy-db.js",
     "test-api": "node scripts/test-pharmacy-api.js",
-    "clear-cache": "rm -rf .next && npm run build"
+    "clear-cache": "rm -rf .next && npm run build",
+    "setup-appointments": "node scripts/create-appointments-schema.js",
+    "setup-room-management": "node scripts/create-room-management-schema.js",
+    "create-sample-appointments": "node scripts/create-sample-appointments.js",
+    "create-doctor-profiles": "node scripts/create-doctor-staff-profile.js",
+    "setup-admin": "npm run setup-appointments && npm run create-doctor-profiles && npm run create-sample-appointments && npm run setup-room-management"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",

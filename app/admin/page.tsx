@@ -471,6 +471,25 @@ export default function AdminDashboard() {
 
           {/* Dashboard Content */}
           <main className="flex-1 p-6 space-y-8">
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+                  <p className="text-red-700 font-medium">Error loading dashboard data</p>
+                </div>
+                <p className="text-red-600 text-sm mt-1">{error}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
@@ -551,10 +570,10 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Link href="/admin/patients/add">
+                  <Link href="/admin/patients">
                     <Button className="w-full h-16 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-1">
                       <Plus className="h-5 w-5" />
-                      <span className="text-sm">Add Patient</span>
+                      <span className="text-sm">Manage Patients</span>
                     </Button>
                   </Link>
                   
@@ -598,25 +617,44 @@ export default function AdminDashboard() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {upcomingAppointments.map((apt) => (
-                      <div key={apt.id} className="flex items-center space-x-4 p-3 hover:bg-pink-50 rounded-lg transition-colors">
-                        <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-pink-200">
-                          <AvatarFallback>{apt.patient.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{apt.patient.name}</p>
-                          <p className="text-xs text-gray-500 truncate">
-                            <span className="font-medium">{apt.doctor.name}</span> - {apt.doctor.department}
-                          </p>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center space-x-4 p-3 animate-pulse">
+                          <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-pink-600">{new Date(apt.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                          {getStatusBadge(apt.status)}
+                      ))}
+                    </div>
+                  ) : upcomingAppointments && upcomingAppointments.length > 0 ? (
+                    <div className="space-y-4">
+                      {upcomingAppointments.map((apt) => (
+                        <div key={apt.id} className="flex items-center space-x-4 p-3 hover:bg-pink-50 rounded-lg transition-colors">
+                          <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-pink-200">
+                            <AvatarFallback>{apt.patient.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{apt.patient.name}</p>
+                            <p className="text-xs text-gray-500 truncate">
+                              <span className="font-medium">{apt.doctor.name}</span> - {apt.doctor.department}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-bold text-pink-600">{new Date(apt.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            {getStatusBadge(apt.status)}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No appointments scheduled for today</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -634,28 +672,49 @@ export default function AdminDashboard() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {admittedPatients.map((patient) => (
-                      <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <Bed className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
-                            <p className="text-sm text-gray-600">{patient.condition || 'N/A'}</p>
-                            <p className="text-sm text-gray-500">{patient.doctor?.name || 'N/A'} • Room {patient.roomNumber || 'N/A'}</p>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl animate-pulse">
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-gray-200 p-2 rounded-lg h-9 w-9"></div>
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-32"></div>
+                              <div className="h-3 bg-gray-200 rounded w-24"></div>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          {getStatusBadge(patient.status)}
-                          <p className="text-xs text-gray-500 mt-1">
-                            Since {new Date(patient.admissionDate).toLocaleDateString()}
-                          </p>
+                      ))}
+                    </div>
+                  ) : admittedPatients && admittedPatients.length > 0 ? (
+                    <div className="space-y-4">
+                      {admittedPatients.map((patient) => (
+                        <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-blue-100 p-2 rounded-lg">
+                              <Bed className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
+                              <p className="text-sm text-gray-600">{patient.condition || 'N/A'}</p>
+                              <p className="text-sm text-gray-500">{patient.doctor?.name || 'N/A'} • Room {patient.roomNumber || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {getStatusBadge(patient.status)}
+                            <p className="text-xs text-gray-500 mt-1">
+                              Since {new Date(patient.admissionDate).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Bed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No patients currently admitted</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -679,31 +738,54 @@ export default function AdminDashboard() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {stockAlerts.map((item) => (
-                      <div key={item.id} className={`p-4 rounded-xl border ${getUrgencyColor('critical')}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Pill className="h-5 w-5" />
-                            <div>
-                              <p className="font-semibold">{item.name}</p>
-                              <p className="text-sm opacity-75">{item.category || 'N/A'}</p>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="p-4 rounded-xl border border-gray-200 animate-pulse">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                              <div className="space-y-2">
+                                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                                <div className="h-3 bg-gray-200 rounded w-20"></div>
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold">{item.quantity} / {item.lowStockThreshold}</p>
-                            <p className="text-xs opacity-75">Current / Required</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : stockAlerts && stockAlerts.length > 0 ? (
+                    <div className="space-y-4">
+                      {stockAlerts.map((item) => (
+                        <div key={item.id} className={`p-4 rounded-xl border ${getUrgencyColor('critical')}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <Pill className="h-5 w-5" />
+                              <div>
+                                <p className="font-semibold">{item.name}</p>
+                                <p className="text-sm opacity-75">{item.category || 'N/A'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold">{item.quantity} / {item.lowStockThreshold}</p>
+                              <p className="text-xs opacity-75">Current / Required</p>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <Progress 
+                              value={(item.quantity / item.lowStockThreshold) * 100} 
+                              className="h-2"
+                            />
                           </div>
                         </div>
-                        <div className="mt-3">
-                          <Progress 
-                            value={(item.quantity / item.lowStockThreshold) * 100} 
-                            className="h-2"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Pill className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No stock alerts at the moment</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -721,30 +803,51 @@ export default function AdminDashboard() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {doctorSchedules.map((doctor) => (
-                      <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Avatar>
-                            <AvatarImage src={`/avatars/doctor-${doctor.id}.png`} />
-                            <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold">{doctor.name}</p>
-                            <p className="text-sm opacity-75">{doctor.department}</p>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                          <div className="flex items-center space-x-3">
+                            <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-32"></div>
+                              <div className="h-3 bg-gray-200 rounded w-24"></div>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-sm text-center">
-                          {doctor.shifts && doctor.shifts.length > 0 ? (
-                            <p>{doctor.shifts[0].dayOfWeek}: {formatTime(doctor.shifts[0].startTime)} - {formatTime(doctor.shifts[0].endTime)}</p>
-                          ) : (
-                            <p>No shift assigned</p>
-                          )}
+                      ))}
+                    </div>
+                  ) : doctorSchedules && doctorSchedules.length > 0 ? (
+                    <div className="space-y-4">
+                      {doctorSchedules.map((doctor) => (
+                        <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <Avatar>
+                              <AvatarImage src={`/avatars/doctor-${doctor.id}.png`} />
+                              <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold">{doctor.name}</p>
+                              <p className="text-sm opacity-75">{doctor.department}</p>
+                            </div>
+                          </div>
+                          <div className="text-sm text-center">
+                            {doctor.shifts && doctor.shifts.length > 0 ? (
+                              <p>{doctor.shifts[0].dayOfWeek}: {formatTime(doctor.shifts[0].startTime)} - {formatTime(doctor.shifts[0].endTime)}</p>
+                            ) : (
+                              <p>No shift assigned</p>
+                            )}
+                          </div>
+                          <Badge variant={getDoctorStatusVariant(doctor.status)}>{doctor.status}</Badge>
                         </div>
-                        <Badge variant={getDoctorStatusVariant(doctor.status)}>{doctor.status}</Badge>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Stethoscope className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No doctor schedules available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
