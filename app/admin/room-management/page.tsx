@@ -58,36 +58,68 @@ export default function RoomManagementPage() {
     currentOccupancy: 0,
     status: 'Available'
   })
-  const handleAddRoom = () => {
+  const handleAddRoom = async () => {
     if (!newRoom.name || !newRoom.roomNumber || !newRoom.type || !newRoom.floor || !newRoom.capacity) {
       toast({ title: 'All fields are required', variant: 'destructive' })
       return
     }
-    const id = (rooms.length + 1).toString()
-    setRooms([
-      ...rooms,
-      {
-        id,
-        name: newRoom.name!,
-        roomNumber: newRoom.roomNumber!,
-        type: newRoom.type as Room['type'],
-        floor: Number(newRoom.floor),
-        capacity: Number(newRoom.capacity),
-        currentOccupancy: 0,
-        status: newRoom.status as Room['status']
+
+    try {
+      const response = await fetch('/api/admin/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomNumber: newRoom.roomNumber,
+          roomName: newRoom.name,
+          roomType: newRoom.type,
+          floor: newRoom.floor,
+          capacity: newRoom.capacity,
+          dailyRate: 0,
+          description: ''
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create room');
       }
-    ])
-    setShowAddRoom(false)
-    setNewRoom({
-      name: '',
-      roomNumber: '',
-      type: 'General',
-      floor: 1,
-      capacity: 1,
-      currentOccupancy: 0,
-      status: 'Available'
-    })
-    toast({ title: 'Room added successfully!' })
+
+      const createdRoom = await response.json();
+      
+      // Add the new room to the local state
+      setRooms(prev => [...prev, {
+        id: createdRoom.id.toString(),
+        roomNumber: createdRoom.room_number,
+        type: createdRoom.room_type,
+        floor: createdRoom.floor,
+        capacity: createdRoom.capacity,
+        currentOccupancy: createdRoom.current_occupancy,
+        status: createdRoom.status,
+        name: createdRoom.room_name || ''
+      }]);
+
+      setShowAddRoom(false);
+      setNewRoom({
+        name: '',
+        roomNumber: '',
+        type: 'General',
+        floor: 1,
+        capacity: 1,
+        currentOccupancy: 0,
+        status: 'Available'
+      });
+      
+      toast({ title: 'Room added successfully!' });
+    } catch (error: any) {
+      console.error('Error creating room:', error);
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to create room',
+        variant: "destructive",
+      });
+    }
   }
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedTab, setSelectedTab] = useState('overview')
@@ -98,79 +130,53 @@ export default function RoomManagementPage() {
 
   // Mock data - replace with API calls
   useEffect(() => {
-    // Mock rooms data
-    const mockRooms: Room[] = [
-      {
-        id: '1',
-        roomNumber: '101',
-        type: 'General',
-        floor: 1,
-        capacity: 2,
-        currentOccupancy: 1,
-        status: 'Occupied',
-        name: ''
-      },
-      {
-        id: '2',
-        roomNumber: '102',
-        type: 'Private',
-        floor: 1,
-        capacity: 1,
-        currentOccupancy: 0,
-        status: 'Available',
-        name: ''
-      },
-      {
-        id: '3',
-        roomNumber: '201',
-        type: 'ICU',
-        floor: 2,
-        capacity: 1,
-        currentOccupancy: 1,
-        status: 'Occupied',
-        name: ''
-      },
-      {
-        id: '4',
-        roomNumber: '202',
-        type: 'Semi-Private',
-        floor: 2,
-        capacity: 2,
-        currentOccupancy: 0,
-        status: 'Cleaning Required',
-        name: ''
-      }
-    ]
+    const fetchData = async () => {
+      try {
+        // Fetch rooms from API
+        const roomsResponse = await fetch('/api/admin/rooms');
+        if (roomsResponse.ok) {
+          const roomsData = await roomsResponse.json();
+          setRooms(roomsData.map((room: any) => ({
+            id: room.id.toString(),
+            roomNumber: room.room_number,
+            type: room.room_type,
+            floor: room.floor,
+            capacity: room.capacity,
+            currentOccupancy: room.current_occupancy,
+            status: room.status,
+            name: room.room_name || ''
+          })));
+        }
 
-    // Mock patients data
-    const mockPatients: Patient[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        admissionDate: '2024-01-08',
-        expectedDischargeDate: '2024-01-15',
-        roomId: '1',
-        diagnosis: 'Pneumonia',
-        medications: ['Amoxicillin', 'Paracetamol'],
-        notes: 'Patient responding well to treatment',
-        status: 'Admitted'
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        admissionDate: '2024-01-09',
-        expectedDischargeDate: '2024-01-16',
-        roomId: '3',
-        diagnosis: 'Heart Attack',
-        medications: ['Aspirin', 'Nitroglycerin'],
-        notes: 'Critical condition, monitoring required',
-        status: 'Admitted'
+        // Fetch room assignments (patients) from API
+        const assignmentsResponse = await fetch('/api/admin/room-assignments?status=Active');
+        if (assignmentsResponse.ok) {
+          const assignmentsData = await assignmentsResponse.json();
+          setPatients(assignmentsData.map((assignment: any) => ({
+            id: assignment.id.toString(),
+            name: assignment.patient_name,
+            admissionDate: assignment.admission_date,
+            expectedDischargeDate: assignment.expected_discharge_date,
+            roomId: assignment.room_id.toString(),
+            diagnosis: assignment.diagnosis || 'N/A',
+            medications: [], // This would need a separate API
+            notes: assignment.notes || '',
+            status: assignment.status === 'Active' ? 'Admitted' : 'Discharged',
+            actualDischargeDate: assignment.actual_discharge_date
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching room data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load room data",
+          variant: "destructive",
+        });
       }
-    ]
+    };
 
-    setRooms(mockRooms)
-    setPatients(mockPatients)
-  }, [])
+    fetchData();
+  }, [toast]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -206,10 +212,49 @@ export default function RoomManagementPage() {
 
 
 
-  const refreshData = () => {
-    // Refresh data after operations
-    // In a real app, this would refetch from API
-    window.location.reload()
+  const refreshData = async () => {
+    try {
+      // Fetch rooms from API
+      const roomsResponse = await fetch('/api/admin/rooms');
+      if (roomsResponse.ok) {
+        const roomsData = await roomsResponse.json();
+        setRooms(roomsData.map((room: any) => ({
+          id: room.id.toString(),
+          roomNumber: room.room_number,
+          type: room.room_type,
+          floor: room.floor,
+          capacity: room.capacity,
+          currentOccupancy: room.current_occupancy,
+          status: room.status,
+          name: room.room_name || ''
+        })));
+      }
+
+      // Fetch room assignments (patients) from API
+      const assignmentsResponse = await fetch('/api/admin/room-assignments?status=Active');
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        setPatients(assignmentsData.map((assignment: any) => ({
+          id: assignment.id.toString(),
+          name: assignment.patient_name,
+          admissionDate: assignment.admission_date,
+          expectedDischargeDate: assignment.expected_discharge_date,
+          roomId: assignment.room_id.toString(),
+          diagnosis: assignment.diagnosis || 'N/A',
+          medications: [], // This would need a separate API
+          notes: assignment.notes || '',
+          status: assignment.status === 'Active' ? 'Admitted' : 'Discharged',
+          actualDischargeDate: assignment.actual_discharge_date
+        })));
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data",
+        variant: "destructive",
+      });
+    }
   }
 
   return (

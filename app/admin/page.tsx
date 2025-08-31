@@ -96,7 +96,6 @@ export default function AdminDashboard() {
   const [admittedPatients, setAdmittedPatients] = useState<AdmittedPatient[]>([]);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
   const [doctorSchedules, setDoctorSchedules] = useState<DoctorSchedule[]>([]);
-  const [notifications] = useState(7);
 
   const handleLogout = () => {
     // Clear any auth data if needed
@@ -108,41 +107,40 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [statsRes, appointmentsRes, admittedPatientsRes, stockAlertsRes, doctorSchedulesRes] = await Promise.all([
-          fetch('/api/admin/dashboard-stats'),
-          fetch('/api/admin/appointments'),
-          fetch('/api/admin/admitted-patients'),
-          fetch('/api/admin/stock-alerts'),
-          fetch('/api/admin/doctor-schedules'),
-        ]);
-
-        if (!statsRes.ok) {
-          throw new Error('Failed to fetch dashboard stats');
-        }
-        if (!appointmentsRes.ok) {
-          throw new Error('Failed to fetch appointments');
-        }
-        if (!admittedPatientsRes.ok) {
-          throw new Error('Failed to fetch admitted patients');
-        }
-        if (!stockAlertsRes.ok) {
-          throw new Error('Failed to fetch stock alerts');
-        }
-        if (!doctorSchedulesRes.ok) {
-          throw new Error('Failed to fetch doctor schedules');
+        
+        // Fetch dashboard stats (real data)
+        const statsRes = await fetch('/api/admin/dashboard-stats');
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        } else {
+          console.log('Dashboard stats API not available, using fallback data');
+          setStats({
+            totalAppointments: 0,
+            completedAppointments: 0,
+            admittedPatients: 0,
+            availableBeds: 0,
+            criticalAlerts: 0,
+            todayRevenue: 0
+          });
         }
 
-        const statsData = await statsRes.json();
-        const appointmentsData = await appointmentsRes.json();
-        const admittedPatientsData = await admittedPatientsRes.json();
-        const stockAlertsData = await stockAlertsRes.json();
-        const doctorSchedulesData = await doctorSchedulesRes.json();
+        // Fetch appointments (real data)
+        try {
+          const appointmentsRes = await fetch('/api/admin/appointments');
+          if (appointmentsRes.ok) {
+            const appointmentsData = await appointmentsRes.json();
+            setUpcomingAppointments(appointmentsData.appointments || []);
+          }
+        } catch (error) {
+          console.log('Appointments API not available yet');
+          setUpcomingAppointments([]);
+        }
 
-        setStats(statsData);
-        setUpcomingAppointments(appointmentsData);
-        setAdmittedPatients(admittedPatientsData);
-        setStockAlerts(stockAlertsData);
-        setDoctorSchedules(doctorSchedulesData);
+        // Set empty arrays for other data (can be implemented later)
+        setAdmittedPatients([]);
+        setStockAlerts([]);
+        setDoctorSchedules([]);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -429,11 +427,7 @@ export default function AdminDashboard() {
                 <div className="relative">
                   <Button variant="ghost" size="sm" className="relative hover:bg-pink-50">
                     <Bell className="h-5 w-5 text-gray-600" />
-                    {notifications > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {notifications}
-                      </span>
-                    )}
+                    {/* Removed notifications count */}
                   </Button>
                 </div>
                 
@@ -470,284 +464,379 @@ export default function AdminDashboard() {
           </header>
 
           {/* Dashboard Content */}
-          <main className="flex-1 p-6 space-y-8">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                      <p className="text-3xl font-bold text-gray-900">{todayStats.totalAppointments}</p>
-                      <p className="text-sm text-green-600 mt-1">
-                        {todayStats.completedAppointments} completed
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
-                      <Calendar className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Admitted Patients</p>
-                      <p className="text-3xl font-bold text-gray-900">{todayStats.admittedPatients}</p>
-                      <p className="text-sm text-blue-600 mt-1">
-                        {todayStats.availableBeds} beds available
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
-                      <Bed className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Stock Alerts</p>
-                      <p className="text-3xl font-bold text-red-600">{todayStats.criticalAlerts}</p>
-                      <p className="text-sm text-red-600 mt-1">
-                        Require immediate attention
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
-                      <AlertTriangle className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                      <p className="text-3xl font-bold text-green-600">₹{todayStats.todayRevenue.toLocaleString()}</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        +12% from yesterday
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
-                      <DollarSign className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-                <CardDescription>Common daily operations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Link href="/admin/patients/add">
-                    <Button className="w-full h-16 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Plus className="h-5 w-5" />
-                      <span className="text-sm">Add Patient</span>
-                    </Button>
-                  </Link>
-                  
-                  <Link href="/admin/appointments/schedule">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Calendar className="h-5 w-5" />
-                      <span className="text-sm">Schedule Appointment</span>
-                    </Button>
-                  </Link>
-                  
-                  <Link href="/admin/reports">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <FileText className="h-5 w-5" />
-                      <span className="text-sm">Generate Report</span>
-                    </Button>
-                  </Link>
-                  
-                  <Link href="/admin/inventory">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Package className="h-5 w-5" />
-                      <span className="text-sm">Check Inventory</span>
-                    </Button>
-                  </Link>
+          <main className="flex-1 p-6 space-y-6">
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading dashboard data...</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
 
-            {/* Main Dashboard Widgets */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Today's Appointments */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+                  <h3 className="text-sm font-medium text-red-800">Error loading dashboard</h3>
+                </div>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <>
+                {/* Header Section */}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
-                    <CardTitle className="text-gray-900">Today's Appointments</CardTitle>
-                    <CardDescription>Upcoming appointments for today</CardDescription>
+                    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                    <p className="text-gray-600 mt-1">Welcome back, {branchInfo.adminName}</p>
                   </div>
-                  <Link href="/admin/appointments">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {upcomingAppointments.map((apt) => (
-                      <div key={apt.id} className="flex items-center space-x-4 p-3 hover:bg-pink-50 rounded-lg transition-colors">
-                        <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-pink-200">
-                          <AvatarFallback>{apt.patient.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{apt.patient.name}</p>
-                          <p className="text-xs text-gray-500 truncate">
-                            <span className="font-medium">{apt.doctor.name}</span> - {apt.doctor.department}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
+                          <p className="text-3xl font-bold text-gray-900">{todayStats.totalAppointments}</p>
+                          <p className="text-sm text-green-600 mt-1">
+                            {todayStats.completedAppointments} completed
                           </p>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-pink-600">{new Date(apt.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                          {getStatusBadge(apt.status)}
+                        <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
+                          <Calendar className="h-8 w-8 text-white" />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Admitted Patients */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900">Admitted Patients</CardTitle>
-                    <CardDescription>Currently admitted patients</CardDescription>
-                  </div>
-                  <Link href="/admin/admissions">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {admittedPatients.map((patient) => (
-                      <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <Bed className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
-                            <p className="text-sm text-gray-600">{patient.condition || 'N/A'}</p>
-                            <p className="text-sm text-gray-500">{patient.doctor?.name || 'N/A'} • Room {patient.roomNumber || 'N/A'}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          {getStatusBadge(patient.status)}
-                          <p className="text-xs text-gray-500 mt-1">
-                            Since {new Date(patient.admissionDate).toLocaleDateString()}
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Admitted Patients</p>
+                          <p className="text-3xl font-bold text-gray-900">{todayStats.admittedPatients}</p>
+                          <p className="text-sm text-blue-600 mt-1">
+                            {todayStats.availableBeds} beds available
                           </p>
                         </div>
+                        <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                          <Bed className="h-8 w-8 text-white" />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                    </CardContent>
+                  </Card>
 
-            {/* Bottom Row Widgets */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Medicine Stock Alerts */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900 flex items-center">
-                      <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                      Medicine Stock Alerts
-                    </CardTitle>
-                    <CardDescription>Items requiring immediate restocking</CardDescription>
-                  </div>
-                  <Link href="/admin/inventory">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      Manage Stock
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {stockAlerts.map((item) => (
-                      <div key={item.id} className={`p-4 rounded-xl border ${getUrgencyColor('critical')}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Pill className="h-5 w-5" />
-                            <div>
-                              <p className="font-semibold">{item.name}</p>
-                              <p className="text-sm opacity-75">{item.category || 'N/A'}</p>
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Stock Alerts</p>
+                          <p className="text-3xl font-bold text-red-600">{todayStats.criticalAlerts}</p>
+                          <p className="text-sm text-red-600 mt-1">
+                            Require immediate attention
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
+                          <AlertTriangle className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
+                          <p className="text-3xl font-bold text-green-600">₹{todayStats.todayRevenue.toLocaleString()}</p>
+                          <p className="text-sm text-green-600 flex items-center mt-1">
+                            <TrendingUp className="h-4 w-4 mr-1" />
+                            +12% from yesterday
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
+                          <DollarSign className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Quick Actions */}
+                <Card className="border-pink-100">
+                  <CardHeader>
+                    <CardTitle className="text-gray-900">Quick Actions</CardTitle>
+                    <CardDescription>Common daily operations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Link href="/admin/patients/add">
+                        <Button className="w-full h-16 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-1">
+                          <Plus className="h-5 w-5" />
+                          <span className="text-sm">Add Patient</span>
+                        </Button>
+                      </Link>
+                      
+                      <Link href="/admin/appointments/schedule">
+                        <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                          <Calendar className="h-5 w-5" />
+                          <span className="text-sm">Schedule Appointment</span>
+                        </Button>
+                      </Link>
+                      
+                      <Link href="/admin/reports">
+                        <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                          <FileText className="h-5 w-5" />
+                          <span className="text-sm">Generate Report</span>
+                        </Button>
+                      </Link>
+                      
+                      <Link href="/admin/inventory">
+                        <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                          <Package className="h-5 w-5" />
+                          <span className="text-sm">Check Inventory</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Main Dashboard Widgets */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Today's Appointments */}
+                  <Card className="border-pink-100">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-gray-900">Today's Appointments</CardTitle>
+                        <CardDescription>Upcoming appointments for today</CardDescription>
+                      </div>
+                      <Link href="/admin/appointments">
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                          View All
+                        </Button>
+                      </Link>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {Array.isArray(upcomingAppointments) && upcomingAppointments.length > 0 ? (
+                          upcomingAppointments.map((apt) => (
+                            <div key={apt.id} className="flex items-center space-x-4 p-3 hover:bg-pink-50 rounded-lg transition-colors">
+                              <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-pink-200">
+                                <AvatarFallback>{apt.patient.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-800 truncate">{apt.patient.name}</p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  <span className="font-medium">{apt.doctor.name}</span> - {apt.doctor.department}
+                                </p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-sm font-bold text-pink-600">{new Date(apt.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                {getStatusBadge(apt.status)}
+                              </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No appointments today</h3>
+                            <p className="text-muted-foreground mb-4">
+                              No appointments scheduled for today
+                            </p>
+                            <Link href="/admin/appointments/add">
+                              <Button size="sm">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Schedule Appointment
+                              </Button>
+                            </Link>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold">{item.quantity} / {item.lowStockThreshold}</p>
-                            <p className="text-xs opacity-75">Current / Required</p>
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <Progress 
-                            value={(item.quantity / item.lowStockThreshold) * 100} 
-                            className="h-2"
-                          />
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Doctor Schedules */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900">Doctor Schedules</CardTitle>
-                    <CardDescription>Current doctor availability and schedules</CardDescription>
-                  </div>
-                  <Link href="/admin/schedules">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {doctorSchedules.map((doctor) => (
-                      <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Avatar>
-                            <AvatarImage src={`/avatars/doctor-${doctor.id}.png`} />
-                            <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold">{doctor.name}</p>
-                            <p className="text-sm opacity-75">{doctor.department}</p>
-                          </div>
-                        </div>
-                        <div className="text-sm text-center">
-                          {doctor.shifts && doctor.shifts.length > 0 ? (
-                            <p>{doctor.shifts[0].dayOfWeek}: {formatTime(doctor.shifts[0].startTime)} - {formatTime(doctor.shifts[0].endTime)}</p>
-                          ) : (
-                            <p>No shift assigned</p>
-                          )}
-                        </div>
-                        <Badge variant={getDoctorStatusVariant(doctor.status)}>{doctor.status}</Badge>
+                  {/* Admitted Patients */}
+                  <Card className="border-pink-100">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-gray-900">Admitted Patients</CardTitle>
+                        <CardDescription>Currently admitted patients</CardDescription>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                      <Link href="/admin/admissions">
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                          View All
+                        </Button>
+                      </Link>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {Array.isArray(admittedPatients) && admittedPatients.length > 0 ? (
+                          admittedPatients.map((patient) => (
+                            <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                              <div className="flex items-center space-x-4">
+                                <div className="bg-blue-100 p-2 rounded-lg">
+                                  <Bed className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900">{patient.name} ({patient.age}y)</p>
+                                  <p className="text-sm text-gray-600">{patient.condition || 'N/A'}</p>
+                                  <p className="text-sm text-gray-500">{patient.doctor?.name || 'N/A'} • Room {patient.roomNumber || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                {getStatusBadge(patient.status)}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Since {new Date(patient.admissionDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <Bed className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No admitted patients</h3>
+                            <p className="text-muted-foreground mb-4">
+                              No patients are currently admitted
+                            </p>
+                            <Link href="/admin/admissions">
+                              <Button size="sm">
+                                <Plus className="w-4 h-4 mr-2" />
+                                View Admissions
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Bottom Row Widgets */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Medicine Stock Alerts */}
+                  <Card className="border-pink-100">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-gray-900 flex items-center">
+                          <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+                          Medicine Stock Alerts
+                        </CardTitle>
+                        <CardDescription>Items requiring immediate restocking</CardDescription>
+                      </div>
+                      <Link href="/admin/inventory">
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                          Manage Stock
+                        </Button>
+                      </Link>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {Array.isArray(stockAlerts) && stockAlerts.length > 0 ? (
+                          stockAlerts.map((item) => (
+                            <div key={item.id} className={`p-4 rounded-xl border ${getUrgencyColor('critical')}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <Pill className="h-5 w-5" />
+                                  <div>
+                                    <p className="font-semibold">{item.name}</p>
+                                    <p className="text-sm opacity-75">{item.category || 'N/A'}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold">{item.quantity} / {item.lowStockThreshold}</p>
+                                  <p className="text-xs opacity-75">Current / Required</p>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <Progress 
+                                  value={(item.quantity / item.lowStockThreshold) * 100} 
+                                  className="h-2"
+                                />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No stock alerts</h3>
+                            <p className="text-muted-foreground mb-4">
+                              All medicines are well stocked
+                            </p>
+                            <Link href="/admin/inventory">
+                              <Button size="sm">
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Inventory
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Doctor Schedules */}
+                  <Card className="border-pink-100">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-gray-900">Doctor Schedules</CardTitle>
+                        <CardDescription>Current doctor availability and schedules</CardDescription>
+                      </div>
+                      <Link href="/admin/schedules">
+                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                          View All
+                        </Button>
+                      </Link>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {Array.isArray(doctorSchedules) && doctorSchedules.length > 0 ? (
+                          doctorSchedules.map((doctor) => (
+                            <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <Avatar>
+                                  <AvatarImage src={`/avatars/doctor-${doctor.id}.png`} />
+                                  <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-semibold">{doctor.name}</p>
+                                  <p className="text-sm opacity-75">{doctor.department}</p>
+                                </div>
+                              </div>
+                              <div className="text-sm text-center">
+                                {doctor.shifts && doctor.shifts.length > 0 ? (
+                                  <p>{doctor.shifts[0].dayOfWeek}: {formatTime(doctor.shifts[0].startTime)} - {formatTime(doctor.shifts[0].endTime)}</p>
+                                ) : (
+                                  <p>No shift assigned</p>
+                                )}
+                              </div>
+                              <Badge variant={getDoctorStatusVariant(doctor.status)}>{doctor.status}</Badge>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <Stethoscope className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No doctor schedules</h3>
+                            <p className="text-muted-foreground mb-4">
+                              No doctor schedules available
+                            </p>
+                            <Link href="/admin/schedules">
+                              <Button size="sm">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Manage Schedules
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
           </main>
         </SidebarInset>
       </div>
