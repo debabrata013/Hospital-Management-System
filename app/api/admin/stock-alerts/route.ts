@@ -17,12 +17,12 @@ export async function GET(request: NextRequest) {
       SELECT 
         id,
         name,
-        quantity,
-        reorder_level as lowStockThreshold,
+        current_stock as quantity,
+        minimum_stock as lowStockThreshold,
         category
       FROM medicines 
-      WHERE quantity <= reorder_level OR quantity <= 10
-      ORDER BY quantity ASC
+      WHERE current_stock <= minimum_stock OR current_stock <= 10
+      ORDER BY current_stock ASC
       LIMIT 10
     `)
 
