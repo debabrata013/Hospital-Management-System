@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
         r.room_number,
         ra.admission_date,
         ra.status,
-        u.name as doctor_name
+        u.name as assigned_by_name
       FROM room_assignments ra
       JOIN patients p ON ra.patient_id = p.id
       JOIN rooms r ON ra.room_id = r.id
-      LEFT JOIN users u ON ra.doctor_id = u.id
+      LEFT JOIN users u ON ra.assigned_by = u.id
       WHERE ra.status = 'Active'
       ORDER BY ra.admission_date DESC
       LIMIT 10
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       roomNumber: row.room_number,
       admissionDate: row.admission_date,
       status: row.status,
-      doctor: { name: row.doctor_name || 'Not Assigned' }
+      doctor: { name: row.assigned_by_name || 'Not Assigned' }
     }))
 
     return NextResponse.json(admittedPatients)

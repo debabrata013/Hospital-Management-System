@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
       SELECT 
         u.id,
         u.name,
-        sp.department,
         sp.employee_type as status,
         sp.work_location
       FROM users u
@@ -33,7 +32,7 @@ export async function GET(request: NextRequest) {
     const doctorSchedules = (rows as any[]).map(row => ({
       id: row.id,
       name: row.name,
-      department: row.department || 'General Medicine',
+      department: 'General Medicine', // Default department since column doesn't exist
       status: row.status || 'full-time',
       shifts: [
         { dayOfWeek: 'Monday', startTime: '09:00', endTime: '17:00' },
