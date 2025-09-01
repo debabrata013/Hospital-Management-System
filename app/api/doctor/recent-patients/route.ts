@@ -3,8 +3,33 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   try {
     const patients = [
-      { id: '1', name: 'राम शर्मा', lastVisit: new Date().toISOString(), condition: 'Hypertension' },
-      { id: '2', name: 'सीता देवी', lastVisit: new Date().toISOString(), condition: 'Diabetes' }
+      { 
+        id: 'P001', 
+        firstName: 'राजेश', 
+        lastName: 'कुमार',
+        age: 45,
+        lastVisit: new Date().toISOString(), 
+        condition: 'Hypertension',
+        status: 'stable'
+      },
+      { 
+        id: 'P002', 
+        firstName: 'सुनीता', 
+        lastName: 'देवी',
+        age: 38,
+        lastVisit: new Date().toISOString(), 
+        condition: 'Diabetes',
+        status: 'under_observation'
+      },
+      { 
+        id: 'P003', 
+        firstName: 'मोहम्मद', 
+        lastName: 'अली',
+        age: 62,
+        lastVisit: new Date().toISOString(), 
+        condition: 'Post-Surgery Recovery',
+        status: 'improving'
+      }
     ];
     return NextResponse.json(patients);
   } catch (error) {
