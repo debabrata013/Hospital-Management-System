@@ -21,16 +21,14 @@ export async function GET(request: NextRequest) {
       ORDER BY name ASC
     `)
 
-    // Fetch doctors (staff with role 'doctor')
+    // Fetch doctors (from users table directly)
     const [doctors] = await connection.execute(`
       SELECT 
         u.id,
         u.name,
         u.email,
-        sp.department,
-        sp.specialization
+        u.specialization
       FROM users u
-      JOIN staff_profiles sp ON u.id = sp.user_id
       WHERE u.role = 'doctor' AND u.is_active = 1
       ORDER BY u.name ASC
     `)
