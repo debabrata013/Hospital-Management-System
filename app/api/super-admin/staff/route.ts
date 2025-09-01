@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
+import bcrypt from 'bcryptjs'
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     
     const connection = await mysql.createConnection(dbConfig)
     
-    // Build query conditions
+    // Build query conditions - exclude admin, super-admin, and doctor roles
     let whereConditions = ['role NOT IN ("super-admin", "admin", "doctor")']
     let queryParams: any[] = []
     
@@ -62,8 +63,8 @@ export async function GET(request: NextRequest) {
         department,
         is_active,
         is_verified,
-        last_login,
         joining_date,
+        last_login,
         created_at,
         updated_at
       FROM users 
@@ -90,6 +91,117 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching staff:', error)
     return NextResponse.json(
       { error: 'Failed to fetch staff' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { 
+      name, 
+      email, 
+      password, 
+      role, 
+      contact_number, 
+      department,
+      joining_date
+    } = body
+    
+    if (!name || !email || !password || !role || !contact_number) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate role - only allow staff roles
+    const allowedRoles = ['staff', 'receptionist', 'pharmacy', 'nurse', 'technician']
+    if (!allowedRoles.includes(role)) {
+      return NextResponse.json(
+        { error: 'Invalid role. Must be one of: ' + allowedRoles.join(', ') },
+        { status: 400 }
+      )
+    }
+    
+    const connection = await mysql.createConnection(dbConfig)
+    
+    // Check if email already exists
+    const [existingUser] = await connection.execute(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
+    )
+    
+    if ((existingUser as any[]).length > 0) {
+      await connection.end()
+      return NextResponse.json(
+        { error: 'Email already exists' },
+        { status: 400 }
+      )
+    }
+    
+    // Generate user_id based on role
+    let prefix = 'STF'
+    switch (role) {
+      case 'receptionist':
+        prefix = 'REC'
+        break
+      case 'pharmacy':
+        prefix = 'PHR'
+        break
+      case 'nurse':
+        prefix = 'NUR'
+        break
+      case 'technician':
+        prefix = 'TEC'
+        break
+      default:
+        prefix = 'STF'
+    }
+    
+    const [lastUser] = await connection.execute(
+      'SELECT user_id FROM users WHERE user_id LIKE ? ORDER BY id DESC LIMIT 1',
+      [`${prefix}%`]
+    )
+    
+    let nextNumber = 1
+    if ((lastUser as any[]).length > 0) {
+      const lastUserId = (lastUser as any)[0].user_id
+      const match = lastUserId.match(new RegExp(`${prefix}(\\d+)`))
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1
+      }
+    }
+    
+    const userId = `${prefix}${nextNumber.toString().padStart(3, '0')}`
+    
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10)
+    
+    // Insert new staff member
+    const [result] = await connection.execute(`
+      INSERT INTO users (
+        user_id, name, email, password_hash, role, contact_number, 
+        department, joining_date, is_active, is_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+    `, [
+      userId, name, email, passwordHash, role, contact_number,
+      department || null, joining_date || null
+    ])
+    
+    await connection.end()
+    
+    return NextResponse.json({
+      message: 'Staff member created successfully',
+      userId,
+      staffId: (result as any).insertId
+    })
+    
+  } catch (error) {
+    console.error('Error creating staff member:', error)
+    return NextResponse.json(
+      { error: 'Failed to create staff member' },
       { status: 500 }
     )
   }
