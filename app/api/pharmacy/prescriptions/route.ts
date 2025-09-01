@@ -7,9 +7,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const filters = {
-      status: searchParams.get('status'),
-      search: searchParams.get('search'),
-      limit: searchParams.get('limit')
+      search: searchParams.get('search') || '',
+      status: searchParams.get('status') || '',
+      patient_id: searchParams.get('patient_id') || '',
+      doctor_id: searchParams.get('doctor_id') || '',
+      limit: searchParams.get('limit') || ''
     }
 
     const prescriptions = await pharmacyService.getPrescriptions(filters)
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
     const prescription = await pharmacyService.createPrescription(data)
-    return NextResponse.json({ success: true, data: prescription }, { status: 201 })
+    return NextResponse.json({ success: true, data: prescription })
   } catch (error) {
     console.error('Error creating prescription:', error)
     return NextResponse.json(
