@@ -14,12 +14,12 @@ import {
   Package, Plus, Search, Filter, AlertTriangle, 
   Edit, Trash2, Eye, Download, Upload
 } from 'lucide-react'
-import { useMedicines } from "@/hooks/usePharmacy"
+import { useMedicines, useVendors } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
 
 export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedMedicine, setSelectedMedicine] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -48,45 +48,68 @@ export default function InventoryPage() {
     prescription_required: true
   })
 
-  const { medicines, loading, error, refetch, createMedicine } = useMedicines({
+  const { medicines, loading, error, refetch, createMedicine, updateMedicine, deleteMedicine } = useMedicines({
     search: searchTerm,
-    category: categoryFilter
+    category: categoryFilter === "all" ? "" : categoryFilter
   })
+
+  const { vendors } = useVendors({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await createMedicine(formData)
-      toast.success("Medicine added successfully")
+      if (selectedMedicine) {
+        await updateMedicine(selectedMedicine.id || selectedMedicine.medicine_id, formData)
+        toast.success("Medicine updated successfully")
+      } else {
+        await createMedicine(formData)
+        toast.success("Medicine added successfully")
+      }
       setShowAddDialog(false)
-      setFormData({
-        name: "",
-        generic_name: "",
-        brand_name: "",
-        category: "",
-        manufacturer: "",
-        composition: "",
-        strength: "",
-        dosage_form: "tablet",
-        pack_size: "",
-        unit_price: "",
-        mrp: "",
-        current_stock: "",
-        minimum_stock: "10",
-        maximum_stock: "1000",
-        batch_number: "",
-        expiry_date: "",
-        supplier: "",
-        storage_conditions: "",
-        side_effects: "",
-        contraindications: "",
-        drug_interactions: "",
-        pregnancy_category: "Unknown",
-        prescription_required: true
-      })
+      setSelectedMedicine(null)
+      resetForm()
     } catch (error) {
-      toast.error("Failed to add medicine")
+      toast.error(selectedMedicine ? "Failed to update medicine" : "Failed to add medicine")
     }
+  }
+
+  const handleDeleteMedicine = async (id: string) => {
+    if (confirm('Are you sure you want to delete this medicine?')) {
+      try {
+        await deleteMedicine(id)
+        toast.success("Medicine deleted successfully")
+      } catch (error) {
+        toast.error("Failed to delete medicine")
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      generic_name: "",
+      brand_name: "",
+      category: "",
+      manufacturer: "",
+      composition: "",
+      strength: "",
+      dosage_form: "tablet",
+      pack_size: "",
+      unit_price: "",
+      mrp: "",
+      current_stock: "",
+      minimum_stock: "10",
+      maximum_stock: "1000",
+      batch_number: "",
+      expiry_date: "",
+      supplier: "",
+      storage_conditions: "",
+      side_effects: "",
+      contraindications: "",
+      drug_interactions: "",
+      pregnancy_category: "Unknown",
+      prescription_required: true
+    })
   }
 
   const getStockStatus = (current: number, minimum: number) => {
@@ -265,11 +288,22 @@ export default function InventoryPage() {
                   </div>
                   <div>
                     <Label htmlFor="supplier">Supplier</Label>
-                    <Input
-                      id="supplier"
-                      value={formData.supplier}
-                      onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                    />
+                    <Select value={formData.supplier} onValueChange={(value) => setFormData({...formData, supplier: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendors?.map((vendor: any) => {
+                          const vendorId = vendor.id || vendor.vendor_id || 'unknown'
+                          const vendorName = vendor.vendor_name || vendor.name || 'Unknown Vendor'
+                          return (
+                            <SelectItem key={vendorId} value={vendorName}>
+                              {vendorName}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 
@@ -284,10 +318,14 @@ export default function InventoryPage() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                  <Button type="button" variant="outline" onClick={() => {
+                    setShowAddDialog(false)
+                    setSelectedMedicine(null)
+                    resetForm()
+                  }}>
                     Cancel
                   </Button>
-                  <Button type="submit">Add Medicine</Button>
+                  <Button type="submit">{selectedMedicine ? 'Update Medicine' : 'Add Medicine'}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -315,7 +353,7 @@ export default function InventoryPage() {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="Antibiotics">Antibiotics</SelectItem>
                 <SelectItem value="Analgesics">Analgesics</SelectItem>
                 <SelectItem value="Vitamins">Vitamins</SelectItem>
@@ -376,13 +414,38 @@ export default function InventoryPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedMedicine(medicine)
+                        setFormData({
+                          name: medicine.name || '',
+                          generic_name: medicine.generic_name || '',
+                          brand_name: medicine.brand_name || '',
+                          category: medicine.category || '',
+                          manufacturer: medicine.manufacturer || '',
+                          composition: medicine.composition || '',
+                          strength: medicine.strength || '',
+                          dosage_form: medicine.dosage_form || 'tablet',
+                          pack_size: medicine.pack_size || '',
+                          unit_price: medicine.unit_price?.toString() || '',
+                          mrp: medicine.mrp?.toString() || '',
+                          current_stock: medicine.current_stock?.toString() || '',
+                          minimum_stock: medicine.minimum_stock?.toString() || '10',
+                          maximum_stock: medicine.maximum_stock?.toString() || '1000',
+                          batch_number: medicine.batch_number || '',
+                          expiry_date: medicine.expiry_date || '',
+                          supplier: medicine.supplier || '',
+                          storage_conditions: medicine.storage_conditions || '',
+                          side_effects: medicine.side_effects || '',
+                          contraindications: medicine.contraindications || '',
+                          drug_interactions: medicine.drug_interactions || '',
+                          pregnancy_category: medicine.pregnancy_category || 'Unknown',
+                          prescription_required: medicine.prescription_required !== false
+                        })
+                        setShowAddDialog(true)
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteMedicine(medicine.id || medicine.medicine_id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
