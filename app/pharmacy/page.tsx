@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Package, AlertTriangle, TrendingUp, FileText, BarChart3, 
-  RefreshCw, DollarSign, Building2, Loader2
+  RefreshCw, DollarSign, Building2, Loader2, Receipt
 } from 'lucide-react'
 import { usePharmacyStats, usePrescriptions, useStockAlerts } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
@@ -139,6 +139,13 @@ export default function PharmacyDashboard() {
               <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center space-y-1">
                 <FileText className="h-5 w-5" />
                 <span className="text-sm">Prescriptions</span>
+              </Button>
+            </Link>
+            
+            <Link href="/pharmacy/billing">
+              <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center space-y-1">
+                <Receipt className="h-5 w-5" />
+                <span className="text-sm">Billing</span>
               </Button>
             </Link>
             
