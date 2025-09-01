@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -32,77 +32,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Users, UserCheck, UserCog, Settings, FileText, Bell, LogOut, Building2, Activity, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, Shield, Database, Server, Wifi, HardDrive, MoreHorizontal, Eye, Edit, Trash2, Home } from 'lucide-react'
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Heart, LayoutDashboard, Users, UserCheck, UserCog, Settings, FileText, Bell, LogOut, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, Shield } from 'lucide-react'
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-// Mock data for charts and statistics
-const systemStats = {
-  totalHospitals: 127,
-  totalUsers: 15420,
-  activeDoctors: 3240,
-  systemHealth: 98.5
+// Interfaces
+interface DashboardStats {
+  totalUsers: number
+  totalDoctors: number
+  totalAdmins: number
+  totalPatients: number
+  todayAppointments: number
+  systemHealth: number
 }
 
-const monthlyData = [
-  { month: 'Jan', hospitals: 95, users: 12000, doctors: 2800 },
-  { month: 'Feb', hospitals: 102, users: 12800, doctors: 2950 },
-  { month: 'Mar', hospitals: 108, users: 13200, doctors: 3050 },
-  { month: 'Apr', hospitals: 115, users: 14100, doctors: 3150 },
-  { month: 'May', hospitals: 121, users: 14800, doctors: 3200 },
-  { month: 'Jun', hospitals: 127, users: 15420, doctors: 3240 }
-]
+interface MonthlyData {
+  month: string
+  users: number
+  doctors: number
+}
 
-const systemHealthData = [
-  { name: 'Database', value: 99.2, status: 'healthy' },
-  { name: 'API Services', value: 98.8, status: 'healthy' },
-  { name: 'Storage', value: 97.5, status: 'warning' },
-  { name: 'Network', value: 99.9, status: 'healthy' }
-]
+interface RecentActivity {
+  action: string
+  table_name: string
+  user_id: number
+  created_at: string
+  details: string
+}
 
-const recentActivities = [
-  {
-    id: 1,
-    type: 'hospital_added',
-    message: 'New hospital "City Medical Center" added to the system',
-    timestamp: '2 hours ago',
-    user: 'Admin John',
-    status: 'success'
-  },
-  {
-    id: 2,
-    type: 'user_suspended',
-    message: 'User account suspended for policy violation',
-    timestamp: '4 hours ago',
-    user: 'Admin Sarah',
-    status: 'warning'
-  },
-  {
-    id: 3,
-    type: 'system_update',
-    message: 'System maintenance completed successfully',
-    timestamp: '6 hours ago',
-    user: 'System',
-    status: 'info'
-  },
-  {
-    id: 4,
-    type: 'security_alert',
-    message: 'Multiple failed login attempts detected',
-    timestamp: '8 hours ago',
-    user: 'Security System',
-    status: 'error'
-  }
-]
-
-const topHospitals = [
-  { name: 'General Hospital', users: 1250, doctors: 85, status: 'active' },
-  { name: 'City Medical Center', users: 980, doctors: 72, status: 'active' },
-  { name: 'Regional Healthcare', users: 875, doctors: 65, status: 'active' },
-  { name: 'Metro Hospital', users: 720, doctors: 58, status: 'maintenance' },
-  { name: 'Community Care', users: 650, doctors: 45, status: 'active' }
-]
-
-// Navigation items
+// Navigation items (removed hospital management)
 const navigationItems = [
   {
     title: "Overview",
@@ -117,8 +74,6 @@ const navigationItems = [
       { title: "Manage Admins", icon: UserCog, url: "/super-admin/admins" },
       { title: "Manage Doctors", icon: UserCheck, url: "/super-admin/doctors" },
       { title: "Manage Staff", icon: Users, url: "/super-admin/staff" },
-      { title: "Hospitals", icon: Building2, url: "/super-admin/hospitals" },
-      { title: "Room Management", icon: Home, url: "/super-admin/room-management" },
     ]
   },
   {
@@ -133,11 +88,39 @@ const navigationItems = [
 
 export default function SuperAdminDashboard() {
   const [notifications] = useState(5)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/super-admin/dashboard-stats')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard stats')
+      }
+      
+      const data = await response.json()
+      setStats(data.stats)
+      setMonthlyData(data.monthlyData || [])
+      setRecentActivities(data.recentActivities || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'hospital_added': return <Building2 className="h-4 w-4 text-green-500" />
       case 'user_suspended': return <UserCog className="h-4 w-4 text-yellow-500" />
       case 'system_update': return <Settings className="h-4 w-4 text-blue-500" />
       case 'security_alert': return <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -145,25 +128,9 @@ export default function SuperAdminDashboard() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-700">Active</Badge>
-      case 'maintenance':
-        return <Badge className="bg-yellow-100 text-yellow-700">Maintenance</Badge>
-      case 'inactive':
-        return <Badge className="bg-red-100 text-red-700">Inactive</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
-    }
-  }
-
   const handleLogout = () => {
-    // Clear any auth data if needed
-    // localStorage.removeItem("token") // Example
     router.push("/login")
   }
-  
 
   return (
     <SidebarProvider>
@@ -198,7 +165,7 @@ export default function SuperAdminDashboard() {
                           className="w-full justify-start hover:bg-pink-50 data-[active=true]:bg-pink-100 data-[active=true]:text-pink-700"
                         >
                           <Link href={item.url} className="flex items-center space-x-3 px-3 py-2 rounded-lg">
-                            <item.icon className="h-5 w-5" />
+                            <item.icon className="h-4 w-4" />
                             <span>{item.title}</span>
                           </Link>
                         </SidebarMenuButton>
@@ -210,375 +177,271 @@ export default function SuperAdminDashboard() {
             ))}
           </SidebarContent>
           
-          <SidebarFooter className="border-t border-pink-100 p-4">
+          <SidebarFooter className="p-4 border-t border-pink-100">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
+              <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-pink-100 text-pink-700">SA</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">Super Admin</p>
-                <p className="text-xs text-gray-500 truncate">admin@medicarepro.com</p>
+                <p className="text-xs text-gray-500 truncate">System Administrator</p>
               </div>
             </div>
           </SidebarFooter>
-          
-          <SidebarRail />
         </Sidebar>
 
         {/* Main Content */}
         <SidebarInset className="flex-1">
-          {/* Top Navigation */}
-          <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
-            <div className="flex items-center justify-between h-16 px-6">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">Super Admin Dashboard</h1>
-                  <p className="text-sm text-gray-500">System overview and management</p>
-                </div>
-              </div>
+          {/* Header */}
+          <header className="flex h-16 shrink-0 items-center justify-between border-b border-pink-100 px-6">
+            <div className="flex items-center space-x-4">
+              <SidebarTrigger className="text-gray-600 hover:text-gray-900" />
+              <h1 className="text-xl font-semibold text-gray-900">Super Admin Dashboard</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5 text-gray-600" />
+                {notifications > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {notifications}
+                  </span>
+                )}
+              </Button>
               
-              <div className="flex items-center space-x-4">
-                {/* Notifications */}
-                <div className="relative">
-                  <Button variant="ghost" size="sm" className="relative hover:bg-pink-50">
-                    <Bell className="h-5 w-5 text-gray-600" />
-                    {notifications > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {notifications}
-                      </span>
-                    )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-pink-100 text-pink-700">SA</AvatarFallback>
+                    </Avatar>
                   </Button>
-                </div>
-                
-                {/* Profile Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                        <AvatarFallback className="bg-pink-100 text-pink-700">SA</AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end">
-                    <DropdownMenuLabel>Super Admin Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <UserCog className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      System Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Security
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
-  <LogOut className="mr-2 h-4 w-4" />
-  Logout
-</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">Super Admin</p>
+                      <p className="text-xs leading-none text-muted-foreground">System Administrator</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Security
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
 
           {/* Dashboard Content */}
           <main className="flex-1 p-6 space-y-8">
-            {/* Key Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Hospitals</p>
-                      <p className="text-3xl font-bold text-gray-900">{systemStats.totalHospitals}</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        +12% from last month
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
-                      <Building2 className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Users</p>
-                      <p className="text-3xl font-bold text-gray-900">{systemStats.totalUsers.toLocaleString()}</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        +8% from last month
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
-                      <Users className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Active Doctors</p>
-                      <p className="text-3xl font-bold text-gray-900">{systemStats.activeDoctors.toLocaleString()}</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        +5% from last month
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
-                      <UserCheck className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">System Health</p>
-                      <p className="text-3xl font-bold text-gray-900">{systemStats.systemHealth}%</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        All systems operational
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-emerald-400 to-emerald-500 p-3 rounded-xl">
-                      <Activity className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Charts Section */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Growth Chart */}
-              <Card className="border-pink-100">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">System Growth</CardTitle>
-                  <CardDescription>Monthly growth across key metrics</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="month" stroke="#64748b" />
-                        <YAxis stroke="#64748b" />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'white', 
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey="hospitals" 
-                          stroke="#ff7eb9" 
-                          strokeWidth={3}
-                          name="Hospitals"
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="users" 
-                          stroke="#60a5fa" 
-                          strokeWidth={3}
-                          name="Users"
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="doctors" 
-                          stroke="#34d399" 
-                          strokeWidth={3}
-                          name="Doctors"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* System Health */}
-              <Card className="border-pink-100">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">System Health Status</CardTitle>
-                  <CardDescription>Real-time system component monitoring</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {systemHealthData.map((component) => (
-                    <div key={component.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {component.status === 'healthy' ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                          )}
-                          <span className="font-medium text-gray-900">{component.name}</span>
+            {loading ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Card key={i} className="border-pink-100">
+                      <CardContent className="p-6">
+                        <div className="animate-pulse">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                         </div>
-                        <span className="text-sm font-medium text-gray-600">{component.value}%</span>
-                      </div>
-                      <Progress 
-                        value={component.value} 
-                        className="h-2"
-                        style={{
-                          '--progress-background': component.status === 'healthy' ? '#10b981' : '#f59e0b'
-                        } as React.CSSProperties}
-                      />
-                    </div>
+                      </CardContent>
+                    </Card>
                   ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Tables Section */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Recent Activities */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900">Recent Activities</CardTitle>
-                    <CardDescription>Latest system activities and changes</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                    View All
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivities.map((activity) => (
-                      <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-xl">
-                        <div className="flex-shrink-0 mt-1">
-                          {getActivityIcon(activity.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{activity.message}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <p className="text-xs text-gray-500">{activity.user}</p>
-                            <span className="text-xs text-gray-400">•</span>
-                            <p className="text-xs text-gray-500">{activity.timestamp}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top Hospitals */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900">Top Hospitals</CardTitle>
-                    <CardDescription>Hospitals with highest user activity</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                    View All
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {topHospitals.map((hospital, index) => (
-                      <div key={hospital.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-3">
-                          <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-bold">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{hospital.name}</p>
-                            <p className="text-sm text-gray-500">
-                              {hospital.users} users • {hospital.doctors} doctors
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getStatusBadge(hospital.status)}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Suspend
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-                <CardDescription>Common administrative tasks</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  <Button className="h-20 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <Building2 className="h-6 w-6" />
-                    <span className="text-sm">Add Hospital</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <UserCog className="h-6 w-6" />
-                    <span className="text-sm">Add Admin</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <Settings className="h-6 w-6" />
-                    <span className="text-sm">System Config</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <FileText className="h-6 w-6" />
-                    <span className="text-sm">View Logs</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <Shield className="h-6 w-6" />
-                    <span className="text-sm">Security</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                    <TrendingUp className="h-6 w-6" />
-                    <span className="text-sm">Analytics</span>
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            ) : error ? (
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="p-6 text-center">
+                  <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Dashboard</h3>
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <Button onClick={fetchDashboardData} variant="outline" className="border-red-300 text-red-700">
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Key Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Users</p>
+                          <p className="text-3xl font-bold text-gray-900">{(stats?.totalUsers || 0).toLocaleString()}</p>
+                          <p className="text-sm text-green-600 flex items-center mt-1">
+                            <TrendingUp className="h-4 w-4 mr-1" />
+                            Active system users
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                          <Users className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Active Doctors</p>
+                          <p className="text-3xl font-bold text-gray-900">{(stats?.totalDoctors || 0).toLocaleString()}</p>
+                          <p className="text-sm text-green-600 flex items-center mt-1">
+                            <TrendingUp className="h-4 w-4 mr-1" />
+                            Medical professionals
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
+                          <UserCheck className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Patients</p>
+                          <p className="text-3xl font-bold text-gray-900">{(stats?.totalPatients || 0).toLocaleString()}</p>
+                          <p className="text-sm text-blue-600 flex items-center mt-1">
+                            <Activity className="h-4 w-4 mr-1" />
+                            Registered patients
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-3 rounded-xl">
+                          <Heart className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">System Health</p>
+                          <p className="text-3xl font-bold text-gray-900">{stats?.systemHealth || 0}%</p>
+                          <p className="text-sm text-green-600 flex items-center mt-1">
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            All systems operational
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
+                          <Shield className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Charts Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="border-pink-100">
+                    <CardHeader>
+                      <CardTitle className="text-gray-900">User Growth Trend</CardTitle>
+                      <CardDescription>Monthly user registration statistics</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={monthlyData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Line type="monotone" dataKey="users" stroke="#ec4899" strokeWidth={2} />
+                            <Line type="monotone" dataKey="doctors" stroke="#10b981" strokeWidth={2} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-pink-100">
+                    <CardHeader>
+                      <CardTitle className="text-gray-900">Recent Activities</CardTitle>
+                      <CardDescription>Latest system activities and changes</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {recentActivities.length > 0 ? (
+                          recentActivities.slice(0, 5).map((activity, index) => (
+                            <div key={index} className="flex items-start space-x-3">
+                              {getActivityIcon(activity.action)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {activity.details || `${activity.action} on ${activity.table_name}`}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(activity.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-500">No recent activities</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Quick Actions */}
+                <Card className="border-pink-100">
+                  <CardHeader>
+                    <CardTitle className="text-gray-900">Quick Actions</CardTitle>
+                    <CardDescription>Common administrative tasks</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
+                        <UserCog className="h-6 w-6" />
+                        <span className="text-sm">Add Admin</span>
+                      </Button>
+                      
+                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
+                        <UserCheck className="h-6 w-6" />
+                        <span className="text-sm">Add Doctor</span>
+                      </Button>
+                      
+                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
+                        <Settings className="h-6 w-6" />
+                        <span className="text-sm">System Config</span>
+                      </Button>
+                      
+                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
+                        <FileText className="h-6 w-6" />
+                        <span className="text-sm">View Logs</span>
+                      </Button>
+                      
+                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
+                        <Shield className="h-6 w-6" />
+                        <span className="text-sm">Security</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </main>
         </SidebarInset>
       </div>
