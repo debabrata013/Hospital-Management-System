@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +22,7 @@ import {
   Zap
 } from 'lucide-react'
 
-// Mock patient data
+// Mock patient data (fallback)
 const mockPatients = [
   {
     id: "P001",
@@ -118,6 +119,32 @@ const mockPatients = [
 ]
 
 export default function DoctorPatientsPage() {
+  const [patients, setPatients] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    fetchPatients()
+  }, [])
+
+  const fetchPatients = async () => {
+    try {
+      const response = await fetch('/api/doctor/patients')
+      if (response.ok) {
+        const data = await response.json()
+        setPatients(data)
+      } else {
+        console.error('Failed to fetch patients')
+        setPatients(mockPatients) // Fallback to mock data
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error)
+      setPatients(mockPatients) // Fallback to mock data
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'stable':
@@ -246,126 +273,118 @@ export default function DoctorPatientsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {mockPatients.map((patient) => (
+            {patients.map((patient) => (
               <div key={patient.id} className="p-6 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
                     <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg">
-                      {patient.name.split(' ').map(n => n[0]).join('')}
+                      {patient.name.split(' ').map((n: string) => n[0]).join('')}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-3">
                         <h3 className="font-bold text-xl text-gray-900">{patient.name}</h3>
                         <Badge variant="outline">{patient.id}</Badge>
-                        {getBloodGroupBadge(patient.bloodGroup)}
-                        {getStatusBadge(patient.status)}
+                        {patient.bloodGroup && getBloodGroupBadge(patient.bloodGroup)}
+                        {patient.status && getStatusBadge(patient.status)}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                        {/* Basic Info */}
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">Basic Information</h4>
-                          <div className="space-y-1">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <User className="h-4 w-4 mr-2 text-pink-500" />
-                              <span>{patient.age} years • {patient.gender}</span>
-                            </div>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Phone className="h-4 w-4 mr-2 text-pink-500" />
-                              <span>{patient.phone}</span>
-                            </div>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Mail className="h-4 w-4 mr-2 text-pink-500" />
-                              <span>{patient.email}</span>
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center space-x-2 text-gray-600">
+                          <User className="h-4 w-4" />
+                          <span>{patient.age || 'N/A'} years • {patient.gender || 'N/A'}</span>
                         </div>
+                        <div className="flex items-center space-x-2 text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          <span>{patient.phone || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-gray-600">
+                          <Mail className="h-4 w-4" />
+                          <span>{patient.email || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-gray-600">
+                          <Calendar className="h-4 w-4" />
+                          <span>Last Visit: {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : 'No visits'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-gray-600">
+                          <Activity className="h-4 w-4" />
+                          <span>Total Visits: {patient.totalAppointments || 0}</span>
+                        </div>
+                      </div>
+                      {patient.condition && (
+                        <div className="text-sm text-gray-700 mb-3">
+                          <span className="font-semibold">Condition:</span> {patient.condition}
+                        </div>
+                      )}
 
-                        {/* Medical Info */}
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">Medical Information</h4>
-                          <div className="space-y-1">
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-700">Condition:</span>
-                              <span className="ml-2 text-gray-600">{patient.condition}</span>
-                            </div>
+                      {/* Medical Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Patient Details */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-gray-900 text-sm">Patient Details</h4>
+                          {patient.allergies && (
                             <div className="text-sm">
                               <span className="font-medium text-gray-700">Allergies:</span>
                               <span className="ml-2 text-gray-600">{patient.allergies.join(', ')}</span>
                             </div>
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-700">Total Visits:</span>
-                              <span className="ml-2 text-gray-600">{patient.totalVisits}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Appointments */}
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">Appointments</h4>
-                          <div className="space-y-1">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Calendar className="h-4 w-4 mr-2 text-pink-500" />
-                              <span>Last: {new Date(patient.lastVisit).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Calendar className="h-4 w-4 mr-2 text-pink-500" />
-                              <span>Next: {new Date(patient.nextAppointment).toLocaleDateString()}</span>
-                            </div>
+                          )}
+                          {patient.admissionHistory && (
                             <div className="text-sm">
                               <span className="font-medium text-gray-700">Admissions:</span>
                               <span className="ml-2 text-gray-600">{patient.admissionHistory}</span>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Current Vitals */}
-                      <div className="p-4 bg-gray-50 rounded-lg mb-4">
-                        <h4 className="font-semibold text-gray-900 text-sm mb-3">Latest Vitals</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="flex items-center space-x-2">
-                            {getVitalIcon('bp')}
-                            <div>
-                              <p className="text-xs text-gray-500">Blood Pressure</p>
-                              <p className="font-medium text-sm">{patient.vitals.bp}</p>
+                      {/* Current Vitals - Only show if vitals exist */}
+                      {patient.vitals && (
+                        <div className="p-4 bg-gray-50 rounded-lg mb-4">
+                          <h4 className="font-semibold text-gray-900 text-sm mb-3">Latest Vitals</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="flex items-center space-x-2">
+                              {getVitalIcon('bp')}
+                              <div>
+                                <p className="text-xs text-gray-500">Blood Pressure</p>
+                                <p className="font-medium text-sm">{patient.vitals.bp}</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {getVitalIcon('temp')}
-                            <div>
-                              <p className="text-xs text-gray-500">Temperature</p>
-                              <p className="font-medium text-sm">{patient.vitals.temp}</p>
+                            <div className="flex items-center space-x-2">
+                              {getVitalIcon('temp')}
+                              <div>
+                                <p className="text-xs text-gray-500">Temperature</p>
+                                <p className="font-medium text-sm">{patient.vitals.temp}</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {getVitalIcon('weight')}
-                            <div>
-                              <p className="text-xs text-gray-500">Weight</p>
-                              <p className="font-medium text-sm">{patient.vitals.weight}</p>
+                            <div className="flex items-center space-x-2">
+                              {getVitalIcon('weight')}
+                              <div>
+                                <p className="text-xs text-gray-500">Weight</p>
+                                <p className="font-medium text-sm">{patient.vitals.weight}</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {getVitalIcon('pulse')}
-                            <div>
-                              <p className="text-xs text-gray-500">Pulse</p>
-                              <p className="font-medium text-sm">{patient.vitals.pulse}</p>
+                            <div className="flex items-center space-x-2">
+                              {getVitalIcon('pulse')}
+                              <div>
+                                <p className="text-xs text-gray-500">Pulse</p>
+                                <p className="font-medium text-sm">{patient.vitals.pulse}</p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Current Medications */}
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-semibold text-blue-900 text-sm mb-2">Current Medications</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {patient.medications.map((medication, index) => (
-                            <Badge key={index} className="bg-blue-100 text-blue-700">
-                              {medication}
-                            </Badge>
-                          ))}
+                      {/* Current Medications - Only show if medications exist */}
+                      {patient.medications && patient.medications.length > 0 && (
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <h4 className="font-semibold text-blue-900 text-sm mb-2">Current Medications</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {patient.medications.map((medication: string, index: number) => (
+                              <Badge key={index} className="bg-blue-100 text-blue-700">
+                                {medication}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                   

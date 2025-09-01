@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -135,6 +136,102 @@ const mockPatientHistory = [
 ]
 
 export default function DoctorHistoryPage() {
+  const [patientHistory, setPatientHistory] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    fetchPatientHistory()
+  }, [])
+
+  const fetchPatientHistory = async () => {
+    try {
+      const response = await fetch('/api/doctor/consultations')
+      if (response.ok) {
+        const consultations = await response.json()
+        console.log('Consultations data:', consultations) // Debug log
+        
+        if (Array.isArray(consultations) && consultations.length > 0) {
+          // Group consultations by patient
+          const groupedHistory = groupConsultationsByPatient(consultations)
+          console.log('Grouped history:', groupedHistory) // Debug log
+          setPatientHistory(groupedHistory)
+        } else {
+          console.log('No consultations found, using mock data')
+          setPatientHistory(mockPatientHistory)
+        }
+      } else {
+        console.error('Failed to fetch patient history')
+        setPatientHistory(mockPatientHistory) // Fallback to mock data
+      }
+    } catch (error) {
+      console.error('Error fetching patient history:', error)
+      setPatientHistory(mockPatientHistory) // Fallback to mock data
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const groupConsultationsByPatient = (consultations: any[]) => {
+    const grouped = consultations.reduce((acc: any, consultation: any) => {
+      const patientId = consultation.patientId
+      if (!acc[patientId]) {
+        acc[patientId] = {
+          patientId: consultation.patientId,
+          patientName: consultation.name || 'Unknown Patient',
+          age: consultation.age || 'N/A',
+          totalVisits: 0,
+          firstVisit: consultation.date,
+          lastVisit: consultation.date,
+          chronicConditions: [],
+          allergies: ['Not specified'],
+          bloodGroup: 'Not specified',
+          consultations: [],
+          labResults: [],
+          admissions: []
+        }
+      }
+      
+      acc[patientId].totalVisits += 1
+      acc[patientId].consultations.push({
+        date: consultation.date,
+        type: consultation.status === 'completed' ? 'Follow-up' : 'New Consultation',
+        diagnosis: consultation.diagnosis || 'Not specified',
+        vitals: parseVitals(consultation.notes),
+        medications: [],
+        notes: consultation.reason || consultation.notes || 'No notes available'
+      })
+      
+      // Update first and last visit dates
+      if (new Date(consultation.date) < new Date(acc[patientId].firstVisit)) {
+        acc[patientId].firstVisit = consultation.date
+      }
+      if (new Date(consultation.date) > new Date(acc[patientId].lastVisit)) {
+        acc[patientId].lastVisit = consultation.date
+      }
+      
+      return acc
+    }, {})
+    
+    return Object.values(grouped)
+  }
+
+  const parseVitals = (notes: string) => {
+    try {
+      const vitalsMatch = notes?.match(/"vitals":\s*({[^}]+})/)
+      if (vitalsMatch) {
+        const vitals = JSON.parse(vitalsMatch[1])
+        return {
+          bp: vitals.bloodPressure || 'N/A',
+          temp: vitals.temperature || 'N/A',
+          pulse: vitals.heartRate || 'N/A'
+        }
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+    return { bp: 'N/A', temp: 'N/A', pulse: 'N/A' }
+  }
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'normal':
@@ -256,16 +353,16 @@ export default function DoctorHistoryPage() {
 
       {/* Patient History Records */}
       <div className="space-y-8">
-        {mockPatientHistory.map((patient) => (
+        {patientHistory.map((patient) => (
           <Card key={patient.patientId} className="border-pink-100">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-12 w-12 flex items-center justify-center font-bold">
-                    {patient.patientName.split(' ').map(n => n[0]).join('')}
+                    {patient.patientName ? patient.patientName.split(' ').map((n: string) => n[0]).join('') : 'N/A'}
                   </div>
                   <div>
-                    <CardTitle className="text-xl">{patient.patientName}</CardTitle>
+                    <CardTitle className="text-xl">{patient.patientName || 'Unknown Patient'}</CardTitle>
                     <p className="text-gray-600">
                       {patient.age} years • {patient.bloodGroup} • {patient.totalVisits} visits
                     </p>
@@ -298,7 +395,7 @@ export default function DoctorHistoryPage() {
                 <div className="p-4 bg-red-50 rounded-lg">
                   <h4 className="font-semibold text-red-900 mb-3">Chronic Conditions</h4>
                   <div className="space-y-1">
-                    {patient.chronicConditions.map((condition, index) => (
+                    {patient.chronicConditions.map((condition: string, index: number) => (
                       <Badge key={index} className="bg-red-100 text-red-700 mr-2 mb-1">
                         {condition}
                       </Badge>
@@ -309,7 +406,7 @@ export default function DoctorHistoryPage() {
                 <div className="p-4 bg-yellow-50 rounded-lg">
                   <h4 className="font-semibold text-yellow-900 mb-3">Allergies</h4>
                   <div className="space-y-1">
-                    {patient.allergies.map((allergy, index) => (
+                    {patient.allergies.map((allergy: string, index: number) => (
                       <Badge key={index} className="bg-yellow-100 text-yellow-700 mr-2 mb-1">
                         {allergy}
                       </Badge>
@@ -325,7 +422,7 @@ export default function DoctorHistoryPage() {
                   Consultation History
                 </h4>
                 <div className="space-y-4">
-                  {patient.consultations.map((consultation, index) => (
+                  {patient.consultations.map((consultation: any, index: number) => (
                     <div key={index} className="p-4 border border-pink-100 rounded-lg">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
@@ -351,7 +448,7 @@ export default function DoctorHistoryPage() {
                             Temp: {consultation.vitals.temp}°F, Pulse: {consultation.vitals.pulse}
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {consultation.medications.map((med, medIndex) => (
+                            {consultation.medications.map((med: string, medIndex: number) => (
                               <Badge key={medIndex} className="bg-green-100 text-green-700 text-xs">
                                 {med}
                               </Badge>
@@ -371,7 +468,7 @@ export default function DoctorHistoryPage() {
                   Lab Results
                 </h4>
                 <div className="space-y-3">
-                  {patient.labResults.map((lab, index) => (
+                  {patient.labResults.map((lab: any, index: number) => (
                     <div key={index} className="p-3 border border-pink-100 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div>
@@ -396,7 +493,7 @@ export default function DoctorHistoryPage() {
                     Admission History
                   </h4>
                   <div className="space-y-3">
-                    {patient.admissions.map((admission, index) => (
+                    {patient.admissions.map((admission: any, index: number) => (
                       <div key={index} className="p-3 border border-pink-100 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
