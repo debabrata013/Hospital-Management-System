@@ -311,12 +311,12 @@ export default function PatientsPage() {
                 Add Patient
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Patient</DialogTitle>
                 <DialogDescription>Enter patient information to create a new record</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddPatient} className="space-y-4">
+              <form onSubmit={handleAddPatient} className="space-y-4 pb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">Full Name *</Label>
@@ -693,12 +693,12 @@ export default function PatientsPage() {
 
       {/* Edit Patient Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
             <DialogDescription>Update patient information</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditPatient} className="space-y-4">
+          <form onSubmit={handleEditPatient} className="space-y-4 pb-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-name">Full Name *</Label>

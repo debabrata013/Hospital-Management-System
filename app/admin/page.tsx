@@ -548,7 +548,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                      <p className="text-3xl font-bold text-green-600">₹{todayStats.todayRevenue.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-green-600">₹{(todayStats.todayRevenue || 0).toLocaleString()}</p>
                       <p className="text-sm text-green-600 flex items-center mt-1">
                         <TrendingUp className="h-4 w-4 mr-1" />
                         +12% from yesterday
