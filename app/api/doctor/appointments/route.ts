@@ -21,9 +21,18 @@ export async function GET(req: NextRequest) {
       JOIN patients p ON a.patient_id = p.id
       WHERE a.doctor_id = ? AND DATE(a.appointment_date) = CURDATE()
       ORDER BY a.appointment_date ASC
+      LIMIT 10
     `;
 
     const appointmentsData: any = await executeQuery(query, [userId]);
+    console.log('Raw appointments data:', appointmentsData); // Debug log
+    console.log('Doctor ID:', userId); // Debug log
+
+    // If no appointments for today, return empty array
+    if (!appointmentsData || appointmentsData.length === 0) {
+      console.log('No appointments found for today');
+      return NextResponse.json([]);
+    }
 
     const appointments = appointmentsData.map((appt: any) => {
       const [firstName, ...lastNameParts] = appt.name.split(' ');
