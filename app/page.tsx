@@ -1049,8 +1049,14 @@ export default function LandingPage() {
               <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-3xl p-8 shadow-2xl">
                 <div className="flex items-center justify-center h-[400px]">
                   <div className="text-center">
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-12 rounded-full mb-6 relative">
-                      <User className="h-20 w-20 text-white" />
+                    <div className="relative inline-block mb-6">
+                      <Image 
+                        src="/images/dr-gk-nayak.jpg" 
+                        alt="Dr G K Nayak - Founder" 
+                        width={160} 
+                        height={160} 
+                        className="rounded-full object-cover shadow-lg border-4 border-white"
+                      />
                       {/* Founder crown icon */}
                       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-orange-400 p-2 rounded-full">
                         <Award className="h-6 w-6 text-white" />
