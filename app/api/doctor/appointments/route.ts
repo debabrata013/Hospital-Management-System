@@ -1,45 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { executeQuery } from '../../../../lib/db/connection';
+import { getLoggedInUserId } from '../../../../lib/auth-utils';
 
 export async function GET(req: NextRequest) {
   try {
-    // Mock data for appointments
-    const appointments = [
-      {
-        id: 'APT001',
-        appointmentDate: new Date().toISOString(),
-        reason: "Follow-up",
-        status: 'completed',
+    const userId = await getLoggedInUserId(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const query = `
+      SELECT 
+        a.id, 
+        a.appointment_date as appointmentDate, 
+        a.chief_complaint as reason, 
+        a.status,
+        p.id as patientId,
+        p.name
+      FROM appointments a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE a.doctor_id = ? AND DATE(a.appointment_date) = CURDATE()
+      ORDER BY a.appointment_date ASC
+    `;
+
+    const appointmentsData: any = await executeQuery(query, [userId]);
+
+    const appointments = appointmentsData.map((appt: any) => {
+      const [firstName, ...lastNameParts] = appt.name.split(' ');
+      const lastName = lastNameParts.join(' ');
+      return {
+        id: appt.id,
+        appointmentDate: appt.appointmentDate,
+        reason: appt.reason,
+        status: appt.status,
         Patient: {
-          id: "P001",
-          firstName: "राजेश",
-          lastName: "कुमार",
-        }
-      },
-      {
-        id: 'APT002',
-        appointmentDate: new Date().toISOString(),
-        reason: "Consultation",
-        status: 'in_progress',
-        Patient: {
-          id: "P002",
-          firstName: "सुनीता",
-          lastName: "देवी",
-        }
-      },
-      {
-        id: 'APT003',
-        appointmentDate: new Date().toISOString(),
-        reason: "Check-up",
-        status: 'waiting',
-        Patient: {
-          id: "P003",
-          firstName: "मोहम्मद",
-          lastName: "अली",
-        }
+          id: appt.patientId,
+          firstName: firstName || '',
+          lastName: lastName || '',
+        },
       }
-    ];
+    });
+
     return NextResponse.json(appointments);
   } catch (error) {
+    console.error('Error fetching appointments:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

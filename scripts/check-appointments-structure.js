@@ -1,20 +1,18 @@
 require('dotenv').config({ path: '.env.local' });
 const mysql = require('mysql2/promise');
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'hospital_management',
-  port: parseInt(process.env.DB_PORT || '3306')
-};
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('❌ DATABASE_URL environment variable is not set.');
+  process.exit(1);
+}
 
 async function checkAppointmentsStructure() {
   let connection;
   
   try {
     console.log('Connecting to database...');
-    connection = await mysql.createConnection(dbConfig);
+    connection = await mysql.createConnection(connectionString);
     
     console.log('Checking appointments table structure...');
 
