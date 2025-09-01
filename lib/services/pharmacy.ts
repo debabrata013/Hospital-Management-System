@@ -1,4 +1,4 @@
-import { executeQuery } from '@/lib/db/connection'
+const { executeQuery, dbUtils } = require('@/lib/mysql-connection')
 
 export interface Medicine {
   id: string
@@ -55,16 +55,17 @@ export class PharmacyService {
   async getMedicines(filters: any = {}) {
     let query = `
       SELECT m.*,
-             0 as batch_count,
-             0 as expiring_stock
+             COALESCE(COUNT(mst.id), 0) as batch_count,
+             COALESCE(SUM(CASE WHEN mst.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN mst.quantity ELSE 0 END), 0) as expiring_stock
       FROM medicines m
-      WHERE 1=1
+      LEFT JOIN medicine_stock_transactions mst ON m.id = mst.medicine_id AND mst.transaction_type = 'purchase'
+      WHERE m.is_active = 1
     `
     const params: any[] = []
 
     if (filters.search) {
-      query += ` AND (m.name LIKE ? OR m.generic_name LIKE ?)`
-      params.push(`%${filters.search}%`, `%${filters.search}%`)
+      query += ` AND (m.name LIKE ? OR m.generic_name LIKE ? OR m.brand_name LIKE ?)`
+      params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`)
     }
 
     if (filters.category) {
@@ -72,7 +73,11 @@ export class PharmacyService {
       params.push(filters.category)
     }
 
-    query += ` ORDER BY m.name`
+    if (filters.low_stock) {
+      query += ` AND m.current_stock <= m.minimum_stock`
+    }
+
+    query += ` GROUP BY m.id ORDER BY m.name`
 
     if (filters.limit) {
       query += ` LIMIT ?`
@@ -88,9 +93,9 @@ export class PharmacyService {
   }
 
   async getMedicineById(id: string) {
-    const query = `SELECT * FROM medicines WHERE id = ?`
+    const query = `SELECT * FROM medicines WHERE medicine_id = ? OR id = ?`
     try {
-      const results = await executeQuery(query, [id]) as any[]
+      const results = await executeQuery(query, [id, id]) as any[]
       return results[0] || null
     } catch (error) {
       console.error('Error in getMedicineById:', error)
@@ -99,31 +104,150 @@ export class PharmacyService {
   }
 
   async createMedicine(data: Partial<Medicine>) {
-    const id = crypto.randomUUID()
+    const medicineId = dbUtils.generateId('MED')
     try {
       const query = `
-        INSERT INTO medicines (id, name, generic_name, category, manufacturer, unit_price, current_stock, minimum_stock, maximum_stock)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO medicines (
+          medicine_id, name, generic_name, brand_name, category, manufacturer, 
+          composition, strength, dosage_form, pack_size, unit_price, mrp, 
+          current_stock, minimum_stock, maximum_stock, batch_number, expiry_date, 
+          supplier, storage_conditions, side_effects, contraindications, 
+          drug_interactions, pregnancy_category, prescription_required, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
       `
       await executeQuery(query, [
-        id, 
-        data.name || null, 
-        data.generic_name || null, 
-        data.category || null, 
+        medicineId,
+        data.name,
+        data.generic_name || null,
+        data.brand_name || null,
+        data.category || null,
         data.manufacturer || null,
-        data.unit_price || null, 
-        data.current_stock || 0, 
+        data.composition || null,
+        data.strength || null,
+        data.dosage_form || 'tablet',
+        data.pack_size || null,
+        data.unit_price || 0,
+        data.mrp || 0,
+        data.current_stock || 0,
         data.minimum_stock || 10,
-        data.maximum_stock || 1000
+        data.maximum_stock || 1000,
+        data.batch_number || null,
+        data.expiry_date ? dbUtils.formatDate(data.expiry_date) : null,
+        data.supplier || null,
+        data.storage_conditions || null,
+        data.side_effects || null,
+        data.contraindications || null,
+        data.drug_interactions || null,
+        data.pregnancy_category || 'Unknown',
+        data.prescription_required !== false
       ])
-      return this.getMedicineById(id)
+      
+      // Create initial stock transaction if stock > 0
+      if (data.current_stock && Number(data.current_stock) > 0) {
+        await this.createStockTransaction({
+          medicine_id: medicineId,
+          transaction_type: 'purchase',
+          quantity: Number(data.current_stock),
+          unit_price: data.unit_price || 0,
+          batch_number: data.batch_number,
+          expiry_date: data.expiry_date,
+          supplier: data.supplier,
+          notes: 'Initial stock entry'
+        })
+      }
+      
+      return this.getMedicineById(medicineId)
     } catch (error) {
       console.error('Error in createMedicine:', error)
-      throw new Error('Medicines table not available. Please set up the database first.')
+      throw new Error('Failed to create medicine. Please check the database connection.')
     }
   }
 
-  async updateMedicine(id: string, data: Partial<Medicine>) {
+  // Stock transaction operations
+  async createStockTransaction(data: any) {
+    try {
+      const query = `
+        INSERT INTO medicine_stock_transactions (
+          medicine_id, transaction_type, quantity, unit_price, total_amount,
+          batch_number, expiry_date, supplier, reference_id, notes, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      `
+      await executeQuery(query, [
+        data.medicine_id,
+        data.transaction_type,
+        data.quantity,
+        data.unit_price || 0,
+        (data.quantity || 0) * (data.unit_price || 0),
+        data.batch_number || null,
+        data.expiry_date ? dbUtils.formatDate(data.expiry_date) : null,
+        data.supplier || null,
+        data.reference_id || null,
+        data.notes || null
+      ])
+      
+      // Update medicine stock
+      if (data.transaction_type === 'purchase') {
+        await executeQuery(
+          `UPDATE medicines SET current_stock = current_stock + ? WHERE medicine_id = ?`,
+          [data.quantity, data.medicine_id]
+        )
+      } else if (data.transaction_type === 'sale') {
+        await executeQuery(
+          `UPDATE medicines SET current_stock = current_stock - ? WHERE medicine_id = ?`,
+          [data.quantity, data.medicine_id]
+        )
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Error in createStockTransaction:', error)
+      throw error
+    }
+  }
+
+  async getStockTransactions(medicineId?: string, filters: any = {}) {
+    let query = `
+      SELECT mst.*, m.name as medicine_name
+      FROM medicine_stock_transactions mst
+      JOIN medicines m ON mst.medicine_id = m.medicine_id
+      WHERE 1=1
+    `
+    const params: any[] = []
+
+    if (medicineId) {
+      query += ` AND mst.medicine_id = ?`
+      params.push(medicineId)
+    }
+
+    if (filters.transaction_type) {
+      query += ` AND mst.transaction_type = ?`
+      params.push(filters.transaction_type)
+    }
+
+    if (filters.start_date) {
+      query += ` AND DATE(mst.created_at) >= ?`
+      params.push(filters.start_date)
+    }
+
+    if (filters.end_date) {
+      query += ` AND DATE(mst.created_at) <= ?`
+      params.push(filters.end_date)
+    }
+
+    query += ` ORDER BY mst.created_at DESC`
+
+    if (filters.limit) {
+      query += ` LIMIT ?`
+      params.push(parseInt(filters.limit))
+    }
+
+    try {
+      return await executeQuery(query, params)
+    } catch (error) {
+      console.error('Error in getStockTransactions:', error)
+      return []
+    }
+  }
     const query = `
       UPDATE medicines 
       SET name = ?, generic_name = ?, category = ?, manufacturer = ?, unit_price = ?, 
@@ -140,45 +264,73 @@ export class PharmacyService {
 
   // Vendor operations
   async getVendors(filters: any = {}) {
-    // Return empty array since vendors table doesn't exist yet
     try {
-      // Simple query without JOIN to avoid purchase_orders table dependency
-      let query = `SELECT * FROM vendors WHERE 1=1`
+      let query = `
+        SELECT v.*,
+               COALESCE(COUNT(po.id), 0) as total_orders,
+               COALESCE(SUM(po.final_amount), 0) as total_amount
+        FROM vendors v
+        LEFT JOIN purchase_orders po ON v.id = po.vendor_id
+        WHERE v.is_active = 1
+      `
       const params: any[] = []
 
       if (filters.search) {
-        query += ` AND (name LIKE ? OR contact_person LIKE ?)`
+        query += ` AND (v.vendor_name LIKE ? OR v.contact_person LIKE ?)`
         params.push(`%${filters.search}%`, `%${filters.search}%`)
       }
 
-      if (filters.status) {
-        query += ` AND status = ?`
-        params.push(filters.status)
+      if (filters.vendor_type) {
+        query += ` AND v.vendor_type = ?`
+        params.push(filters.vendor_type)
       }
 
-      query += ` ORDER BY name`
+      query += ` GROUP BY v.id ORDER BY v.vendor_name`
+      
+      if (filters.limit) {
+        query += ` LIMIT ?`
+        params.push(parseInt(filters.limit))
+      }
+
       return await executeQuery(query, params) as Vendor[]
     } catch (error) {
       console.error('Error in getVendors:', error)
-      // Return empty array if table doesn't exist
       return []
     }
   }
 
   async createVendor(data: Partial<Vendor>) {
-    const id = crypto.randomUUID()
+    const vendorId = dbUtils.generateId('VEN')
     try {
       const query = `
-        INSERT INTO vendors (id, name, contact_person, phone, email, address, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO vendors (
+          vendor_id, vendor_name, contact_person, email, phone, address, 
+          city, state, pincode, gst_number, pan_number, vendor_type, 
+          payment_terms, credit_limit, is_active, rating, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
       `
       await executeQuery(query, [
-        id, data.name, data.contact_person, data.phone, data.email, data.address, data.status || 'active'
+        vendorId,
+        data.name || data.vendor_name,
+        data.contact_person || null,
+        data.email || null,
+        data.phone,
+        data.address || null,
+        data.city || null,
+        data.state || null,
+        data.pincode || null,
+        data.gst_number || null,
+        data.pan_number || null,
+        data.vendor_type || 'medicine',
+        data.payment_terms || null,
+        data.credit_limit || 0,
+        data.rating || 0,
+        data.notes || null
       ])
-      return { id, ...data }
+      return { id: vendorId, vendor_id: vendorId, ...data }
     } catch (error) {
       console.error('Error in createVendor:', error)
-      throw new Error('Vendors table not available. Please set up the database first.')
+      throw new Error('Failed to create vendor. Please check the database connection.')
     }
   }
 
@@ -186,9 +338,14 @@ export class PharmacyService {
   async getPrescriptions(filters: any = {}) {
     let query = `
       SELECT p.*,
-             0 as item_count,
-             p.total_amount as calculated_total
+             pt.name as patient_name,
+             u.name as doctor_name,
+             COALESCE(COUNT(pm.id), 0) as item_count,
+             COALESCE(SUM(pm.total_price), p.total_amount) as calculated_total
       FROM prescriptions p
+      LEFT JOIN patients pt ON p.patient_id = pt.id
+      LEFT JOIN users u ON p.doctor_id = u.id
+      LEFT JOIN prescription_medications pm ON p.id = pm.prescription_id
       WHERE 1=1
     `
     const params: any[] = []
@@ -199,11 +356,21 @@ export class PharmacyService {
     }
 
     if (filters.search) {
-      query += ` AND (p.patient_name LIKE ? OR p.doctor_name LIKE ? OR p.prescription_number LIKE ?)`
+      query += ` AND (pt.name LIKE ? OR u.name LIKE ? OR p.prescription_id LIKE ?)`
       params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`)
     }
 
-    query += ` ORDER BY p.created_at DESC`
+    if (filters.patient_id) {
+      query += ` AND p.patient_id = ?`
+      params.push(filters.patient_id)
+    }
+
+    if (filters.doctor_id) {
+      query += ` AND p.doctor_id = ?`
+      params.push(filters.doctor_id)
+    }
+
+    query += ` GROUP BY p.id ORDER BY p.created_at DESC`
 
     if (filters.limit) {
       query += ` LIMIT ?`
@@ -219,13 +386,30 @@ export class PharmacyService {
   }
 
   async getPrescriptionById(id: string) {
-    const prescriptionQuery = `SELECT * FROM prescriptions WHERE id = ?`
+    const prescriptionQuery = `
+      SELECT p.*,
+             pt.name as patient_name,
+             u.name as doctor_name
+      FROM prescriptions p
+      LEFT JOIN patients pt ON p.patient_id = pt.id
+      LEFT JOIN users u ON p.doctor_id = u.id
+      WHERE p.id = ? OR p.prescription_id = ?
+    `
     
     try {
-      const [prescription] = await executeQuery(prescriptionQuery, [id]) as any[]
+      const [prescription] = await executeQuery(prescriptionQuery, [id, id]) as any[]
       
       if (prescription) {
-        prescription.items = [] // Empty items array since table doesn't exist yet
+        // Get prescription items
+        const itemsQuery = `
+          SELECT pm.*,
+                 m.name as medicine_name,
+                 m.unit_price as current_unit_price
+          FROM prescription_medications pm
+          LEFT JOIN medicines m ON pm.medicine_id = m.id
+          WHERE pm.prescription_id = ?
+        `
+        prescription.items = await executeQuery(itemsQuery, [prescription.id])
       }
       
       return prescription
@@ -236,26 +420,58 @@ export class PharmacyService {
   }
 
   async createPrescription(data: any) {
-    const id = crypto.randomUUID()
-    const prescriptionNumber = `RX-${Date.now()}`
+    const prescriptionId = dbUtils.generateId('RX')
     
-    // Calculate total amount
-    let totalAmount = 0
-    if (data.items && Array.isArray(data.items)) {
-      totalAmount = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.unit_price), 0)
-    }
-
     try {
       // Insert prescription
       const prescriptionQuery = `
-        INSERT INTO prescriptions (id, prescription_number, patient_id, patient_name, doctor_id, doctor_name, status, total_amount)
-        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+        INSERT INTO prescriptions (
+          prescription_id, patient_id, doctor_id, appointment_id, medical_record_id,
+          prescription_date, total_amount, status, notes, follow_up_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
       `
       await executeQuery(prescriptionQuery, [
-        id, prescriptionNumber, data.patient_id, data.patient_name, data.doctor_id, data.doctor_name, totalAmount
+        prescriptionId,
+        data.patient_id,
+        data.doctor_id,
+        data.appointment_id || null,
+        data.medical_record_id || null,
+        dbUtils.formatDate(data.prescription_date || new Date()),
+        data.total_amount || 0,
+        data.notes || null,
+        data.follow_up_date ? dbUtils.formatDate(data.follow_up_date) : null
       ])
 
-      return this.getPrescriptionById(id)
+      // Get the inserted prescription ID
+      const [insertedPrescription] = await executeQuery(
+        `SELECT id FROM prescriptions WHERE prescription_id = ?`,
+        [prescriptionId]
+      ) as any[]
+
+      // Insert prescription items
+      if (data.items && Array.isArray(data.items)) {
+        for (const item of data.items) {
+          await executeQuery(`
+            INSERT INTO prescription_medications (
+              prescription_id, medicine_id, medicine_name, dosage, frequency, 
+              duration, quantity, unit_price, total_price, instructions
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            insertedPrescription.id,
+            item.medicine_id,
+            item.medicine_name,
+            item.dosage,
+            item.frequency,
+            item.duration,
+            item.quantity,
+            item.unit_price,
+            item.quantity * item.unit_price,
+            item.instructions || null
+          ])
+        }
+      }
+
+      return this.getPrescriptionById(prescriptionId)
     } catch (error) {
       console.error('Error in createPrescription:', error)
       throw error
@@ -265,7 +481,27 @@ export class PharmacyService {
   async dispensePrescription(id: string, items: any[]) {
     try {
       // Update prescription status
-      await executeQuery(`UPDATE prescriptions SET status = 'dispensed' WHERE id = ?`, [id])
+      await executeQuery(`UPDATE prescriptions SET status = 'completed' WHERE id = ? OR prescription_id = ?`, [id, id])
+
+      // Mark items as dispensed and create stock transactions
+      for (const item of items) {
+        await executeQuery(`
+          UPDATE prescription_medications 
+          SET is_dispensed = 1, dispensed_at = CURRENT_TIMESTAMP, dispensed_by = 1
+          WHERE prescription_id = (SELECT id FROM prescriptions WHERE id = ? OR prescription_id = ?) 
+          AND medicine_id = ?
+        `, [id, id, item.medicine_id])
+
+        // Create stock transaction for sale
+        await this.createStockTransaction({
+          medicine_id: item.medicine_id,
+          transaction_type: 'sale',
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          reference_id: id,
+          notes: `Dispensed from prescription ${id}`
+        })
+      }
 
       return this.getPrescriptionById(id)
     } catch (error) {
@@ -278,17 +514,30 @@ export class PharmacyService {
   async getStockAlerts() {
     const query = `
       SELECT m.*,
-             '' as batch_number,
-             NULL as expiry_date,
-             0 as batch_quantity,
+             mst.batch_number,
+             mst.expiry_date,
+             mst.quantity as batch_quantity,
              CASE 
                WHEN m.current_stock = 0 THEN 'out_of_stock'
                WHEN m.current_stock <= m.minimum_stock THEN 'low_stock'
+               WHEN mst.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'expiring'
                ELSE 'normal'
              END as alert_type
       FROM medicines m
-      WHERE m.current_stock <= m.minimum_stock
-      ORDER BY alert_type, m.name
+      LEFT JOIN medicine_stock_transactions mst ON m.id = mst.medicine_id 
+        AND mst.transaction_type = 'purchase' 
+        AND mst.expiry_date IS NOT NULL
+      WHERE (m.current_stock <= m.minimum_stock 
+        OR mst.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))
+        AND m.is_active = 1
+      ORDER BY 
+        CASE 
+          WHEN m.current_stock = 0 THEN 1
+          WHEN m.current_stock <= m.minimum_stock THEN 2
+          WHEN mst.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 3
+          ELSE 4
+        END,
+        m.name
     `
     try {
       return await executeQuery(query, [])
@@ -304,31 +553,58 @@ export class PharmacyService {
     
     try {
       // Total medicines
-      const [medicinesResult] = await executeQuery(`SELECT COUNT(*) as count FROM medicines`, []) as any[]
+      const [medicinesResult] = await executeQuery(`
+        SELECT COUNT(*) as count FROM medicines WHERE is_active = 1
+      `, []) as any[]
       results.totalMedicines = medicinesResult.count || 0
 
       // Low stock
-      const [lowStockResult] = await executeQuery(`SELECT COUNT(*) as count FROM medicines WHERE current_stock <= minimum_stock`, []) as any[]
+      const [lowStockResult] = await executeQuery(`
+        SELECT COUNT(*) as count FROM medicines 
+        WHERE current_stock <= minimum_stock AND is_active = 1
+      `, []) as any[]
       results.lowStock = lowStockResult.count || 0
 
-      // Expiring soon (simplified - just return 0 since we don't have batches table)
-      results.expiringSoon = 0
+      // Expiring soon (within 30 days)
+      const [expiringSoonResult] = await executeQuery(`
+        SELECT COUNT(DISTINCT m.id) as count 
+        FROM medicines m
+        JOIN medicine_stock_transactions mst ON m.id = mst.medicine_id
+        WHERE mst.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        AND mst.expiry_date > CURDATE()
+        AND m.is_active = 1
+      `, []) as any[]
+      results.expiringSoon = expiringSoonResult.count || 0
 
       // Total value
-      const [valueResult] = await executeQuery(`SELECT SUM(current_stock * unit_price) as value FROM medicines`, []) as any[]
+      const [valueResult] = await executeQuery(`
+        SELECT SUM(current_stock * unit_price) as value 
+        FROM medicines WHERE is_active = 1
+      `, []) as any[]
       results.totalValue = valueResult.value || 0
 
       // Prescription stats
-      const [totalPrescriptionsResult] = await executeQuery(`SELECT COUNT(*) as count FROM prescriptions WHERE DATE(created_at) = CURDATE()`, []) as any[]
+      const [totalPrescriptionsResult] = await executeQuery(`
+        SELECT COUNT(*) as count FROM prescriptions 
+        WHERE DATE(created_at) = CURDATE()
+      `, []) as any[]
       results.totalPrescriptions = totalPrescriptionsResult.count || 0
 
-      const [activePrescriptionsResult] = await executeQuery(`SELECT COUNT(*) as count FROM prescriptions WHERE status = 'pending'`, []) as any[]
+      const [activePrescriptionsResult] = await executeQuery(`
+        SELECT COUNT(*) as count FROM prescriptions WHERE status = 'active'
+      `, []) as any[]
       results.activePrescriptions = activePrescriptionsResult.count || 0
 
-      const [completedPrescriptionsResult] = await executeQuery(`SELECT COUNT(*) as count FROM prescriptions WHERE status = 'dispensed' AND DATE(created_at) = CURDATE()`, []) as any[]
+      const [completedPrescriptionsResult] = await executeQuery(`
+        SELECT COUNT(*) as count FROM prescriptions 
+        WHERE status = 'completed' AND DATE(created_at) = CURDATE()
+      `, []) as any[]
       results.completedPrescriptions = completedPrescriptionsResult.count || 0
 
-      const [pendingDispensingResult] = await executeQuery(`SELECT COUNT(*) as count FROM prescriptions WHERE status IN ('pending', 'partially_dispensed')`, []) as any[]
+      const [pendingDispensingResult] = await executeQuery(`
+        SELECT COUNT(*) as count FROM prescriptions 
+        WHERE status IN ('active', 'partial')
+      `, []) as any[]
       results.pendingDispensing = pendingDispensingResult.count || 0
 
     } catch (error) {
@@ -345,5 +621,34 @@ export class PharmacyService {
     }
 
     return results
+  }
+
+  async updateMedicine(id: string, data: Partial<Medicine>) {
+    const query = `
+      UPDATE medicines 
+      SET name = ?, generic_name = ?, brand_name = ?, category = ?, manufacturer = ?, 
+          composition = ?, strength = ?, dosage_form = ?, pack_size = ?, unit_price = ?, 
+          mrp = ?, minimum_stock = ?, maximum_stock = ?, batch_number = ?, expiry_date = ?,
+          supplier = ?, storage_conditions = ?, side_effects = ?, contraindications = ?,
+          drug_interactions = ?, pregnancy_category = ?, prescription_required = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE medicine_id = ? OR id = ?
+    `
+    await executeQuery(query, [
+      data.name, data.generic_name, data.brand_name, data.category, data.manufacturer,
+      data.composition, data.strength, data.dosage_form, data.pack_size, data.unit_price,
+      data.mrp, data.minimum_stock, data.maximum_stock, data.batch_number,
+      data.expiry_date ? dbUtils.formatDate(data.expiry_date) : null,
+      data.supplier, data.storage_conditions, data.side_effects, data.contraindications,
+      data.drug_interactions, data.pregnancy_category, data.prescription_required,
+      id, id
+    ])
+    return this.getMedicineById(id)
+  }
+
+  async deleteMedicine(id: string) {
+    const query = `UPDATE medicines SET is_active = 0 WHERE medicine_id = ? OR id = ?`
+    await executeQuery(query, [id, id])
+    return true
   }
 }
