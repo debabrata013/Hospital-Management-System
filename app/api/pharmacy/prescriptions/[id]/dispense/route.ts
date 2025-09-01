@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     const { items } = await request.json()
-    const prescription = await pharmacyService.dispensePrescription(params.id, items)
+    const prescription = await pharmacyService.dispensePrescription(params.id, items || [])
     return NextResponse.json({ success: true, data: prescription })
   } catch (error) {
     console.error('Error dispensing prescription:', error)

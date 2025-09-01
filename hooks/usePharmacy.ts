@@ -88,7 +88,41 @@ export function useMedicines(filters: any = {}) {
     }
   }
 
-  return { medicines, loading, error, refetch: fetchMedicines, createMedicine }
+  const updateMedicine = async (id: string, data: any) => {
+    try {
+      const response = await fetch(`/api/pharmacy/medicines/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      const result = await response.json()
+      if (result.success) {
+        await fetchMedicines()
+        return result.data
+      }
+      throw new Error(result.error)
+    } catch (err) {
+      throw err
+    }
+  }
+
+  const deleteMedicine = async (id: string) => {
+    try {
+      const response = await fetch(`/api/pharmacy/medicines/${id}`, {
+        method: 'DELETE'
+      })
+      const result = await response.json()
+      if (result.success) {
+        await fetchMedicines()
+        return true
+      }
+      throw new Error(result.error)
+    } catch (err) {
+      throw err
+    }
+  }
+
+  return { medicines, loading, error, refetch: fetchMedicines, createMedicine, updateMedicine, deleteMedicine }
 }
 
 export function useVendors(filters: any = {}) {
@@ -142,7 +176,41 @@ export function useVendors(filters: any = {}) {
     }
   }
 
-  return { vendors, loading, error, refetch: fetchVendors, createVendor }
+  const updateVendor = async (id: string, data: any) => {
+    try {
+      const response = await fetch(`/api/pharmacy/vendors/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      const result = await response.json()
+      if (result.success) {
+        await fetchVendors()
+        return result.data
+      }
+      throw new Error(result.error)
+    } catch (err) {
+      throw err
+    }
+  }
+
+  const deleteVendor = async (id: string) => {
+    try {
+      const response = await fetch(`/api/pharmacy/vendors/${id}`, {
+        method: 'DELETE'
+      })
+      const result = await response.json()
+      if (result.success) {
+        await fetchVendors()
+        return true
+      }
+      throw new Error(result.error)
+    } catch (err) {
+      throw err
+    }
+  }
+
+  return { vendors, loading, error, refetch: fetchVendors, createVendor, updateVendor, deleteVendor }
 }
 
 export function usePrescriptions(filters: any = {}) {
