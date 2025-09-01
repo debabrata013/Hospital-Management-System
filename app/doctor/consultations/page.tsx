@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +25,7 @@ import {
   Zap
 } from 'lucide-react'
 
-// Mock consultation data
+// Mock consultation data (fallback)
 const mockConsultations = [
   {
     id: "CONS001",
@@ -80,6 +81,31 @@ const mockConsultations = [
 
 
 export default function DoctorConsultationsPage() {
+  const [consultations, setConsultations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchConsultations()
+  }, [])
+
+  const fetchConsultations = async () => {
+    try {
+      const response = await fetch('/api/doctor/consultations')
+      if (response.ok) {
+        const data = await response.json()
+        setConsultations(data)
+      } else {
+        console.error('Failed to fetch consultations')
+        setConsultations(mockConsultations) // Fallback to mock data
+      }
+    } catch (error) {
+      console.error('Error fetching consultations:', error)
+      setConsultations(mockConsultations) // Fallback to mock data
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -213,17 +239,21 @@ export default function DoctorConsultationsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {mockConsultations.map((consultation) => (
+            {consultations.map((consultation) => (
               <div key={consultation.id} className="p-4 border border-pink-100 rounded-lg">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <h3 className="font-bold text-lg text-gray-900">{consultation.patientName}</h3>
-                    <Badge variant="outline">{consultation.patientId}</Badge>
-                    <Badge className={getTypeColor(consultation.type)}>{consultation.type}</Badge>
+                    <h3 className="font-bold text-lg text-gray-900">{consultation.patient?.name || consultation.patientName}</h3>
+                    <Badge variant="outline">{consultation.patient?.id || consultation.patientId}</Badge>
+                    <Badge className={getTypeColor(consultation.type || 'Consultation')}>
+                      {consultation.type || 'Consultation'}
+                    </Badge>
                     {getStatusBadge(consultation.status)}
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">{consultation.date} • {consultation.time}</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(consultation.date).toLocaleDateString()} • {consultation.time || new Date(consultation.date).toLocaleTimeString()}
+                    </span>
                     <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -236,13 +266,13 @@ export default function DoctorConsultationsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Clinical Information */}
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 text-sm mb-2">Chief Complaint</h4>
-                      <p className="text-sm text-gray-600">{consultation.chiefComplaint}</p>
+                    <div className="mb-3">
+                      <h4 className="font-semibold text-gray-900 mb-2">Chief Complaint</h4>
+                      <p className="text-gray-700">{consultation.reason || consultation.chiefComplaint || 'No chief complaint recorded'}</p>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 text-sm mb-2">Diagnosis</h4>
-                      <p className="text-sm text-gray-600">{consultation.diagnosis}</p>
+                    <div className="mb-3">
+                      <h4 className="font-semibold text-gray-900 mb-2">Diagnosis</h4>
+                      <p className="text-gray-700">{consultation.diagnosis || 'No diagnosis recorded'}</p>
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 text-sm mb-2">Clinical Notes</h4>
@@ -253,58 +283,120 @@ export default function DoctorConsultationsPage() {
                   {/* Vitals and Prescription */}
                   <div className="space-y-4">
                     {/* Vitals */}
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 text-sm mb-3">Recorded Vitals</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center space-x-2">
-                          {getVitalIcon('bp')}
-                          <div>
-                            <p className="text-xs text-gray-500">BP</p>
-                            <p className="font-medium text-sm">{consultation.vitals.bp}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getVitalIcon('temp')}
-                          <div>
-                            <p className="text-xs text-gray-500">Temp</p>
-                            <p className="font-medium text-sm">{consultation.vitals.temp}°F</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getVitalIcon('pulse')}
-                          <div>
-                            <p className="text-xs text-gray-500">Pulse</p>
-                            <p className="font-medium text-sm">{consultation.vitals.pulse}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getVitalIcon('weight')}
-                          <div>
-                            <p className="text-xs text-gray-500">Weight</p>
-                            <p className="font-medium text-sm">{consultation.vitals.weight}kg</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    {consultation.notes && (() => {
+                      try {
+                        const parsedNotes = JSON.parse(consultation.notes);
+                        const vitals = parsedNotes.vitals || consultation.vitals;
+                        if (vitals) {
+                          return (
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <h4 className="font-semibold text-gray-900 text-sm mb-3">Recorded Vitals</h4>
+                              <div className="grid grid-cols-2 gap-3">
+                                {vitals.bp && (
+                                  <div className="flex items-center space-x-2">
+                                    {getVitalIcon('bp')}
+                                    <div>
+                                      <p className="text-xs text-gray-500">BP</p>
+                                      <p className="font-medium text-sm">{vitals.bp}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                {vitals.temperature && (
+                                  <div className="flex items-center space-x-2">
+                                    {getVitalIcon('temp')}
+                                    <div>
+                                      <p className="text-xs text-gray-500">Temp</p>
+                                      <p className="font-medium text-sm">{vitals.temperature}°F</p>
+                                    </div>
+                                  </div>
+                                )}
+                                {vitals.pulse && (
+                                  <div className="flex items-center space-x-2">
+                                    {getVitalIcon('pulse')}
+                                    <div>
+                                      <p className="text-xs text-gray-500">Pulse</p>
+                                      <p className="font-medium text-sm">{vitals.pulse}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                {vitals.weight && (
+                                  <div className="flex items-center space-x-2">
+                                    {getVitalIcon('weight')}
+                                    <div>
+                                      <p className="text-xs text-gray-500">Weight</p>
+                                      <p className="font-medium text-sm">{vitals.weight}kg</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+                      } catch (e) {
+                        // If notes is not JSON, show vitals from consultation.vitals if available
+                        if (consultation.vitals) {
+                          return (
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <h4 className="font-semibold text-gray-900 text-sm mb-3">Recorded Vitals</h4>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center space-x-2">
+                                  {getVitalIcon('bp')}
+                                  <div>
+                                    <p className="text-xs text-gray-500">BP</p>
+                                    <p className="font-medium text-sm">{consultation.vitals.bp}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {getVitalIcon('temp')}
+                                  <div>
+                                    <p className="text-xs text-gray-500">Temp</p>
+                                    <p className="font-medium text-sm">{consultation.vitals.temp}°F</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {getVitalIcon('pulse')}
+                                  <div>
+                                    <p className="text-xs text-gray-500">Pulse</p>
+                                    <p className="font-medium text-sm">{consultation.vitals.pulse}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {getVitalIcon('weight')}
+                                  <div>
+                                    <p className="text-xs text-gray-500">Weight</p>
+                                    <p className="font-medium text-sm">{consultation.vitals.weight}kg</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
 
                     {/* Prescriptions */}
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <h4 className="font-semibold text-green-900 text-sm mb-3">Prescribed Medications</h4>
-                      <div className="space-y-2">
-                        {consultation.prescriptions.map((prescription, index) => (
-                          <div key={index} className="text-sm">
-                            <span className="font-medium">{prescription.medicine}</span>
-                            <span className="text-gray-600 ml-2">
-                              {prescription.dosage} • {prescription.frequency} • {prescription.duration}
-                            </span>
-                          </div>
-                        ))}
+                    {(consultation.prescriptions || []).length > 0 && (
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <h4 className="font-semibold text-green-900 text-sm mb-3">Prescribed Medications</h4>
+                        <div className="space-y-2">
+                          {consultation.prescriptions.map((prescription: any, index: number) => (
+                            <div key={index} className="text-sm">
+                              <span className="font-medium">{prescription.medicine}</span>
+                              <span className="text-gray-600 ml-2">
+                                {prescription.dosage} • {prescription.frequency} • {prescription.duration}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Follow-up:</span> {new Date(consultation.followUp).toLocaleDateString()}
-                    </div>
+                    {consultation.followUp && (
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Follow-up:</span> {new Date(consultation.followUp).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
