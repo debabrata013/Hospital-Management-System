@@ -18,13 +18,13 @@ import { toast } from "sonner"
 
 export default function PrescriptionsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
 
   const { prescriptions, loading, error, refetch, dispensePrescription } = usePrescriptions({
     search: searchTerm,
-    status: statusFilter
+    status: statusFilter === "all" ? "" : statusFilter
   })
 
   const handleDispense = async (prescriptionId: string, items: any[]) => {
@@ -92,7 +92,7 @@ export default function PrescriptionsPage() {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="partially_dispensed">Partially Dispensed</SelectItem>
                 <SelectItem value="dispensed">Dispensed</SelectItem>
