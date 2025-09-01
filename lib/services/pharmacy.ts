@@ -371,7 +371,51 @@ export class PharmacyService {
     }
   }
 
-  // Prescription operations
+  async updateVendor(id: string, data: Partial<Vendor>) {
+    try {
+      const query = `
+        UPDATE vendors 
+        SET vendor_name = ?, contact_person = ?, email = ?, phone = ?, address = ?,
+            city = ?, state = ?, pincode = ?, gst_number = ?, pan_number = ?,
+            vendor_type = ?, payment_terms = ?, credit_limit = ?, rating = ?,
+            notes = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE vendor_id = ? OR id = ?
+      `
+      await executeQuery(query, [
+        data.name || data.vendor_name,
+        data.contact_person || null,
+        data.email || null,
+        data.phone,
+        data.address || null,
+        data.city || null,
+        data.state || null,
+        data.pincode || null,
+        data.gst_number || null,
+        data.pan_number || null,
+        data.vendor_type || 'medicine',
+        data.payment_terms || null,
+        data.credit_limit || 0,
+        data.rating || 0,
+        data.notes || null,
+        id, id
+      ])
+      return { id, ...data }
+    } catch (error) {
+      console.error('Error in updateVendor:', error)
+      throw new Error('Failed to update vendor.')
+    }
+  }
+
+  async deleteVendor(id: string) {
+    try {
+      const query = `UPDATE vendors SET is_active = 0 WHERE vendor_id = ? OR id = ?`
+      await executeQuery(query, [id, id])
+      return true
+    } catch (error) {
+      console.error('Error in deleteVendor:', error)
+      throw new Error('Failed to delete vendor.')
+    }
+  }
   async getPrescriptions(filters: any = {}) {
     let query = `
       SELECT p.*,

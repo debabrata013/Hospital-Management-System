@@ -18,7 +18,7 @@ import { toast } from "sonner"
 
 export default function VendorsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedVendor, setSelectedVendor] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -39,41 +39,65 @@ export default function VendorsPage() {
     notes: ""
   })
 
-  const { vendors, loading, error, refetch, createVendor } = useVendors({
+  const { vendors, loading, error, refetch, createVendor, updateVendor, deleteVendor } = useVendors({
     search: searchTerm,
-    status: statusFilter
+    status: statusFilter === "all" ? "" : statusFilter
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await createVendor({
-        ...formData,
-        name: formData.vendor_name,
-        status: 'active'
-      })
-      toast.success("Vendor added successfully")
+      if (selectedVendor) {
+        await updateVendor(selectedVendor.id || selectedVendor.vendor_id, {
+          ...formData,
+          name: formData.vendor_name
+        })
+        toast.success("Vendor updated successfully")
+      } else {
+        await createVendor({
+          ...formData,
+          name: formData.vendor_name,
+          status: 'active'
+        })
+        toast.success("Vendor added successfully")
+      }
       setShowAddDialog(false)
-      setFormData({
-        vendor_name: "",
-        contact_person: "",
-        email: "",
-        phone: "",
-        address: "",
-        city: "",
-        state: "",
-        pincode: "",
-        gst_number: "",
-        pan_number: "",
-        vendor_type: "medicine",
-        payment_terms: "",
-        credit_limit: "",
-        rating: "0",
-        notes: ""
-      })
+      setSelectedVendor(null)
+      resetForm()
     } catch (error) {
-      toast.error("Failed to add vendor")
+      toast.error(selectedVendor ? "Failed to update vendor" : "Failed to add vendor")
     }
+  }
+
+  const handleDeleteVendor = async (id: string) => {
+    if (confirm('Are you sure you want to delete this vendor?')) {
+      try {
+        await deleteVendor(id)
+        toast.success("Vendor deleted successfully")
+      } catch (error) {
+        toast.error("Failed to delete vendor")
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      vendor_name: "",
+      contact_person: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      pincode: "",
+      gst_number: "",
+      pan_number: "",
+      vendor_type: "medicine",
+      payment_terms: "",
+      credit_limit: "",
+      rating: "0",
+      notes: ""
+    })
   }
 
   const getStatusBadge = (status: string) => {
@@ -108,9 +132,9 @@ export default function VendorsPage() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Vendor</DialogTitle>
+              <DialogTitle>{selectedVendor ? 'Edit Vendor' : 'Add New Vendor'}</DialogTitle>
               <DialogDescription>
-                Enter vendor details to add to your supplier list
+                {selectedVendor ? 'Update vendor details' : 'Enter vendor details to add to your supplier list'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -248,10 +272,14 @@ export default function VendorsPage() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setShowAddDialog(false)
+                  setSelectedVendor(null)
+                  resetForm()
+                }}>
                   Cancel
                 </Button>
-                <Button type="submit">Add Vendor</Button>
+                <Button type="submit">{selectedVendor ? 'Update Vendor' : 'Add Vendor'}</Button>
               </div>
             </form>
           </DialogContent>
@@ -278,7 +306,7 @@ export default function VendorsPage() {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
@@ -370,13 +398,30 @@ export default function VendorsPage() {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedVendor(vendor)
+                        setFormData({
+                          vendor_name: vendor.vendor_name || vendor.name,
+                          contact_person: vendor.contact_person || '',
+                          email: vendor.email || '',
+                          phone: vendor.phone || '',
+                          address: vendor.address || '',
+                          city: vendor.city || '',
+                          state: vendor.state || '',
+                          pincode: vendor.pincode || '',
+                          gst_number: vendor.gst_number || '',
+                          pan_number: vendor.pan_number || '',
+                          vendor_type: vendor.vendor_type || 'medicine',
+                          payment_terms: vendor.payment_terms || '',
+                          credit_limit: vendor.credit_limit?.toString() || '',
+                          rating: vendor.rating?.toString() || '0',
+                          notes: vendor.notes || ''
+                        })
+                        setShowAddDialog(true)
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteVendor(vendor.id || vendor.vendor_id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
