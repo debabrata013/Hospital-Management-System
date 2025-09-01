@@ -78,18 +78,38 @@ export async function GET(request: NextRequest) {
       [today]
     )
     
+    // Get stock alerts count
+    let criticalAlerts = 0
+    try {
+      const [alertsResult] = await connection.execute(
+        'SELECT COUNT(*) as total FROM medicines WHERE current_stock <= minimum_stock OR current_stock <= 10'
+      )
+      criticalAlerts = (alertsResult as any)[0].total
+    } catch (error) {
+      criticalAlerts = 0
+    }
+    
+    // Get admitted patients count
+    let admittedPatients = 0
+    try {
+      const [admittedResult] = await connection.execute(
+        'SELECT COUNT(*) as total FROM room_assignments WHERE status = "Active"'
+      )
+      admittedPatients = (admittedResult as any)[0].total
+    } catch (error) {
+      admittedPatients = 0
+    }
+    
     await connection.end()
     
     return NextResponse.json({
-      stats: {
-        totalPatients,
-        todayAppointments,
-        totalAppointments,
-        pendingAppointments,
-        completedAppointments,
-        totalDoctors,
-        totalRevenue
-      },
+      totalPatients,
+      totalAppointments: todayAppointments,
+      completedAppointments,
+      admittedPatients,
+      availableBeds: Math.max(0, 50 - admittedPatients), // Assuming 50 total beds
+      criticalAlerts,
+      todayRevenue: totalRevenue || 0,
       recentAppointments: recentAppointments || []
     })
     
