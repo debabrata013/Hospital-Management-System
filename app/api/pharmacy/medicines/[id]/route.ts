@@ -41,3 +41,19 @@ export async function PUT(
     )
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await pharmacyService.deleteMedicine(params.id)
+    return NextResponse.json({ success: true, message: 'Medicine deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting medicine:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete medicine' },
+      { status: 500 }
+    )
+  }
+}

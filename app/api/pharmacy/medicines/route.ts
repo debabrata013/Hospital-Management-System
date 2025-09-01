@@ -7,9 +7,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const filters = {
-      search: searchParams.get('search'),
-      category: searchParams.get('category'),
-      limit: searchParams.get('limit')
+      search: searchParams.get('search') || '',
+      category: searchParams.get('category') || '',
+      low_stock: searchParams.get('low_stock') === 'true',
+      limit: searchParams.get('limit') || ''
     }
 
     const medicines = await pharmacyService.getMedicines(filters)
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
     const medicine = await pharmacyService.createMedicine(data)
-    return NextResponse.json({ success: true, data: medicine }, { status: 201 })
+    return NextResponse.json({ success: true, data: medicine })
   } catch (error) {
     console.error('Error creating medicine:', error)
     return NextResponse.json(

@@ -5,62 +5,117 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { 
-  Package, AlertTriangle, Search, Plus, RefreshCw, 
-  Calendar, TrendingDown, Clock, Truck, Loader2
+  Package, Plus, Search, Filter, AlertTriangle, 
+  Edit, Trash2, Eye, Download, Upload
 } from 'lucide-react'
-import { useMedicines } from "@/hooks/usePharmacy"
+import { useMedicines, useVendors } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
-import Link from "next/link"
 
-export default function InventoryManagement() {
+export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  
-  const { medicines, loading, error, refetch } = useMedicines({
-    search: searchTerm || undefined
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [selectedMedicine, setSelectedMedicine] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    generic_name: "",
+    brand_name: "",
+    category: "",
+    manufacturer: "",
+    composition: "",
+    strength: "",
+    dosage_form: "tablet",
+    pack_size: "",
+    unit_price: "",
+    mrp: "",
+    current_stock: "",
+    minimum_stock: "10",
+    maximum_stock: "1000",
+    batch_number: "",
+    expiry_date: "",
+    supplier: "",
+    storage_conditions: "",
+    side_effects: "",
+    contraindications: "",
+    drug_interactions: "",
+    pregnancy_category: "Unknown",
+    prescription_required: true
   })
 
-  const refreshData = async () => {
+  const { medicines, loading, error, refetch, createMedicine, updateMedicine, deleteMedicine } = useMedicines({
+    search: searchTerm,
+    category: categoryFilter === "all" ? "" : categoryFilter
+  })
+
+  const { vendors } = useVendors({})
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
-      await refetch()
-      toast.success('Inventory data refreshed')
+      if (selectedMedicine) {
+        await updateMedicine(selectedMedicine.id || selectedMedicine.medicine_id, formData)
+        toast.success("Medicine updated successfully")
+      } else {
+        await createMedicine(formData)
+        toast.success("Medicine added successfully")
+      }
+      setShowAddDialog(false)
+      setSelectedMedicine(null)
+      resetForm()
     } catch (error) {
-      toast.error('Failed to refresh data')
+      toast.error(selectedMedicine ? "Failed to update medicine" : "Failed to add medicine")
     }
   }
 
+  const handleDeleteMedicine = async (id: string) => {
+    if (confirm('Are you sure you want to delete this medicine?')) {
+      try {
+        await deleteMedicine(id)
+        toast.success("Medicine deleted successfully")
+      } catch (error) {
+        toast.error("Failed to delete medicine")
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      generic_name: "",
+      brand_name: "",
+      category: "",
+      manufacturer: "",
+      composition: "",
+      strength: "",
+      dosage_form: "tablet",
+      pack_size: "",
+      unit_price: "",
+      mrp: "",
+      current_stock: "",
+      minimum_stock: "10",
+      maximum_stock: "1000",
+      batch_number: "",
+      expiry_date: "",
+      supplier: "",
+      storage_conditions: "",
+      side_effects: "",
+      contraindications: "",
+      drug_interactions: "",
+      pregnancy_category: "Unknown",
+      prescription_required: true
+    })
+  }
+
   const getStockStatus = (current: number, minimum: number) => {
-    if (current === 0) return { label: "Out of Stock", color: "bg-red-100 text-red-700" }
-    if (current <= minimum) return { label: "Low Stock", color: "bg-orange-100 text-orange-700" }
-    if (current <= minimum * 2) return { label: "Medium", color: "bg-yellow-100 text-yellow-700" }
-    return { label: "Good", color: "bg-green-100 text-green-700" }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading inventory...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Error loading inventory: {error}</p>
-          <Button onClick={refetch} className="mt-4">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    )
+    if (current === 0) return { label: "Out of Stock", variant: "destructive" as const }
+    if (current <= minimum) return { label: "Low Stock", variant: "secondary" as const }
+    return { label: "In Stock", variant: "default" as const }
   }
 
   return (
@@ -68,179 +123,344 @@ export default function InventoryManagement() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Inventory Management</h1>
-          <p className="text-gray-600">Manage medicine stock and inventory</p>
+          <h1 className="text-3xl font-bold">Medicine Inventory</h1>
+          <p className="text-gray-600">Manage medicine stock and information</p>
         </div>
-        <div className="flex space-x-2">
-          <Button onClick={refreshData} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export
           </Button>
-          <Link href="/pharmacy/inventory/add">
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Medicine
-            </Button>
-          </Link>
+          <Button variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Medicine
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Medicine</DialogTitle>
+                <DialogDescription>
+                  Enter medicine details to add to inventory
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Medicine Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="generic_name">Generic Name</Label>
+                    <Input
+                      id="generic_name"
+                      value={formData.generic_name}
+                      onChange={(e) => setFormData({...formData, generic_name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="brand_name">Brand Name</Label>
+                    <Input
+                      id="brand_name"
+                      value={formData.brand_name}
+                      onChange={(e) => setFormData({...formData, brand_name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="manufacturer">Manufacturer</Label>
+                    <Input
+                      id="manufacturer"
+                      value={formData.manufacturer}
+                      onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="strength">Strength</Label>
+                    <Input
+                      id="strength"
+                      value={formData.strength}
+                      onChange={(e) => setFormData({...formData, strength: e.target.value})}
+                      placeholder="e.g., 500mg"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dosage_form">Dosage Form</Label>
+                    <Select value={formData.dosage_form} onValueChange={(value) => setFormData({...formData, dosage_form: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tablet">Tablet</SelectItem>
+                        <SelectItem value="capsule">Capsule</SelectItem>
+                        <SelectItem value="syrup">Syrup</SelectItem>
+                        <SelectItem value="injection">Injection</SelectItem>
+                        <SelectItem value="cream">Cream</SelectItem>
+                        <SelectItem value="drops">Drops</SelectItem>
+                        <SelectItem value="inhaler">Inhaler</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="pack_size">Pack Size</Label>
+                    <Input
+                      id="pack_size"
+                      value={formData.pack_size}
+                      onChange={(e) => setFormData({...formData, pack_size: e.target.value})}
+                      placeholder="e.g., 10 tablets"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="unit_price">Unit Price (₹) *</Label>
+                    <Input
+                      id="unit_price"
+                      type="number"
+                      step="0.01"
+                      value={formData.unit_price}
+                      onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="mrp">MRP (₹) *</Label>
+                    <Input
+                      id="mrp"
+                      type="number"
+                      step="0.01"
+                      value={formData.mrp}
+                      onChange={(e) => setFormData({...formData, mrp: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="current_stock">Current Stock *</Label>
+                    <Input
+                      id="current_stock"
+                      type="number"
+                      value={formData.current_stock}
+                      onChange={(e) => setFormData({...formData, current_stock: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="minimum_stock">Minimum Stock</Label>
+                    <Input
+                      id="minimum_stock"
+                      type="number"
+                      value={formData.minimum_stock}
+                      onChange={(e) => setFormData({...formData, minimum_stock: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="batch_number">Batch Number</Label>
+                    <Input
+                      id="batch_number"
+                      value={formData.batch_number}
+                      onChange={(e) => setFormData({...formData, batch_number: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expiry_date">Expiry Date</Label>
+                    <Input
+                      id="expiry_date"
+                      type="date"
+                      value={formData.expiry_date}
+                      onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="supplier">Supplier</Label>
+                    <Select value={formData.supplier} onValueChange={(value) => setFormData({...formData, supplier: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendors?.map((vendor: any) => {
+                          const vendorId = vendor.id || vendor.vendor_id || 'unknown'
+                          const vendorName = vendor.vendor_name || vendor.name || 'Unknown Vendor'
+                          return (
+                            <SelectItem key={vendorId} value={vendorName}>
+                              {vendorName}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="composition">Composition</Label>
+                  <Textarea
+                    id="composition"
+                    value={formData.composition}
+                    onChange={(e) => setFormData({...formData, composition: e.target.value})}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => {
+                    setShowAddDialog(false)
+                    setSelectedMedicine(null)
+                    resetForm()
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">{selectedMedicine ? 'Update Medicine' : 'Add Medicine'}</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {/* Search and Filters */}
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search medicines..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="Antibiotics">Antibiotics</SelectItem>
+                <SelectItem value="Analgesics">Analgesics</SelectItem>
+                <SelectItem value="Vitamins">Vitamins</SelectItem>
+                <SelectItem value="Cardiac">Cardiac</SelectItem>
+                <SelectItem value="Diabetes">Diabetes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Medicine List */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Medicine Inventory</CardTitle>
-              <CardDescription>Current stock levels and medicine details</CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search medicines..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-              />
-            </div>
-          </div>
+          <CardTitle>Medicine Inventory</CardTitle>
+          <CardDescription>
+            {medicines?.length || 0} medicines in inventory
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Medicine</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Current Stock</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Batches</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {medicines?.map((medicine: any) => {
-                const status = getStockStatus(medicine.current_stock, medicine.minimum_stock)
-                return (
-                  <TableRow key={medicine.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-semibold">{medicine.name}</p>
+          {loading ? (
+            <div className="text-center py-8">Loading medicines...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">Error: {error}</div>
+          ) : (
+            <div className="space-y-4">
+              {medicines?.map((medicine: any) => (
+                <div key={medicine.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold">{medicine.name}</h3>
                         {medicine.generic_name && (
-                          <p className="text-sm text-gray-500">{medicine.generic_name}</p>
+                          <span className="text-sm text-gray-500">({medicine.generic_name})</span>
                         )}
-                        {medicine.manufacturer && (
-                          <p className="text-xs text-gray-400">{medicine.manufacturer}</p>
-                        )}
+                        <Badge {...getStockStatus(medicine.current_stock, medicine.minimum_stock)}>
+                          {getStockStatus(medicine.current_stock, medicine.minimum_stock).label}
+                        </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{medicine.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-semibold">{medicine.current_stock} {medicine.unit}</p>
-                        <p className="text-xs text-gray-500">Min: {medicine.minimum_stock}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm text-gray-600">
+                        <div>
+                          <span className="font-medium">Category:</span> {medicine.category || 'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Stock:</span> {medicine.current_stock}/{medicine.minimum_stock}
+                        </div>
+                        <div>
+                          <span className="font-medium">Unit Price:</span> ₹{Number(medicine.unit_price || 0).toFixed(2)}
+                        </div>
+                        <div>
+                          <span className="font-medium">MRP:</span> ₹{Number(medicine.mrp || 0).toFixed(2)}
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>₹{Number(medicine.unit_price || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge className={status.color}>{status.label}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Package className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">{medicine.batch_count || 0}</span>
-                        {medicine.expiring_stock > 0 && (
-                          <Badge variant="destructive" className="ml-2">
-                            {medicine.expiring_stock} expiring
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          View Batches
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-          
-          {(!medicines || medicines.length === 0) && (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No medicines found</p>
-              {searchTerm && (
-                <p className="text-sm text-gray-400">Try adjusting your search terms</p>
+                      {medicine.manufacturer && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          Manufacturer: {medicine.manufacturer}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedMedicine(medicine)
+                        setFormData({
+                          name: medicine.name || '',
+                          generic_name: medicine.generic_name || '',
+                          brand_name: medicine.brand_name || '',
+                          category: medicine.category || '',
+                          manufacturer: medicine.manufacturer || '',
+                          composition: medicine.composition || '',
+                          strength: medicine.strength || '',
+                          dosage_form: medicine.dosage_form || 'tablet',
+                          pack_size: medicine.pack_size || '',
+                          unit_price: medicine.unit_price?.toString() || '',
+                          mrp: medicine.mrp?.toString() || '',
+                          current_stock: medicine.current_stock?.toString() || '',
+                          minimum_stock: medicine.minimum_stock?.toString() || '10',
+                          maximum_stock: medicine.maximum_stock?.toString() || '1000',
+                          batch_number: medicine.batch_number || '',
+                          expiry_date: medicine.expiry_date || '',
+                          supplier: medicine.supplier || '',
+                          storage_conditions: medicine.storage_conditions || '',
+                          side_effects: medicine.side_effects || '',
+                          contraindications: medicine.contraindications || '',
+                          drug_interactions: medicine.drug_interactions || '',
+                          pregnancy_category: medicine.pregnancy_category || 'Unknown',
+                          prescription_required: medicine.prescription_required !== false
+                        })
+                        setShowAddDialog(true)
+                      }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteMedicine(medicine.id || medicine.medicine_id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!medicines || medicines.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  No medicines found. Add some medicines to get started.
+                </div>
               )}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Package className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-gray-600">Total Items</p>
-                <p className="text-xl font-bold">{medicines?.length || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <div>
-                <p className="text-sm text-gray-600">Low Stock</p>
-                <p className="text-xl font-bold">
-                  {medicines?.filter((m: any) => m.current_stock <= m.minimum_stock).length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-sm text-gray-600">Expiring Soon</p>
-                <p className="text-xl font-bold">
-                  {medicines?.filter((m: any) => m.expiring_stock > 0).length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <TrendingDown className="h-5 w-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-600">Out of Stock</p>
-                <p className="text-xl font-bold">
-                  {medicines?.filter((m: any) => m.current_stock === 0).length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
