@@ -25,11 +25,12 @@ export default function NewConsultationPage() {
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [prescriptions, setPrescriptions] = useState([{ medicine: '', dosage: '', frequency: '', duration: '' }]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await fetch('/api/patients');
+        const response = await fetch('/api/doctor/patients');
         if (!response.ok) {
           throw new Error('Failed to fetch patients');
         }
@@ -61,6 +62,11 @@ export default function NewConsultationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!patientId || !chiefComplaint.trim() || !diagnosis.trim()) {
+      toast.error('Please select a patient and fill out the Chief Complaint and Diagnosis fields.');
+      return;
+    }
+    setIsSubmitting(true);
     try {
       const response = await fetch('/api/doctor/consultations', {
         method: 'POST',
@@ -88,6 +94,8 @@ export default function NewConsultationPage() {
       console.error('Submission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast.error(`Failed to save: ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -171,7 +179,11 @@ export default function NewConsultationPage() {
                   <Button type="button" variant="outline" onClick={() => router.back()}>
                     Cancel
                   </Button>
-                  <Button type="submit" className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting || !patientId || !chiefComplaint.trim() || !diagnosis.trim()}
+                    className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <Save className="h-4 w-4 mr-2" />
                     Save Consultation
                   </Button>
