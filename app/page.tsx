@@ -779,43 +779,6 @@ export default function LandingPage() {
             {doctors.slice(0, 6).map((doctor) => (
               <Card key={doctor.id} className="border-pink-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 <CardContent className="p-0">
-                  {/* Doctor Image */}
-                  <div className={`relative h-64 ${doctor.isFounder ? 'bg-gradient-to-br from-yellow-100 to-yellow-200' : doctor.isGynecologist ? 'bg-gradient-to-br from-purple-100 to-purple-200' : 'bg-gradient-to-br from-pink-100 to-pink-200'}`}>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {doctor.isGynecologist ? (
-                        <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-8 rounded-full relative">
-                          <User className="h-16 w-16 text-white" />
-                          {/* Baby icon overlay for gynecologist */}
-                          <div className="absolute -bottom-2 -right-2 bg-pink-400 p-2 rounded-full">
-                            <Heart className="h-6 w-6 text-white" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={`${doctor.isFounder ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 'bg-gradient-to-r from-pink-400 to-pink-500'} p-8 rounded-full`}>
-                          <User className="h-16 w-16 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Special Badges */}
-                    {doctor.isFounder && (
-                      <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                        FOUNDER
-                      </div>
-                    )}
-                    {doctor.isGynecologist && (
-                      <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center">
-                        <Heart className="h-3 w-3 mr-1" />
-                        5000+ BABIES
-                      </div>
-                    )}
-                    
-                    {/* Rating Badge */}
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center space-x-1">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium text-gray-700">{doctor.rating}</span>
-                    </div>
-                  </div>
                   
                   {/* Doctor Info */}
                   <div className="p-6">
