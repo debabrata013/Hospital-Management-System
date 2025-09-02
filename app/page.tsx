@@ -1050,17 +1050,13 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center h-[400px]">
                   <div className="text-center">
                     <div className="relative inline-block mb-6">
-                      <Image 
+                      <img 
                         src="/images/dr-gk-nayak.jpg" 
                         alt="Dr G K Nayak - Founder" 
-                        width={160} 
-                        height={160} 
-                        className="rounded-full object-cover shadow-lg border-4 border-white"
+                        width={220} 
+                        height={220} 
+                        className="rounded-full object-cover shadow-lg border-2 border-white"
                       />
-                      {/* Founder crown icon */}
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-orange-400 p-2 rounded-full">
-                        <Award className="h-6 w-6 text-white" />
-                      </div>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr G K Nayak</h3>
                     <p className="text-yellow-600 font-medium">Founder & Chief Orthopedic Surgeon</p>
