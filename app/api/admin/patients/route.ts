@@ -117,11 +117,16 @@ export async function POST(request: NextRequest) {
       'SELECT patient_id FROM patients ORDER BY id DESC LIMIT 1'
     )
     
-    let nextPatientId = 'P001'
+    let nextPatientId = 'P001';
     if ((lastPatient as any[]).length > 0) {
-      const lastId = (lastPatient as any[])[0].patient_id
-      const num = parseInt(lastId.substring(1)) + 1
-      nextPatientId = `P${num.toString().padStart(3, '0')}`
+      const lastId = (lastPatient as any[])[0].patient_id;
+      // Validate lastId format: starts with 'P' and followed by a number
+      if (lastId && /^P\d+$/.test(lastId)) {
+        const num = parseInt(lastId.substring(1));
+        if (!isNaN(num)) {
+          nextPatientId = `P${(num + 1).toString().padStart(3, '0')}`;
+        }
+      }
     }
     
     // Insert new patient
