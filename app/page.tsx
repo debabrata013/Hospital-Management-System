@@ -235,7 +235,7 @@ const content = {
     }
   },
   english: {
-    hospitalName: "Arogya Hospital",
+    hospitalName: "NMSC",
     nav: {
       home: "Home",
       about: "About",
@@ -249,7 +249,7 @@ const content = {
       title: "Your Health",
       titleHighlight: "Journey",
       titleEnd: "Our Priority",
-      description: "At Arogya Hospital, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
+      description: "At NMSC, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
       getStarted: "Book Appointment",
       bookDemo: "Meet Our Team",
       stats: {
@@ -327,7 +327,7 @@ const content = {
       }
     },
     about: {
-      title: "Why Arogya Hospital is Best for You?",
+      title: "Why NMSC is Best for You?",
       description: "We understand that every patient is unique. That's why we've designed our services keeping your convenience in mind. Your health, your comfort, our responsibility.",
       support247: {
         title: "Instant Service",
@@ -363,14 +363,14 @@ const content = {
       title: "Meet Our",
       titleHighlight: "Founder",
       titleEnd: "",
-      description: "Dr. G K Nayak, the visionary founder of Arogya Hospital, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
       qualifications: {
         title: "Expert Qualifications",
         description: "MS (Orthopedics) with 40+ years of specialized experience in joint replacement and trauma surgery"
       },
       vision: {
         title: "Patient-Centric Vision",
-        description: "Founded Arogya Hospital with the mission to provide accessible, quality healthcare to all"
+        description: "Founded NMSC with the mission to provide accessible, quality healthcare to all"
       },
       excellence: {
         title: "Medical Excellence",
@@ -407,7 +407,7 @@ const content = {
       whatsapp: "WhatsApp Message"
     },
     footer: {
-      hospitalName: "Arogya Hospital",
+      hospitalName: "NMSC",
       tagline: "Your trusted partner in healthcare",
       quickLinks: {
         title: "Quick Links",
@@ -440,13 +440,7 @@ const content = {
         emergency: "Emergency: 24/7 Available",
         pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
       },
-      social: {
-        title: "Follow Us",
-        facebook: "Facebook",
-        twitter: "Twitter",
-        instagram: "Instagram",
-        youtube: "YouTube"
-      },
+     
       copyright: " 2024 Arogya Hospital. All rights reserved.",
       privacy: "Privacy Policy",
       terms: "Terms & Conditions",
@@ -538,7 +532,7 @@ export default function LandingPage() {
       rating: 4.9,
       availability: 'Mon-Sat, 9am-1pm',
       languages: ['Hindi', 'English'],
-      about: 'Dr. G K Nayak is the founder of Arogya Hospital and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
+      about: 'Dr. G K Nayak is the founder of NMSC and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
       isFounder: true
     },
     {
@@ -1793,26 +1787,8 @@ export default function LandingPage() {
                   <span className="text-gray-300 text-sm">{t.footer.hours.pharmacy}</span>
                 </div>
               </div>
-
-              {/* Social Media */}
-              <div className="mt-6">
-                <h4 className="text-md font-semibold mb-3 text-pink-400">{t.footer.social.title}</h4>
-                <div className="flex space-x-3">
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Facebook className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Twitter className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Instagram className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Youtube className="h-5 w-5" />
-                  </Link>
-                </div>
-              </div>
             </div>
+            {/* End of grid in footer */}
           </div>
 
           {/* Bottom Footer */}
