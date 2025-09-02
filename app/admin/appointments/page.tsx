@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { 
-  Plus, Search, Filter, Edit, Trash2, 
-  Calendar, Clock, User, Phone, 
+import {
+  Plus, Search, Filter, Edit, Trash2,
+  Calendar, Clock, User, Phone,
   ArrowLeft, ChevronLeft, ChevronRight,
   Stethoscope, FileText
 } from 'lucide-react'
@@ -91,7 +91,7 @@ export default function AppointmentsPage() {
 
       const response = await fetch(`/api/admin/appointments?${params}`)
       if (!response.ok) throw new Error('Failed to fetch appointments')
-      
+
       const data = await response.json()
       setAppointments(data.appointments)
       setPagination(data.pagination)
@@ -145,7 +145,7 @@ export default function AppointmentsPage() {
         title: "Success",
         description: "Appointment created successfully"
       })
-      
+
       setIsAddDialogOpen(false)
       resetForm()
       fetchAppointments()
@@ -178,7 +178,7 @@ export default function AppointmentsPage() {
         title: "Success",
         description: "Appointment updated successfully"
       })
-      
+
       setIsEditDialogOpen(false)
       setSelectedAppointment(null)
       resetForm()
@@ -209,7 +209,7 @@ export default function AppointmentsPage() {
         title: "Success",
         description: "Appointment cancelled successfully"
       })
-      
+
       fetchAppointments()
     } catch (error) {
       toast({
@@ -277,32 +277,32 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
       <div className="mb-8">
         <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Appointment Management</h1>
-            <p className="text-gray-600 mt-2">Manage all patient appointments and schedules</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Appointment Management</h1>
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">Manage all patient appointments and schedules</p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700">
+              <Button className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule Appointment
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Schedule New Appointment</DialogTitle>
                 <DialogDescription>Create a new appointment for a patient</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddAppointment} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="patient_id">Patient *</Label>
                     <Select value={formData.patient_id || undefined} onValueChange={(value) => setFormData({ ...formData, patient_id: value })}>
@@ -334,7 +334,7 @@ export default function AppointmentsPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="appointment_date">Appointment Date *</Label>
                     <Input
@@ -382,11 +382,11 @@ export default function AppointmentsPage() {
                     placeholder="Additional notes about the appointment..."
                   />
                 </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <div className="flex flex-col sm:flex-row-reverse sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+                  <Button type="submit" className="w-full sm:w-auto">Schedule Appointment</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="w-full sm:w-auto">
                     Cancel
                   </Button>
-                  <Button type="submit">Schedule Appointment</Button>
                 </div>
               </form>
             </DialogContent>
@@ -409,9 +409,9 @@ export default function AppointmentsPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -426,9 +426,9 @@ export default function AppointmentsPage() {
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-40"
+                className="w-full sm:w-40"
               />
-              <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); setDateFilter(''); }}>
+              <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); setDateFilter(''); }} className="w-full sm:w-auto">
                 <Filter className="h-4 w-4 mr-2" />
                 Clear
               </Button>
@@ -440,11 +440,11 @@ export default function AppointmentsPage() {
       {/* Appointments List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
+          <CardTitle className="flex items-center text-lg sm:text-xl">
             <Calendar className="h-5 w-5 mr-2" />
             Appointments ({pagination.total})
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} appointments
           </CardDescription>
         </CardHeader>
@@ -469,23 +469,29 @@ export default function AppointmentsPage() {
           ) : (
             <div className="space-y-4">
               {appointments.map((appointment) => (
-                <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-12 w-12">
+                <div key={appointment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-start space-x-4 mb-4 sm:mb-0">
+                    <Avatar className="h-12 w-12 flex-shrink-0">
                       <AvatarFallback className="bg-pink-100 text-pink-700">
                         {appointment.patient.name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="flex items-center space-x-2">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
                         <h3 className="font-semibold text-gray-900">{appointment.patient.name}</h3>
                         {getStatusBadge(appointment.status)}
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                      <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-600 mt-1">
                         <span className="flex items-center">
                           <User className="h-3 w-3 mr-1" />
                           {appointment.patient.patientId}
                         </span>
+                        <span className="flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {appointment.patient.contactNumber}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-500 mt-1">
                         <span className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
                           {formatDate(appointment.appointmentDate)}
@@ -499,14 +505,10 @@ export default function AppointmentsPage() {
                           {appointment.appointmentType}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                      <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
                         <span className="flex items-center">
                           <Stethoscope className="h-3 w-3 mr-1" />
                           Dr. {appointment.doctor.name} ({appointment.doctor.department})
-                        </span>
-                        <span className="flex items-center">
-                          <Phone className="h-3 w-3 mr-1" />
-                          {appointment.patient.contactNumber}
                         </span>
                       </div>
                       {appointment.notes && (
@@ -516,21 +518,24 @@ export default function AppointmentsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEditDialog(appointment)}
+                      className="w-1/2 sm:w-auto"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Edit</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteAppointment(appointment.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 w-1/2 sm:w-auto"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Cancel</span>
                     </Button>
                   </div>
                 </div>
@@ -540,7 +545,7 @@ export default function AppointmentsPage() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 space-y-4 sm:space-y-0">
               <p className="text-sm text-gray-700">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
@@ -571,13 +576,13 @@ export default function AppointmentsPage() {
 
       {/* Edit Appointment Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Appointment</DialogTitle>
             <DialogDescription>Update appointment information</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditAppointment} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-patient_id">Patient *</Label>
                 <Select value={formData.patient_id || undefined} onValueChange={(value) => setFormData({ ...formData, patient_id: value })}>
@@ -609,7 +614,7 @@ export default function AppointmentsPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-appointment_date">Appointment Date *</Label>
                 <Input
@@ -657,11 +662,11 @@ export default function AppointmentsPage() {
                 placeholder="Additional notes about the appointment..."
               />
             </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <div className="flex flex-col sm:flex-row-reverse sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+              <Button type="submit" className="w-full sm:w-auto">Update Appointment</Button>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit">Update Appointment</Button>
             </div>
           </form>
         </DialogContent>
