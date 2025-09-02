@@ -479,6 +479,12 @@ export default function LandingPage() {
 
   const t = content[language];
 
+  const sliderImages = [
+    '/images/slider-1.jpg',
+    '/images/slider-2.jpg',
+    '/images/slider-3.jpg'
+  ];
+
   const toggleLanguage = () => {
     setLanguage(prev => prev === 'english' ? 'hindi' : 'english');
   };
@@ -738,11 +744,7 @@ export default function LandingPage() {
             <div className="relative">
               <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl p-8 shadow-2xl">
                 <ImageCarousel
-                  images={[
-                    "https://placehold.co/1200x800/E9D5FF/4C1D95?text=Hospital+View",
-                    "https://placehold.co/1200x800/FBCFE8/86198F?text=Patient+Care",
-                    "https://placehold.co/1200x800/E0E7FF/3730A3?text=Founder"
-                  ]}
+                  images={sliderImages}
                   autoRotate={true}
                   rotationInterval={5000}
                   showControls={true}
@@ -938,10 +940,7 @@ export default function LandingPage() {
                   <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
                   <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
-                  <div className="text-3xl font-bold text-pink-600 mb-2">10+</div>
-                  <div className="text-gray-600">{t.gynecology.stats.experience}</div>
-                </div>
+                <ImageCarousel images={sliderImages} className="h-full" />
                 <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
                   <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
                   <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
