@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,99 +22,61 @@ import {
   Calendar,
   Award,
   Clock,
+  Loader2,
 } from 'lucide-react'
 
 // Doctor interface
 interface Doctor {
   id: number
+  user_id: string
   name: string
   email: string
-  phone: string
+  contact_number: string
   specialization: string
   department: string
-  experience: string
+  experience_years: number
   qualification: string
-  status: string
-  availability: string
-  patientsToday: number
-  rating: number
-  joinDate: string
-  bio?: string
-  licenseNumber?: string
-  emergencyContact?: string
+  license_number: string
+  address?: string
+  date_of_birth?: string
+  gender?: string
+  joining_date?: string
+  salary?: number
+  is_active: boolean
+  is_verified: boolean
+  last_login?: string
+  created_at: string
+  updated_at: string
 }
 
 // Form data interface
 interface DoctorFormData {
   name: string
   email: string
-  phone: string
+  password: string
+  contact_number: string
   specialization: string
   department: string
-  experience: string
+  experience_years: number
   qualification: string
-  bio: string
-  licenseNumber: string
-  emergencyContact: string
+  license_number: string
+  address: string
+  date_of_birth: string
+  gender: string
+  joining_date: string
+  salary: number
 }
 
-// Mock doctor data
-const mockDoctors: Doctor[] = [
-  {
-    id: 1,
-    name: "Dr. Anjali Mehta",
-    email: "anjali.mehta@hospital.com",
-    phone: "+91 98765 43210",
-    specialization: "Cardiologist",
-    department: "Cardiology",
-    experience: "12 years",
-    qualification: "MBBS, MD Cardiology",
-    status: "active",
-    availability: "Available",
-    patientsToday: 8,
-    rating: 4.8,
-    joinDate: "Jan 15, 2020",
-    bio: "Experienced cardiologist with expertise in interventional cardiology",
-    licenseNumber: "MED123456",
-    emergencyContact: "+91 98765 43211"
-  },
-  {
-    id: 2,
-    name: "Dr. Vikram Singh",
-    email: "vikram.singh@hospital.com",
-    phone: "+91 87654 32109",
-    specialization: "Neurologist",
-    department: "Neurology",
-    experience: "15 years",
-    qualification: "MBBS, MD Neurology",
-    status: "active",
-    availability: "In Surgery",
-    patientsToday: 6,
-    rating: 4.9,
-    joinDate: "Mar 22, 2019",
-    bio: "Specialist in neurological disorders and brain surgery",
-    licenseNumber: "MED123457",
-    emergencyContact: "+91 87654 32110"
-  },
-  {
-    id: 3,
-    name: "Dr. Sunita Rao",
-    email: "sunita.rao@hospital.com",
-    phone: "+91 76543 21098",
-    specialization: "Pediatrician",
-    department: "Pediatrics",
-    experience: "8 years",
-    qualification: "MBBS, MD Pediatrics",
-    status: "on-leave",
-    availability: "On Leave",
-    patientsToday: 0,
-    rating: 4.7,
-    joinDate: "Nov 08, 2021",
-    bio: "Dedicated pediatrician with focus on child healthcare",
-    licenseNumber: "MED123458",
-    emergencyContact: "+91 76543 21099"
-  }
-]
+// Stats interface
+interface DoctorStats {
+  totalDoctors: number
+  activeDoctors: number
+  inactiveDoctors: number
+  specializationsCount: number
+  departmentsCount: number
+  recentDoctors: number
+  specializationBreakdown: Array<{ specialization: string; count: number }>
+}
 
 // Available specializations and departments
 const specializations = [
@@ -130,11 +92,70 @@ const departments = [
 ]
 
 export default function DoctorsPage() {
-  const [doctors, setDoctors] = useState<Doctor[]>(mockDoctors)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [stats, setStats] = useState<DoctorStats | null>(null)
+  const [loading, setLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSpecialization, setSelectedSpecialization] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const { toast } = useToast()
+
+  // Fetch doctors from API
+  const fetchDoctors = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '10',
+        search: searchTerm,
+        specialization: selectedSpecialization === 'all' ? '' : selectedSpecialization
+      })
+      
+      const response = await fetch(`/api/super-admin/doctors?${params}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setDoctors(data.doctors)
+        setTotalPages(data.pagination.totalPages)
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch doctors",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch doctors",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch stats from API
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/super-admin/doctors/stats')
+      const data = await response.json()
+      setStats(data)
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+    }
+  }
+
+  // Load data on component mount and when filters change
+  useEffect(() => {
+    fetchDoctors()
+  }, [currentPage, searchTerm, selectedSpecialization])
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
 
   // Form validation
   const validateForm = (data: DoctorFormData): string[] => {
@@ -142,12 +163,12 @@ export default function DoctorsPage() {
 
     if (!data.name.trim()) errors.push("Name is required")
     if (!data.email.trim()) errors.push("Email is required")
-    if (!data.phone.trim()) errors.push("Phone is required")
+    if (!data.password.trim()) errors.push("Password is required")
+    if (!data.contact_number.trim()) errors.push("Contact number is required")
     if (!data.specialization) errors.push("Specialization is required")
     if (!data.department) errors.push("Department is required")
-    if (!data.experience.trim()) errors.push("Experience is required")
     if (!data.qualification.trim()) errors.push("Qualification is required")
-    if (!data.licenseNumber.trim()) errors.push("License number is required")
+    if (!data.license_number.trim()) errors.push("License number is required")
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -157,7 +178,7 @@ export default function DoctorsPage() {
 
     // Phone validation
     const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/
-    if (data.phone && !phoneRegex.test(data.phone)) {
+    if (data.contact_number && !phoneRegex.test(data.contact_number)) {
       errors.push("Please enter a valid phone number")
     }
 
@@ -165,7 +186,7 @@ export default function DoctorsPage() {
   }
 
   // Add new doctor
-  const handleAddDoctor = (formData: DoctorFormData) => {
+  const handleAddDoctor = async (formData: DoctorFormData) => {
     const errors = validateForm(formData)
 
     if (errors.length > 0) {
@@ -177,77 +198,88 @@ export default function DoctorsPage() {
       return
     }
 
-    const newDoctor: Doctor = {
-      id: doctors.length + 1,
-      ...formData,
-      status: "active",
-      availability: "Available",
-      patientsToday: 0,
-      rating: 0,
-      joinDate: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit'
+    try {
+      const response = await fetch('/api/super-admin/doctors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: `Dr. ${formData.name} has been added successfully!`,
+        })
+        setIsAddDialogOpen(false)
+        fetchDoctors() // Refresh the list
+        fetchStats() // Refresh stats
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to add doctor",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add doctor",
+        variant: "destructive"
       })
     }
-
-    setDoctors([...doctors, newDoctor])
-    setIsAddDialogOpen(false)
-
-    toast({
-      title: "Success",
-      description: `Dr. ${formData.name} has been added successfully!`,
-    })
-
-    // Form will be reset when the dialog closes
   }
 
   // Delete doctor
-  const handleDeleteDoctor = (doctorId: number) => {
-    if (confirm("Are you sure you want to delete this doctor?")) {
-      setDoctors(doctors.filter(doctor => doctor.id !== doctorId))
-      toast({
-        title: "Success",
-        description: "Doctor has been deleted successfully!",
-      })
+  const handleDeleteDoctor = async (doctorId: number) => {
+    if (confirm("Are you sure you want to deactivate this doctor?")) {
+      try {
+        const response = await fetch(`/api/super-admin/doctors/${doctorId}`, {
+          method: 'DELETE',
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          toast({
+            title: "Success",
+            description: "Doctor has been deactivated successfully!",
+          })
+          fetchDoctors() // Refresh the list
+          fetchStats() // Refresh stats
+        } else {
+          toast({
+            title: "Error",
+            description: data.error || "Failed to deactivate doctor",
+            variant: "destructive"
+          })
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to deactivate doctor",
+          variant: "destructive"
+        })
+      }
     }
   }
 
-  // Filter doctors
-  const filteredDoctors = doctors.filter(doctor => {
-    const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          doctor.department.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter doctors (now handled by API, but keeping for UI consistency)
+  const filteredDoctors = doctors
 
-    const matchesSpecialization = selectedSpecialization === "all" || !selectedSpecialization || doctor.specialization === selectedSpecialization
-
-    return matchesSearch && matchesSpecialization
-  })
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-700">Active</Badge>
-      case 'on-leave':
-        return <Badge className="bg-yellow-100 text-yellow-700">On Leave</Badge>
-      case 'inactive':
-        return <Badge className="bg-red-100 text-red-700">Inactive</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
-    }
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? 
+      <Badge className="bg-green-100 text-green-700">Active</Badge> :
+      <Badge className="bg-red-100 text-red-700">Inactive</Badge>
   }
 
-  const getAvailabilityBadge = (availability: string) => {
-    switch (availability) {
-      case 'Available':
-        return <Badge className="bg-green-100 text-green-700">Available</Badge>
-      case 'In Surgery':
-        return <Badge className="bg-blue-100 text-blue-700">In Surgery</Badge>
-      case 'On Leave':
-        return <Badge className="bg-yellow-100 text-yellow-700">On Leave</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{availability}</Badge>
-    }
+  const getVerificationBadge = (isVerified: boolean) => {
+    return isVerified ? 
+      <Badge className="bg-blue-100 text-blue-700">Verified</Badge> :
+      <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>
   }
 
   return (
@@ -294,7 +326,9 @@ export default function DoctorsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Total Doctors</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{doctors.length}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.totalDoctors || 0}
+                </p>
               </div>
               <Stethoscope className="h-6 w-6 sm:h-8 sm:w-8 text-pink-500" />
             </div>
@@ -305,9 +339,9 @@ export default function DoctorsPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Available Now</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Active Doctors</p>
                 <p className="text-xl sm:text-2xl font-bold text-green-600">
-                  {doctors.filter(d => d.availability === 'Available').length}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.activeDoctors || 0}
                 </p>
               </div>
               <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
@@ -321,7 +355,7 @@ export default function DoctorsPage() {
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Specializations</p>
                 <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                  {new Set(doctors.map(d => d.specialization)).size}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.specializationsCount || 0}
                 </p>
               </div>
               <Award className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
@@ -333,12 +367,12 @@ export default function DoctorsPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Avg Rating</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">New This Month</p>
                 <p className="text-xl sm:text-2xl font-bold text-purple-600">
-                  {(doctors.reduce((sum, d) => sum + d.rating, 0) / doctors.length).toFixed(1)}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.recentDoctors || 0}
                 </p>
               </div>
-              <Award className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
+              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -352,14 +386,20 @@ export default function DoctorsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search doctors by name, specialization, or department..."
+                  placeholder="Search doctors by name, email, or license number..."
                   className="pl-10 border-pink-200 focus:border-pink-400"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setCurrentPage(1) // Reset to first page when searching
+                  }}
                 />
               </div>
             </div>
-            <Select value={selectedSpecialization} onValueChange={setSelectedSpecialization}>
+            <Select value={selectedSpecialization} onValueChange={(value) => {
+              setSelectedSpecialization(value)
+              setCurrentPage(1) // Reset to first page when filtering
+            }}>
               <SelectTrigger className="w-full md:w-48 border-pink-200 text-pink-600">
                 <SelectValue placeholder="Filter by Specialization" />
               </SelectTrigger>
@@ -380,7 +420,12 @@ export default function DoctorsPage() {
           <CardTitle>Hospital Doctors ({filteredDoctors.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredDoctors.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-12 w-12 mx-auto mb-4 text-pink-500 animate-spin" />
+              <p className="text-gray-500">Loading doctors...</p>
+            </div>
+          ) : filteredDoctors.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <UserCheck className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>No doctors found matching your criteria</p>
@@ -396,7 +441,7 @@ export default function DoctorsPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900 text-lg sm:text-xl">{doctor.name}</h3>
-                        <p className="text-xs sm:text-sm text-gray-600 font-medium">{doctor.specialization} • {doctor.department}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 font-medium">{doctor.specialization} • {doctor.department || 'General'}</p>
                         <p className="text-xs text-gray-500">{doctor.qualification}</p>
                         <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 mt-2">
                           <div className="flex items-center text-xs text-gray-500">
@@ -405,11 +450,11 @@ export default function DoctorsPage() {
                           </div>
                           <div className="flex items-center text-xs text-gray-500">
                             <Phone className="h-3 w-3 mr-1" />
-                            {doctor.phone}
+                            {doctor.contact_number}
                           </div>
                           <div className="flex items-center text-xs text-gray-500">
                             <Clock className="h-3 w-3 mr-1" />
-                            {doctor.experience} experience
+                            {doctor.experience_years} years experience
                           </div>
                         </div>
                       </div>
@@ -417,21 +462,23 @@ export default function DoctorsPage() {
 
                     <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 w-full sm:w-auto">
                       <div className="text-center w-full sm:w-auto">
-                        <p className="text-sm font-medium text-gray-900">Today's Patients</p>
-                        <p className="text-xl sm:text-2xl font-bold text-pink-600">{doctor.patientsToday}</p>
+                        <p className="text-sm font-medium text-gray-900">User ID</p>
+                        <p className="text-lg sm:text-xl font-bold text-pink-600">{doctor.user_id}</p>
                       </div>
 
                       <div className="text-center w-full sm:w-auto">
-                        <p className="text-sm font-medium text-gray-900">Rating</p>
-                        <p className="text-xl sm:text-2xl font-bold text-yellow-600">⭐ {doctor.rating}</p>
+                        <p className="text-sm font-medium text-gray-900">License</p>
+                        <p className="text-sm font-medium text-blue-600">{doctor.license_number}</p>
                       </div>
 
                       <div className="text-right w-full sm:w-auto">
                         <div className="space-y-2">
-                          {getStatusBadge(doctor.status)}
-                          {getAvailabilityBadge(doctor.availability)}
+                          {getStatusBadge(doctor.is_active)}
+                          {getVerificationBadge(doctor.is_verified)}
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">Joined: {doctor.joinDate}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Joined: {doctor.created_at ? new Date(doctor.created_at).toLocaleDateString() : 'N/A'}
+                        </p>
                       </div>
 
                       <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -498,28 +545,36 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
   const [formData, setFormData] = useState<DoctorFormData>({
     name: "",
     email: "",
-    phone: "",
+    password: "",
+    contact_number: "",
     specialization: "",
     department: "",
-    experience: "",
+    experience_years: 0,
     qualification: "",
-    bio: "",
-    licenseNumber: "",
-    emergencyContact: ""
+    license_number: "",
+    address: "",
+    date_of_birth: "",
+    gender: "",
+    joining_date: "",
+    salary: 0
   })
 
   const resetForm = () => {
     setFormData({
       name: "",
       email: "",
-      phone: "",
+      password: "",
+      contact_number: "",
       specialization: "",
       department: "",
-      experience: "",
+      experience_years: 0,
       qualification: "",
-      bio: "",
-      licenseNumber: "",
-      emergencyContact: ""
+      license_number: "",
+      address: "",
+      date_of_birth: "",
+      gender: "",
+      joining_date: "",
+      salary: 0
     })
   }
 
@@ -529,7 +584,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
     resetForm()
   }
 
-  const handleInputChange = (field: keyof DoctorFormData, value: string) => {
+  const handleInputChange = (field: keyof DoctorFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -560,10 +615,22 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
           <Input
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
+            type="password"
+            value={formData.password}
+            onChange={(e) => handleInputChange('password', e.target.value)}
+            placeholder="Enter secure password"
+            className="border-pink-200 focus:border-pink-400"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Contact Number *</label>
+          <Input
+            value={formData.contact_number}
+            onChange={(e) => handleInputChange('contact_number', e.target.value)}
             placeholder="+91 98765 43210"
             className="border-pink-200 focus:border-pink-400"
             required
@@ -573,8 +640,8 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">License Number *</label>
           <Input
-            value={formData.licenseNumber}
-            onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
+            value={formData.license_number}
+            onChange={(e) => handleInputChange('license_number', e.target.value)}
             placeholder="MED123456"
             className="border-pink-200 focus:border-pink-400"
             required
@@ -596,7 +663,7 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Department *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
           <Select value={formData.department || undefined} onValueChange={(value) => handleInputChange('department', value)}>
             <SelectTrigger className="border-pink-200 focus:border-pink-400">
               <SelectValue placeholder="Select department" />
@@ -610,11 +677,12 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Experience *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Experience (Years) *</label>
           <Input
-            value={formData.experience}
-            onChange={(e) => handleInputChange('experience', e.target.value)}
-            placeholder="5 years"
+            type="number"
+            value={formData.experience_years}
+            onChange={(e) => handleInputChange('experience_years', parseInt(e.target.value) || 0)}
+            placeholder="5"
             className="border-pink-200 focus:border-pink-400"
             required
           />
@@ -632,22 +700,57 @@ function AddDoctorForm({ onSubmit, onCancel }: { onSubmit: (data: DoctorFormData
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+          <Select value={formData.gender || undefined} onValueChange={(value) => handleInputChange('gender', value)}>
+            <SelectTrigger className="border-pink-200 focus:border-pink-400">
+              <SelectValue placeholder="Select gender" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Male">Male</SelectItem>
+              <SelectItem value="Female">Female</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
           <Input
-            value={formData.emergencyContact}
-            onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-            placeholder="+91 98765 43211"
+            type="date"
+            value={formData.date_of_birth}
+            onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+            className="border-pink-200 focus:border-pink-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Joining Date</label>
+          <Input
+            type="date"
+            value={formData.joining_date}
+            onChange={(e) => handleInputChange('joining_date', e.target.value)}
+            className="border-pink-200 focus:border-pink-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Salary</label>
+          <Input
+            type="number"
+            value={formData.salary}
+            onChange={(e) => handleInputChange('salary', parseInt(e.target.value) || 0)}
+            placeholder="50000"
             className="border-pink-200 focus:border-pink-400"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
         <Textarea
-          value={formData.bio}
-          onChange={(e) => handleInputChange('bio', e.target.value)}
-          placeholder="Brief description about the doctor's expertise and experience..."
+          value={formData.address}
+          onChange={(e) => handleInputChange('address', e.target.value)}
+          placeholder="Complete address..."
           className="border-pink-200 focus:border-pink-400"
           rows={3}
         />
