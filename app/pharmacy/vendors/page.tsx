@@ -5,245 +5,433 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { 
-  Building2, Phone, Mail, MapPin, Plus, Search, 
-  Edit, Trash2, Package, TrendingUp, Loader2, AlertTriangle
+  Building2, Plus, Search, Edit, Trash2, Eye, 
+  Phone, Mail, MapPin, Star
 } from 'lucide-react'
 import { useVendors } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
 
-export default function VendorManagement() {
+export default function VendorsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newVendor, setNewVendor] = useState({
-    name: '',
-    contact_person: '',
-    phone: '',
-    email: '',
-    address: ''
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [selectedVendor, setSelectedVendor] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    vendor_name: "",
+    contact_person: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    gst_number: "",
+    pan_number: "",
+    vendor_type: "medicine",
+    payment_terms: "",
+    credit_limit: "",
+    rating: "0",
+    notes: ""
   })
 
-  const { vendors, loading, error, refetch, createVendor } = useVendors({
-    search: searchTerm || undefined
+  const { vendors, loading, error, refetch, createVendor, updateVendor, deleteVendor } = useVendors({
+    search: searchTerm,
+    status: statusFilter === "all" ? "" : statusFilter
   })
 
-  const handleAddVendor = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
-      await createVendor(newVendor)
-      setNewVendor({ name: '', contact_person: '', phone: '', email: '', address: '' })
-      setIsDialogOpen(false)
-      toast.success('Vendor added successfully')
+      if (selectedVendor) {
+        await updateVendor(selectedVendor.id || selectedVendor.vendor_id, {
+          ...formData,
+          name: formData.vendor_name
+        })
+        toast.success("Vendor updated successfully")
+      } else {
+        await createVendor({
+          ...formData,
+          name: formData.vendor_name,
+          status: 'active'
+        })
+        toast.success("Vendor added successfully")
+      }
+      setShowAddDialog(false)
+      setSelectedVendor(null)
+      resetForm()
     } catch (error) {
-      toast.error('Failed to add vendor')
+      toast.error(selectedVendor ? "Failed to update vendor" : "Failed to add vendor")
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading vendors...</p>
-        </div>
-      </div>
-    )
+  const handleDeleteVendor = async (id: string) => {
+    if (confirm('Are you sure you want to delete this vendor?')) {
+      try {
+        await deleteVendor(id)
+        toast.success("Vendor deleted successfully")
+      } catch (error) {
+        toast.error("Failed to delete vendor")
+      }
+    }
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Error loading vendors: {error}</p>
-          <Button onClick={refetch} className="mt-4">
-            Retry
-          </Button>
-        </div>
-      </div>
-    )
+  const resetForm = () => {
+    setFormData({
+      vendor_name: "",
+      contact_person: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      pincode: "",
+      gst_number: "",
+      pan_number: "",
+      vendor_type: "medicine",
+      payment_terms: "",
+      credit_limit: "",
+      rating: "0",
+      notes: ""
+    })
+  }
+
+  const getStatusBadge = (status: string) => {
+    return status === 'active' ? 
+      <Badge variant="default">Active</Badge> : 
+      <Badge variant="secondary">Inactive</Badge>
+  }
+
+  const getRatingStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star 
+        key={i} 
+        className={`h-4 w-4 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+      />
+    ))
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Vendor Management</h1>
+          <h1 className="text-3xl font-bold">Vendors</h1>
           <p className="text-gray-600">Manage medicine suppliers and vendors</p>
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Add Vendor
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Vendor</DialogTitle>
-              <DialogDescription>Enter vendor details to add to the system</DialogDescription>
+              <DialogTitle>{selectedVendor ? 'Edit Vendor' : 'Add New Vendor'}</DialogTitle>
+              <DialogDescription>
+                {selectedVendor ? 'Update vendor details' : 'Enter vendor details to add to your supplier list'}
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Vendor Name</Label>
-                <Input
-                  id="name"
-                  value={newVendor.name}
-                  onChange={(e) => setNewVendor({...newVendor, name: e.target.value})}
-                  placeholder="Enter vendor name"
-                />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="vendor_name">Vendor Name *</Label>
+                  <Input
+                    id="vendor_name"
+                    value={formData.vendor_name}
+                    onChange={(e) => setFormData({...formData, vendor_name: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contact_person">Contact Person</Label>
+                  <Input
+                    id="contact_person"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone *</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vendor_type">Vendor Type</Label>
+                  <Select value={formData.vendor_type} onValueChange={(value) => setFormData({...formData, vendor_type: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="medicine">Medicine</SelectItem>
+                      <SelectItem value="equipment">Equipment</SelectItem>
+                      <SelectItem value="supplies">Supplies</SelectItem>
+                      <SelectItem value="services">Services</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="gst_number">GST Number</Label>
+                  <Input
+                    id="gst_number"
+                    value={formData.gst_number}
+                    onChange={(e) => setFormData({...formData, gst_number: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pan_number">PAN Number</Label>
+                  <Input
+                    id="pan_number"
+                    value={formData.pan_number}
+                    onChange={(e) => setFormData({...formData, pan_number: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="credit_limit">Credit Limit (₹)</Label>
+                  <Input
+                    id="credit_limit"
+                    type="number"
+                    step="0.01"
+                    value={formData.credit_limit}
+                    onChange={(e) => setFormData({...formData, credit_limit: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData({...formData, state: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pincode">Pincode</Label>
+                  <Input
+                    id="pincode"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="contact">Contact Person</Label>
-                <Input
-                  id="contact"
-                  value={newVendor.contact_person}
-                  onChange={(e) => setNewVendor({...newVendor, contact_person: e.target.value})}
-                  placeholder="Enter contact person name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={newVendor.phone}
-                  onChange={(e) => setNewVendor({...newVendor, phone: e.target.value})}
-                  placeholder="Enter phone number"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newVendor.email}
-                  onChange={(e) => setNewVendor({...newVendor, email: e.target.value})}
-                  placeholder="Enter email address"
-                />
-              </div>
+              
               <div>
                 <Label htmlFor="address">Address</Label>
                 <Textarea
                   id="address"
-                  value={newVendor.address}
-                  onChange={(e) => setNewVendor({...newVendor, address: e.target.value})}
-                  placeholder="Enter vendor address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  rows={2}
                 />
               </div>
-              <Button onClick={handleAddVendor} className="w-full">
-                Add Vendor
-              </Button>
-            </div>
+
+              <div>
+                <Label htmlFor="payment_terms">Payment Terms</Label>
+                <Input
+                  id="payment_terms"
+                  value={formData.payment_terms}
+                  onChange={(e) => setFormData({...formData, payment_terms: e.target.value})}
+                  placeholder="e.g., Net 30 days"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => {
+                  setShowAddDialog(false)
+                  setSelectedVendor(null)
+                  resetForm()
+                }}>
+                  Cancel
+                </Button>
+                <Button type="submit">{selectedVendor ? 'Update Vendor' : 'Add Vendor'}</Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search vendors..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Vendors List */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Vendor List</CardTitle>
-              <CardDescription>Manage your medicine suppliers</CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search vendors..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-              />
-            </div>
-          </div>
+          <CardTitle>Vendor Directory</CardTitle>
+          <CardDescription>
+            {vendors?.length || 0} vendors in your network
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Orders</TableHead>
-                <TableHead>Last Order</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          {loading ? (
+            <div className="text-center py-8">Loading vendors...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">Error: {error}</div>
+          ) : (
+            <div className="grid gap-4">
               {vendors?.map((vendor: any) => (
-                <TableRow key={vendor.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Building2 className="h-8 w-8 text-blue-500" />
-                      <div>
-                        <p className="font-semibold">{vendor.name}</p>
-                        <p className="text-sm text-gray-500">{vendor.contact_person}</p>
+                <div key={vendor.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Building2 className="h-5 w-5 text-blue-500" />
+                        <h3 className="font-semibold text-lg">{vendor.vendor_name || vendor.name}</h3>
+                        {getStatusBadge(vendor.status || 'active')}
+                        <Badge variant="outline">{vendor.vendor_type}</Badge>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {vendor.phone && (
-                        <div className="flex items-center text-sm">
-                          <Phone className="h-3 w-3 mr-1" />
-                          {vendor.phone}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        {vendor.contact_person && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Contact:</span>
+                            <span>{vendor.contact_person}</span>
+                          </div>
+                        )}
+                        {vendor.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span>{vendor.phone}</span>
+                          </div>
+                        )}
+                        {vendor.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            <span>{vendor.email}</span>
+                          </div>
+                        )}
+                        {vendor.city && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-400" />
+                            <span>{vendor.city}, {vendor.state}</span>
+                          </div>
+                        )}
+                        {vendor.gst_number && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">GST:</span>
+                            <span>{vendor.gst_number}</span>
+                          </div>
+                        )}
+                        {vendor.credit_limit && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Credit Limit:</span>
+                            <span>₹{Number(vendor.credit_limit).toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {vendor.rating && Number(vendor.rating) > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-sm font-medium">Rating:</span>
+                          <div className="flex">
+                            {getRatingStars(Number(vendor.rating))}
+                          </div>
+                          <span className="text-sm text-gray-500">({vendor.rating}/5)</span>
                         </div>
                       )}
-                      {vendor.email && (
-                        <div className="flex items-center text-sm">
-                          <Mail className="h-3 w-3 mr-1" />
-                          {vendor.email}
-                        </div>
-                      )}
+
                       {vendor.address && (
-                        <div className="flex items-center text-sm">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {vendor.address}
+                        <div className="mt-2 text-sm text-gray-600">
+                          <span className="font-medium">Address:</span> {vendor.address}
                         </div>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={vendor.status === 'active' ? 'default' : 'secondary'}>
-                      {vendor.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Package className="h-4 w-4 mr-1 text-gray-400" />
-                      {vendor.total_orders || 0}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {vendor.last_order_date ? 
-                      new Date(vendor.last_order_date).toLocaleDateString() : 
-                      'No orders'
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                    
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedVendor(vendor)
+                        setFormData({
+                          vendor_name: vendor.vendor_name || vendor.name,
+                          contact_person: vendor.contact_person || '',
+                          email: vendor.email || '',
+                          phone: vendor.phone || '',
+                          address: vendor.address || '',
+                          city: vendor.city || '',
+                          state: vendor.state || '',
+                          pincode: vendor.pincode || '',
+                          gst_number: vendor.gst_number || '',
+                          pan_number: vendor.pan_number || '',
+                          vendor_type: vendor.vendor_type || 'medicine',
+                          payment_terms: vendor.payment_terms || '',
+                          credit_limit: vendor.credit_limit?.toString() || '',
+                          rating: vendor.rating?.toString() || '0',
+                          notes: vendor.notes || ''
+                        })
+                        setShowAddDialog(true)
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteVendor(vendor.id || vendor.vendor_id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-          
-          {(!vendors || vendors.length === 0) && (
-            <div className="text-center py-8">
-              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No vendors found</p>
-              {searchTerm && (
-                <p className="text-sm text-gray-400">Try adjusting your search terms</p>
+              {(!vendors || vendors.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  No vendors found. Add some vendors to get started.
+                </div>
               )}
             </div>
           )}

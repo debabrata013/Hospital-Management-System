@@ -35,85 +35,9 @@ import {
 import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
 
 
-const todayAppointments: any[] = [
-  {
-    id: "APT001",
-    patientName: "राजेश कुमार",
-    patientId: "P001",
-    time: "09:30 AM",
-    type: "Follow-up",
-    status: "completed",
-    condition: "Hypertension",
-    room: "Room 101",
-    phone: "+91 98765 43210"
-  },
-  {
-    id: "APT002", 
-    patientName: "सुनीता देवी",
-    patientId: "P002",
-    time: "10:15 AM",
-    type: "Consultation",
-    status: "in_progress",
-    condition: "Chest Pain",
-    room: "Room 101",
-    phone: "+91 87654 32109"
-  },
-  {
-    id: "APT003",
-    patientName: "मोहम्मद अली",
-    patientId: "P003",
-    time: "11:00 AM",
-    type: "Check-up",
-    status: "waiting",
-    condition: "Cardiac Monitoring",
-    room: "Room 101",
-    phone: "+91 76543 21098"
-  },
-  {
-    id: "APT004",
-    patientName: "अनिता सिंह",
-    patientId: "P004",
-    time: "02:30 PM",
-    type: "Emergency",
-    status: "scheduled",
-    condition: "Acute Chest Pain",
-    room: "Emergency",
-    phone: "+91 65432 10987"
-  }
-];
+// Mock data removed - using real API data from /api/doctor/appointments
 
-const recentPatients: any[] = [
-  {
-    id: "P001",
-    name: "राजेश कुमार",
-    age: 45,
-    lastVisit: "2024-01-09",
-    condition: "Hypertension",
-    status: "stable",
-    vitals: { bp: "140/90", temp: "98.6°F", weight: "75kg" },
-    nextAppointment: "2024-01-16"
-  },
-  {
-    id: "P002",
-    name: "सुनीता देवी",
-    age: 38,
-    lastVisit: "2024-01-09",
-    condition: "Chest Pain Investigation",
-    status: "under_observation",
-    vitals: { bp: "130/85", temp: "99.1°F", weight: "62kg" },
-    nextAppointment: "2024-01-12"
-  },
-  {
-    id: "P003",
-    name: "मोहम्मद अली",
-    age: 62,
-    lastVisit: "2024-01-08",
-    condition: "Post-Surgery Recovery",
-    status: "improving",
-    vitals: { bp: "125/80", temp: "98.4°F", weight: "68kg" },
-    nextAppointment: "2024-01-15"
-  }
-]
+// Mock recent patients data removed - using real API data from /api/doctor/recent-patients
 
 
 // Navigation items
@@ -204,9 +128,12 @@ export default function DoctorDashboard() {
           throw new Error('Failed to fetch appointments');
         }
         const data = await response.json();
+        console.log('Appointments API response:', data); // Debug log
         setAppointments(data);
       } catch (error) {
         console.error("Error fetching appointments:", error);
+        // Set empty array instead of leaving undefined
+        setAppointments([]);
       } finally {
         setAppointmentsLoading(false);
       }

@@ -1,357 +1,671 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
 import { 
-  Calendar, 
-  Plus, 
-  Search, 
-  Filter,
-  Edit,
-  Eye,
-  Clock,
-  User,
-  Stethoscope,
-  Phone,
-  CheckCircle,
-  XCircle,
-  AlertCircle
+  Plus, Search, Filter, Edit, Trash2, 
+  Calendar, Clock, User, Phone, 
+  ArrowLeft, ChevronLeft, ChevronRight,
+  Stethoscope, FileText
 } from 'lucide-react'
 
-// Mock appointment data
-const mockAppointments = [
-  {
-    id: "APT001",
-    patientName: "Rajesh Kumar",
-    patientId: "P001",
-    doctorName: "Dr. Priya Sharma",
-    department: "Cardiology",
-    date: "2024-01-09",
-    time: "09:30 AM",
-    type: "Consultation",
-    status: "confirmed",
-    phone: "+91 98765 43210",
-    notes: "Follow-up for chest pain"
-  },
-  {
-    id: "APT002",
-    patientName: "Sunita Devi",
-    patientId: "P002",
-    doctorName: "Dr. Amit Patel",
-    department: "Gynecology",
-    date: "2024-01-09",
-    time: "10:15 AM",
-    type: "Check-up",
-    status: "confirmed",
-    phone: "+91 87654 32109",
-    notes: "Routine pregnancy check-up"
-  },
-  {
-    id: "APT003",
-    patientName: "Mohammed Ali",
-    patientId: "P003",
-    doctorName: "Dr. Sarah Johnson",
-    department: "Internal Medicine",
-    date: "2024-01-09",
-    time: "11:00 AM",
-    type: "Follow-up",
-    status: "pending",
-    phone: "+91 76543 21098",
-    notes: "Diabetes management review"
-  },
-  {
-    id: "APT004",
-    patientName: "Anita Singh",
-    patientId: "P004",
-    doctorName: "Dr. Michael Brown",
-    department: "Orthopedics",
-    date: "2024-01-09",
-    time: "02:30 PM",
-    type: "Surgery Consultation",
-    status: "completed",
-    phone: "+91 65432 10987",
-    notes: "Knee replacement consultation"
+interface Appointment {
+  id: number
+  appointmentDate: string
+  appointmentTime: string
+  appointmentType: string
+  status: string
+  notes?: string
+  patient: {
+    id: number
+    name: string
+    patientId: string
+    contactNumber: string
   }
-]
+  doctor: {
+    id: number
+    name: string
+    department: string
+  }
+}
 
-export default function AdminAppointmentsPage() {
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+export default function AppointmentsPage() {
+  const { toast } = useToast()
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
+  })
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState('')
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [patients, setPatients] = useState<any[]>([])
+  const [doctors, setDoctors] = useState<any[]>([])
+  const [formData, setFormData] = useState({
+    patient_id: '',
+    doctor_id: '',
+    appointment_date: '',
+    appointment_time: '',
+    appointment_type: '',
+    notes: ''
+  })
+
+  useEffect(() => {
+    fetchAppointments()
+    fetchFormData()
+  }, [pagination.page, search, statusFilter, dateFilter])
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        ...(search && { search }),
+        ...(statusFilter && statusFilter !== 'all' && { status: statusFilter }),
+        ...(dateFilter && { date: dateFilter })
+      })
+
+      const response = await fetch(`/api/admin/appointments?${params}`)
+      if (!response.ok) throw new Error('Failed to fetch appointments')
+      
+      const data = await response.json()
+      setAppointments(data.appointments)
+      setPagination(data.pagination)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch appointments",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchFormData = async () => {
+    try {
+      const [patientsRes, doctorsRes] = await Promise.all([
+        fetch('/api/admin/patients-list'),
+        fetch('/api/admin/appointment-data')
+      ])
+
+      if (patientsRes.ok) {
+        const patientsData = await patientsRes.json()
+        setPatients(patientsData)
+      }
+
+      if (doctorsRes.ok) {
+        const doctorsData = await doctorsRes.json()
+        setDoctors(doctorsData.doctors)
+      }
+    } catch (error) {
+      console.error('Error fetching form data:', error)
+    }
+  }
+
+  const handleAddAppointment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch('/api/admin/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create appointment')
+      }
+
+      toast({
+        title: "Success",
+        description: "Appointment created successfully"
+      })
+      
+      setIsAddDialogOpen(false)
+      resetForm()
+      fetchAppointments()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to create appointment',
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleEditAppointment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedAppointment) return
+
+    try {
+      const response = await fetch('/api/admin/appointments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedAppointment.id, ...formData })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update appointment')
+      }
+
+      toast({
+        title: "Success",
+        description: "Appointment updated successfully"
+      })
+      
+      setIsEditDialogOpen(false)
+      setSelectedAppointment(null)
+      resetForm()
+      fetchAppointments()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update appointment',
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteAppointment = async (id: number) => {
+    if (!confirm('Are you sure you want to cancel this appointment?')) return
+
+    try {
+      const response = await fetch(`/api/admin/appointments?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to cancel appointment')
+      }
+
+      toast({
+        title: "Success",
+        description: "Appointment cancelled successfully"
+      })
+      
+      fetchAppointments()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to cancel appointment',
+        variant: "destructive"
+      })
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      patient_id: '',
+      doctor_id: '',
+      appointment_date: '',
+      appointment_time: '',
+      appointment_type: '',
+      notes: ''
+    })
+  }
+
+  const openEditDialog = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setFormData({
+      patient_id: appointment.patient.id.toString(),
+      doctor_id: appointment.doctor.id.toString(),
+      appointment_date: appointment.appointmentDate,
+      appointment_time: appointment.appointmentTime,
+      appointment_type: appointment.appointmentType,
+      notes: appointment.notes || ''
+    })
+    setIsEditDialogOpen(true)
+  }
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge className="bg-green-100 text-green-700">Confirmed</Badge>
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return <Badge className="bg-blue-100 text-blue-700">Scheduled</Badge>
       case 'completed':
-        return <Badge className="bg-blue-100 text-blue-700">Completed</Badge>
+        return <Badge className="bg-green-100 text-green-700">Completed</Badge>
       case 'cancelled':
         return <Badge className="bg-red-100 text-red-700">Cancelled</Badge>
+      case 'no show':
+        return <Badge className="bg-yellow-100 text-yellow-700">No Show</Badge>
       default:
         return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'pending':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-blue-500" />
-      case 'cancelled':
-        return <XCircle className="h-4 w-4 text-red-500" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Consultation':
-        return 'bg-blue-100 text-blue-700'
-      case 'Check-up':
-        return 'bg-green-100 text-green-700'
-      case 'Follow-up':
-        return 'bg-purple-100 text-purple-700'
-      case 'Surgery Consultation':
-        return 'bg-red-100 text-red-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
+  const formatTime = (timeString: string) => {
+    const [hours, minutes] = timeString.split(':')
+    const hour = parseInt(hours, 10)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const formattedHour = hour % 12 || 12
+    return `${formattedHour}:${minutes} ${ampm}`
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
-      <div className="mb-6 md:mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
-            <Calendar className="h-7 w-7 md:h-8 md:w-8 mr-2 md:mr-3 text-pink-500" />
-            Appointment Management
-          </h1>
-          <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
-            Schedule, manage, and track patient appointments
-          </p>
-        </div>
-        <Button className="w-full md:w-auto bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 flex items-center justify-center">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Appointment
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 md:mb-8">
-        <Card className="border-pink-100">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm md:text-base font-medium text-gray-600">Today's Appointments</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900">52</p>
-              </div>
-              <Calendar className="h-6 w-6 md:h-8 md:w-8 text-pink-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm md:text-base font-medium text-gray-600">Confirmed</p>
-                <p className="text-xl md:text-2xl font-bold text-green-600">38</p>
-              </div>
-              <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm md:text-base font-medium text-gray-600">Pending</p>
-                <p className="text-xl md:text-2xl font-bold text-yellow-600">11</p>
-              </div>
-              <AlertCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm md:text-base font-medium text-gray-600">Completed</p>
-                <p className="text-xl md:text-2xl font-bold text-blue-600">28</p>
-              </div>
-              <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search & Filter */}
-      <Card className="border-pink-100 mb-6">
-        <CardContent className="p-4 md:p-6 flex flex-col md:flex-row gap-3 md:gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input 
-              placeholder="Search appointments by patient name, doctor, or appointment ID..." 
-              className="pl-10 border-pink-200 focus:border-pink-400 w-full"
-            />
+      <div className="mb-8">
+        <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Link>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Appointment Management</h1>
+            <p className="text-gray-600 mt-2">Manage all patient appointments and schedules</p>
           </div>
-          <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full md:w-auto flex items-center justify-center">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter by Status
-          </Button>
-          <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full md:w-auto flex items-center justify-center">
-            <Calendar className="h-4 w-4 mr-2" />
-            Today
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Schedule Appointment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Schedule New Appointment</DialogTitle>
+                <DialogDescription>Create a new appointment for a patient</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddAppointment} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="patient_id">Patient *</Label>
+                    <Select value={formData.patient_id || undefined} onValueChange={(value) => setFormData({ ...formData, patient_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select patient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patients.map((patient) => (
+                          <SelectItem key={patient.id} value={patient.id.toString()}>
+                            {patient.name} ({patient.patient_id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="doctor_id">Doctor *</Label>
+                    <Select value={formData.doctor_id || undefined} onValueChange={(value) => setFormData({ ...formData, doctor_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select doctor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctors.map((doctor) => (
+                          <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                            {doctor.name} ({doctor.department})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="appointment_date">Appointment Date *</Label>
+                    <Input
+                      id="appointment_date"
+                      type="date"
+                      value={formData.appointment_date}
+                      onChange={(e) => setFormData({ ...formData, appointment_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="appointment_time">Appointment Time *</Label>
+                    <Input
+                      id="appointment_time"
+                      type="time"
+                      value={formData.appointment_time}
+                      onChange={(e) => setFormData({ ...formData, appointment_time: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="appointment_type">Appointment Type *</Label>
+                  <Select value={formData.appointment_type || undefined} onValueChange={(value) => setFormData({ ...formData, appointment_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select appointment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="General Consultation">General Consultation</SelectItem>
+                      <SelectItem value="Follow-up">Follow-up</SelectItem>
+                      <SelectItem value="Emergency">Emergency</SelectItem>
+                      <SelectItem value="Surgery">Surgery</SelectItem>
+                      <SelectItem value="Lab Test">Lab Test</SelectItem>
+                      <SelectItem value="X-Ray">X-Ray</SelectItem>
+                      <SelectItem value="Specialist Consultation">Specialist Consultation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Additional notes about the appointment..."
+                  />
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Schedule Appointment</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search appointments by patient, doctor, or type..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  <SelectItem value="No Show">No Show</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-40"
+              />
+              <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); setDateFilter(''); }}>
+                <Filter className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Appointments List */}
-      <Card className="border-pink-100 mb-6">
+      <Card>
         <CardHeader>
-          <CardTitle>Today's Appointments</CardTitle>
+          <CardTitle className="flex items-center">
+            <Calendar className="h-5 w-5 mr-2" />
+            Appointments ({pagination.total})
+          </CardTitle>
+          <CardDescription>
+            Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} appointments
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {mockAppointments.map((appointment) => (
-              <div key={appointment.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col md:flex-row justify-between gap-4">
-                <div className="flex items-start md:items-center gap-4 flex-1">
-                  <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
-                    <Clock className="h-8 w-8" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-col md:flex-row md:items-center md:space-x-3 mb-2 gap-1 md:gap-0">
-                      <h3 className="font-bold text-lg text-gray-900">{appointment.patientName}</h3>
-                      <Badge variant="outline">{appointment.id}</Badge>
-                      <Badge className={getTypeColor(appointment.type)}>{appointment.type}</Badge>
-                      {getStatusBadge(appointment.status)}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600 mb-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1">
-                          <Stethoscope className="h-4 w-4 text-pink-500" />
-                          <span className="font-medium">{appointment.doctorName}</span>
-                          <span className="text-gray-500">• {appointment.department}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-pink-500" />
-                          <span>{new Date(appointment.date).toLocaleDateString()} at {appointment.time}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4 text-pink-500" />
-                          <span>Patient ID: {appointment.patientId}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-4 w-4 text-pink-500" />
-                          <span>{appointment.phone}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {appointment.notes && (
-                      <div className="p-2 md:p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
-                        <span className="font-medium">Notes:</span> {appointment.notes}
-                      </div>
-                    )}
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 animate-pulse">
+                  <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(appointment.status)}
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  {appointment.status === 'pending' && (
-                    <Button variant="outline" size="sm" className="border-green-200 text-green-600 hover:bg-green-50">
-                      <CheckCircle className="h-4 w-4" />
+              ))}
+            </div>
+          ) : appointments.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No appointments found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {appointments.map((appointment) => (
+                <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-pink-100 text-pink-700">
+                        {appointment.patient.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-900">{appointment.patient.name}</h3>
+                        {getStatusBadge(appointment.status)}
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                        <span className="flex items-center">
+                          <User className="h-3 w-3 mr-1" />
+                          {appointment.patient.patientId}
+                        </span>
+                        <span className="flex items-center">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {formatDate(appointment.appointmentDate)}
+                        </span>
+                        <span className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatTime(appointment.appointmentTime)}
+                        </span>
+                        <span className="flex items-center">
+                          <FileText className="h-3 w-3 mr-1" />
+                          {appointment.appointmentType}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                        <span className="flex items-center">
+                          <Stethoscope className="h-3 w-3 mr-1" />
+                          Dr. {appointment.doctor.name} ({appointment.doctor.department})
+                        </span>
+                        <span className="flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {appointment.patient.contactNumber}
+                        </span>
+                      </div>
+                      {appointment.notes && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          <span className="font-medium">Notes:</span> {appointment.notes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(appointment)}
+                    >
+                      <Edit className="h-4 w-4" />
                     </Button>
-                  )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteAppointment(appointment.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <p className="text-sm text-gray-700">
+                Page {pagination.page} of {pagination.totalPages}
+              </p>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                  disabled={pagination.page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                  disabled={pagination.page === pagination.totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Appointment Types */}
-      <Card className="border-pink-100 mb-6">
-        <CardHeader>
-          <CardTitle>Appointment Types</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg text-center">
-              <Stethoscope className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-              <h4 className="font-semibold text-blue-800">Consultations</h4>
-              <p className="text-2xl font-bold text-blue-600">28</p>
-              <p className="text-sm text-blue-600">New patient visits</p>
+      {/* Edit Appointment Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Appointment</DialogTitle>
+            <DialogDescription>Update appointment information</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditAppointment} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-patient_id">Patient *</Label>
+                <Select value={formData.patient_id || undefined} onValueChange={(value) => setFormData({ ...formData, patient_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select patient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {patients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.id.toString()}>
+                        {patient.name} ({patient.patient_id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-doctor_id">Doctor *</Label>
+                <Select value={formData.doctor_id || undefined} onValueChange={(value) => setFormData({ ...formData, doctor_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                        {doctor.name} ({doctor.department})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg text-center">
-              <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-              <h4 className="font-semibold text-green-800">Check-ups</h4>
-              <p className="text-2xl font-bold text-green-600">15</p>
-              <p className="text-sm text-green-600">Routine examinations</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-appointment_date">Appointment Date *</Label>
+                <Input
+                  id="edit-appointment_date"
+                  type="date"
+                  value={formData.appointment_date}
+                  onChange={(e) => setFormData({ ...formData, appointment_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-appointment_time">Appointment Time *</Label>
+                <Input
+                  id="edit-appointment_time"
+                  type="time"
+                  value={formData.appointment_time}
+                  onChange={(e) => setFormData({ ...formData, appointment_time: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg text-center">
-              <Clock className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-              <h4 className="font-semibold text-purple-800">Follow-ups</h4>
-              <p className="text-2xl font-bold text-purple-600">12</p>
-              <p className="text-sm text-purple-600">Return visits</p>
+            <div>
+              <Label htmlFor="edit-appointment_type">Appointment Type *</Label>
+              <Select value={formData.appointment_type || undefined} onValueChange={(value) => setFormData({ ...formData, appointment_type: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select appointment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="General Consultation">General Consultation</SelectItem>
+                  <SelectItem value="Follow-up">Follow-up</SelectItem>
+                  <SelectItem value="Emergency">Emergency</SelectItem>
+                  <SelectItem value="Surgery">Surgery</SelectItem>
+                  <SelectItem value="Lab Test">Lab Test</SelectItem>
+                  <SelectItem value="X-Ray">X-Ray</SelectItem>
+                  <SelectItem value="Specialist Consultation">Specialist Consultation</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="p-4 bg-red-50 rounded-lg text-center">
-              <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-              <h4 className="font-semibold text-red-800">Urgent</h4>
-              <p className="text-2xl font-bold text-red-600">3</p>
-              <p className="text-sm text-red-600">Emergency appointments</p>
+            <div>
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional notes about the appointment..."
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card className="border-pink-100 mb-6">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Plus className="h-6 w-6" />
-              <span>New Appointment</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Calendar className="h-6 w-6" />
-              <span>View Calendar</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <CheckCircle className="h-6 w-6" />
-              <span>Confirm Pending</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Phone className="h-6 w-6" />
-              <span>Send Reminders</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Coming Soon Notice */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-pink-100 text-pink-700 rounded-full text-sm md:text-base">
-          <Calendar className="h-5 w-5 mr-2" />
-          <span className="font-medium">Advanced Appointment Features Coming Soon</span>
-        </div>
-      </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Appointment</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

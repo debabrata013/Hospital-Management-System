@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -119,6 +120,49 @@ const weeklySchedule = [
 ]
 
 export default function DoctorSchedulePage() {
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    urgent: 0
+  })
+
+  useEffect(() => {
+    fetchAppointments()
+  }, [])
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/doctor/appointments')
+      if (response.ok) {
+        const data = await response.json()
+        setAppointments(data)
+        calculateStats(data)
+      } else {
+        console.error('Failed to fetch appointments')
+        setAppointments(todaySchedule) // Fallback to mock data
+        calculateStats(todaySchedule)
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error)
+      setAppointments(todaySchedule) // Fallback to mock data
+      calculateStats(todaySchedule)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const calculateStats = (appointmentData: any[]) => {
+    const total = appointmentData.length
+    const completed = appointmentData.filter(apt => apt.status === 'completed').length
+    const pending = appointmentData.filter(apt => ['scheduled', 'waiting', 'in_progress'].includes(apt.status)).length
+    const urgent = appointmentData.filter(apt => apt.status === 'urgent').length
+    
+    setStats({ total, completed, pending, urgent })
+  }
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -205,7 +249,7 @@ export default function DoctorSchedulePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                <p className="text-2xl font-bold text-gray-900">6</p>
+                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : stats.total}</p>
               </div>
               <Calendar className="h-8 w-8 text-pink-500" />
             </div>
@@ -217,7 +261,7 @@ export default function DoctorSchedulePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-green-600">1</p>
+                <p className="text-2xl font-bold text-green-600">{loading ? '...' : stats.completed}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -229,7 +273,7 @@ export default function DoctorSchedulePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">4</p>
+                <p className="text-2xl font-bold text-yellow-600">{loading ? '...' : stats.pending}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>
@@ -241,7 +285,7 @@ export default function DoctorSchedulePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Urgent</p>
-                <p className="text-2xl font-bold text-red-600">1</p>
+                <p className="text-2xl font-bold text-red-600">{loading ? '...' : stats.urgent}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
@@ -277,12 +321,15 @@ export default function DoctorSchedulePage() {
       {/* Today's Schedule */}
       <Card className="border-pink-100 mb-6">
         <CardHeader>
-          <CardTitle>Today's Appointments - January 9, 2024</CardTitle>
+          <CardTitle>Today's Appointments - {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {todaySchedule.map((appointment) => (
-              <div key={appointment.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
+            {loading ? (
+              <p>Loading appointments...</p>
+            ) : appointments.length > 0 ? (
+              appointments.map((appointment) => (
+                <div key={appointment.id} className="p-4 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
@@ -290,9 +337,9 @@ export default function DoctorSchedulePage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-bold text-lg text-gray-900">{appointment.patientName}</h3>
-                        <Badge variant="outline">{appointment.patientId}</Badge>
-                        <Badge className={getTypeColor(appointment.type)}>{appointment.type}</Badge>
+                        <h3 className="font-bold text-lg text-gray-900">{appointment.Patient ? `${appointment.Patient.firstName} ${appointment.Patient.lastName}` : 'Unknown Patient'}</h3>
+                        <Badge variant="outline">{appointment.Patient?.id || appointment.id}</Badge>
+                        <Badge className={getTypeColor(appointment.type || 'Consultation')}>Consultation</Badge>
                         {getStatusBadge(appointment.status)}
                       </div>
                       
@@ -300,30 +347,30 @@ export default function DoctorSchedulePage() {
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-600">
                             <Clock className="h-4 w-4 mr-2 text-pink-500" />
-                            <span className="font-medium">{appointment.time}</span>
-                            <span className="ml-2 text-gray-500">({appointment.duration})</span>
+                            <span className="font-medium">{appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
+                            <span className="ml-2 text-gray-500">(30 min)</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-600">
                             <User className="h-4 w-4 mr-2 text-pink-500" />
-                            <span>{appointment.age} years • {appointment.condition}</span>
+                            <span>{appointment.Patient?.age || 'N/A'} years • {appointment.reason || 'General consultation'}</span>
                           </div>
                         </div>
                         
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-600">
                             <MapPin className="h-4 w-4 mr-2 text-pink-500" />
-                            <span>{appointment.room}</span>
+                            <span>Room 101</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-600">
                             <Phone className="h-4 w-4 mr-2 text-pink-500" />
-                            <span>{appointment.phone}</span>
+                            <span>{appointment.Patient?.phone || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-700">
-                          <span className="font-medium">Notes:</span> {appointment.notes}
+                          <span className="font-medium">Notes:</span> {appointment.reason || 'No additional notes'}
                         </p>
                       </div>
                     </div>
@@ -344,7 +391,10 @@ export default function DoctorSchedulePage() {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            ) : (
+              <p>No appointments scheduled for today.</p>
+            )}
           </div>
         </CardContent>
       </Card>

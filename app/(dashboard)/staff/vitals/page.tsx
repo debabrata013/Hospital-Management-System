@@ -18,7 +18,6 @@ import {
   Search,
   Filter,
   Eye,
-  Edit,
   Heart,
   Thermometer,
   Stethoscope,
@@ -28,7 +27,6 @@ import {
   Minus,
   AlertTriangle,
   CheckCircle,
-  Calendar
 } from 'lucide-react'
 
 // Mock data for vitals
@@ -176,25 +174,24 @@ export default function StaffVitalsPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="flex items-center justify-between h-16 px-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between h-auto md:h-16 px-4 md:px-6 py-3 md:py-0 space-y-3 md:space-y-0">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/staff" className="flex items-center space-x-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back to Dashboard</span>
+                <span>Back</span>
               </Link>
             </Button>
-            <div className="h-6 w-px bg-gray-300" />
+            <div className="hidden md:block h-6 w-px bg-gray-300" />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Vitals & Status Updates</h1>
-              <p className="text-sm text-gray-500">Record and monitor patient vital signs</p>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900">Vitals & Status Updates</h1>
+              <p className="text-xs md:text-sm text-gray-500">Record and monitor patient vital signs</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center">
             <Button 
               size="sm" 
-              className="bg-green-500 hover:bg-green-600"
+              className="bg-green-500 hover:bg-green-600 w-full md:w-auto"
               onClick={() => setNewVitalsDialog(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -205,64 +202,64 @@ export default function StaffVitalsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
           <Card className="border-green-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Vitals</p>
-                  <p className="text-3xl font-bold text-gray-900">{pendingVitals.length}</p>
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Pending Vitals</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">{pendingVitals.length}</p>
                 </div>
-                <div className="bg-green-100 p-3 rounded-xl">
-                  <Clock className="h-8 w-8 text-green-600" />
+                <div className="bg-green-100 p-2 md:p-3 rounded-xl">
+                  <Clock className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-blue-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Recorded Today</p>
-                  <p className="text-3xl font-bold text-gray-900">{vitalsHistory.length}</p>
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Recorded Today</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">{vitalsHistory.length}</p>
                 </div>
-                <div className="bg-blue-100 p-3 rounded-xl">
-                  <Activity className="h-8 w-8 text-blue-600" />
+                <div className="bg-blue-100 p-2 md:p-3 rounded-xl">
+                  <Activity className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-red-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Critical Alerts</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Critical Alerts</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">
                     {vitalsHistory.filter(v => v.status === 'Critical').length}
                   </p>
                 </div>
-                <div className="bg-red-100 p-3 rounded-xl">
-                  <AlertTriangle className="h-8 w-8 text-red-600" />
+                <div className="bg-red-100 p-2 md:p-3 rounded-xl">
+                  <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-red-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-yellow-100">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Normal Status</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs md:text-sm font-medium text-gray-600">Normal Status</p>
+                  <p className="text-xl md:text-3xl font-bold text-gray-900">
                     {vitalsHistory.filter(v => v.status === 'Normal' || v.status === 'Good').length}
                   </p>
                 </div>
-                <div className="bg-yellow-100 p-3 rounded-xl">
-                  <CheckCircle className="h-8 w-8 text-yellow-600" />
+                <div className="bg-yellow-100 p-2 md:p-3 rounded-xl">
+                  <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
@@ -271,23 +268,23 @@ export default function StaffVitalsPage() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
+            <TabsList className="grid w-full md:w-auto grid-cols-2">
               <TabsTrigger value="pending">Pending Vitals</TabsTrigger>
               <TabsTrigger value="history">Vitals History</TabsTrigger>
             </TabsList>
-            
-            <div className="flex items-center space-x-2">
-              <div className="relative">
+
+            <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+              <div className="relative w-full md:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search patients..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 w-full"
                 />
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full md:w-auto">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
@@ -304,29 +301,29 @@ export default function StaffVitalsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {pendingVitals.map((vital) => (
-                    <div key={vital.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div key={vital.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 border rounded-lg hover:bg-gray-50">
                       <div className="flex items-center space-x-4">
                         <div className="bg-green-100 p-3 rounded-lg">
                           <Activity className="h-6 w-6 text-green-600" />
                         </div>
                         <div>
-                          <h3 className="font-semibold">{vital.patientName}</h3>
-                          <p className="text-sm text-gray-600">Room {vital.roomNumber}</p>
-                          <p className="text-sm text-gray-500">
+                          <h3 className="font-semibold text-sm md:text-base">{vital.patientName}</h3>
+                          <p className="text-xs md:text-sm text-gray-600">Room {vital.roomNumber}</p>
+                          <p className="text-xs md:text-sm text-gray-500">
                             Due: {vital.dueTime} • {vital.frequency}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600">Last recorded</p>
+                      <div className="flex flex-col md:flex-row md:items-center md:space-x-4 gap-2 md:gap-0">
+                        <div className="text-left md:text-right">
+                          <p className="text-xs md:text-sm text-gray-600">Last recorded</p>
                           <p className="text-sm font-medium">{vital.lastRecorded}</p>
                         </div>
                         {getPriorityBadge(vital.priority)}
                         <Button 
                           size="sm" 
-                          className="bg-green-500 hover:bg-green-600"
+                          className="bg-green-500 hover:bg-green-600 w-full md:w-auto"
                           onClick={() => {
                             setSelectedPatient(vital)
                             setNewVitalsDialog(true)
@@ -353,14 +350,14 @@ export default function StaffVitalsPage() {
                 <div className="space-y-6">
                   {vitalsHistory.map((record) => (
                     <Card key={record.id} className="border">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
                           <div>
-                            <h3 className="text-lg font-semibold">{record.patientName}</h3>
-                            <p className="text-sm text-gray-600">
+                            <h3 className="text-base md:text-lg font-semibold">{record.patientName}</h3>
+                            <p className="text-xs md:text-sm text-gray-600">
                               Room {record.roomNumber} • Recorded by {record.recordedBy}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs md:text-sm text-gray-500">
                               {new Date(record.recordedAt).toLocaleString()}
                             </p>
                           </div>
@@ -378,10 +375,12 @@ export default function StaffVitalsPage() {
                             <div className="flex items-center justify-between mb-1">
                               <div className="flex items-center space-x-2">
                                 <Heart className="h-4 w-4 text-red-500" />
-                                <span className="text-sm font-medium">Blood Pressure</span>
+                                <span className="text-xs md:text-sm font-medium">Blood Pressure</span>
                               </div>
                               {getVitalTrend(record.vitals.bloodPressure)}
                             </div>
+                          
+
                             <p className="text-lg font-semibold">{record.vitals.bloodPressure} mmHg</p>
                           </div>
                           

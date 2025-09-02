@@ -235,7 +235,7 @@ const content = {
     }
   },
   english: {
-    hospitalName: "Arogya Hospital",
+    hospitalName: "NMSC",
     nav: {
       home: "Home",
       about: "About",
@@ -249,7 +249,7 @@ const content = {
       title: "Your Health",
       titleHighlight: "Journey",
       titleEnd: "Our Priority",
-      description: "At Arogya Hospital, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
+      description: "At NMSC, we make your healthcare simple, secure, and convenient. From online appointments to digital reports, your health is now at your fingertips.",
       getStarted: "Book Appointment",
       bookDemo: "Meet Our Team",
       stats: {
@@ -327,7 +327,7 @@ const content = {
       }
     },
     about: {
-      title: "Why Arogya Hospital is Best for You?",
+      title: "Why NMSC is Best for You?",
       description: "We understand that every patient is unique. That's why we've designed our services keeping your convenience in mind. Your health, your comfort, our responsibility.",
       support247: {
         title: "Instant Service",
@@ -363,14 +363,14 @@ const content = {
       title: "Meet Our",
       titleHighlight: "Founder",
       titleEnd: "",
-      description: "Dr. G K Nayak, the visionary founder of Arogya Hospital, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
       qualifications: {
         title: "Expert Qualifications",
         description: "MS (Orthopedics) with 40+ years of specialized experience in joint replacement and trauma surgery"
       },
       vision: {
         title: "Patient-Centric Vision",
-        description: "Founded Arogya Hospital with the mission to provide accessible, quality healthcare to all"
+        description: "Founded NMSC with the mission to provide accessible, quality healthcare to all"
       },
       excellence: {
         title: "Medical Excellence",
@@ -407,7 +407,7 @@ const content = {
       whatsapp: "WhatsApp Message"
     },
     footer: {
-      hospitalName: "Arogya Hospital",
+      hospitalName: "NMSC",
       tagline: "Your trusted partner in healthcare",
       quickLinks: {
         title: "Quick Links",
@@ -440,13 +440,7 @@ const content = {
         emergency: "Emergency: 24/7 Available",
         pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
       },
-      social: {
-        title: "Follow Us",
-        facebook: "Facebook",
-        twitter: "Twitter",
-        instagram: "Instagram",
-        youtube: "YouTube"
-      },
+     
       copyright: " 2024 Arogya Hospital. All rights reserved.",
       privacy: "Privacy Policy",
       terms: "Terms & Conditions",
@@ -478,6 +472,12 @@ export default function LandingPage() {
   const [submitMessage, setSubmitMessage] = useState('');
 
   const t = content[language];
+
+  const sliderImages = [
+    '/images/slider-1.jpg',
+    '/images/slider-2.jpg',
+    '/images/slider-3.jpg'
+  ];
 
   const toggleLanguage = () => {
     setLanguage(prev => prev === 'english' ? 'hindi' : 'english');
@@ -532,7 +532,7 @@ export default function LandingPage() {
       rating: 4.9,
       availability: 'Mon-Sat, 9am-1pm',
       languages: ['Hindi', 'English'],
-      about: 'Dr. G K Nayak is the founder of Arogya Hospital and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
+      about: 'Dr. G K Nayak is the founder of NMSC and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
       isFounder: true
     },
     {
@@ -738,11 +738,7 @@ export default function LandingPage() {
             <div className="relative">
               <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl p-8 shadow-2xl">
                 <ImageCarousel
-                  images={[
-                    "https://placehold.co/1200x800/E9D5FF/4C1D95?text=Hospital+View",
-                    "https://placehold.co/1200x800/FBCFE8/86198F?text=Patient+Care",
-                    "https://placehold.co/1200x800/E0E7FF/3730A3?text=Founder"
-                  ]}
+                  images={sliderImages}
                   autoRotate={true}
                   rotationInterval={5000}
                   showControls={true}
@@ -777,43 +773,6 @@ export default function LandingPage() {
             {doctors.slice(0, 6).map((doctor) => (
               <Card key={doctor.id} className="border-pink-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 <CardContent className="p-0">
-                  {/* Doctor Image */}
-                  <div className={`relative h-64 ${doctor.isFounder ? 'bg-gradient-to-br from-yellow-100 to-yellow-200' : doctor.isGynecologist ? 'bg-gradient-to-br from-purple-100 to-purple-200' : 'bg-gradient-to-br from-pink-100 to-pink-200'}`}>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {doctor.isGynecologist ? (
-                        <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-8 rounded-full relative">
-                          <User className="h-16 w-16 text-white" />
-                          {/* Baby icon overlay for gynecologist */}
-                          <div className="absolute -bottom-2 -right-2 bg-pink-400 p-2 rounded-full">
-                            <Heart className="h-6 w-6 text-white" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={`${doctor.isFounder ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 'bg-gradient-to-r from-pink-400 to-pink-500'} p-8 rounded-full`}>
-                          <User className="h-16 w-16 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Special Badges */}
-                    {doctor.isFounder && (
-                      <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                        FOUNDER
-                      </div>
-                    )}
-                    {doctor.isGynecologist && (
-                      <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center">
-                        <Heart className="h-3 w-3 mr-1" />
-                        5000+ BABIES
-                      </div>
-                    )}
-                    
-                    {/* Rating Badge */}
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center space-x-1">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium text-gray-700">{doctor.rating}</span>
-                    </div>
-                  </div>
                   
                   {/* Doctor Info */}
                   <div className="p-6">
@@ -889,90 +848,66 @@ export default function LandingPage() {
       </section>
 
       {/* Special Gynecology Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="relative">
-              <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-3xl p-8 shadow-2xl">
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="text-center">
-                    <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-12 rounded-full mb-6 relative">
-                      <User className="h-20 w-20 text-white" />
-                      {/* Baby icon overlay */}
-                      <div className="absolute -bottom-2 -right-2 bg-pink-400 p-3 rounded-full">
-                        <Heart className="h-8 w-8 text-white" />
-                      </div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr Niharika Nayak</h3>
-                    <p className="text-purple-600 font-medium">Gynecologist</p>
-                  </div>
-                </div>
-              </div>
-              {/* Achievement Badge */}
-              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-2xl shadow-lg border border-purple-100">
-                <div className="flex items-center space-x-2">
-                  <Heart className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium text-gray-700">{t.gynecology.achievementBadge}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="inline-flex items-center bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Heart className="h-4 w-4 mr-2" />
-                {t.gynecology.badge}
-              </div>
-              
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                {t.gynecology.title} 
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"> {t.gynecology.titleHighlight}</span>
-                {t.gynecology.titleEnd}
-              </h2>
-              
-              <p className="text-xl text-gray-600 mb-8">
-                {t.gynecology.description}
-              </p>
-              
-              <div className="grid grid-cols-2 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
-                  <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
-                  <div className="text-3xl font-bold text-pink-600 mb-2">10+</div>
-                  <div className="text-gray-600">{t.gynecology.stats.experience}</div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
-                  <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
-                  <div className="text-3xl font-bold text-pink-600 mb-2">4.9★</div>
-                  <div className="text-gray-600">{t.gynecology.stats.rating}</div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                  onClick={() => {
-                    setAppointmentForm(prev => ({ ...prev, doctor: 'Dr Niharika Nayak', department: 'Gynecology' }))
-                    document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                >
-                  <Calendar className="h-5 w-5 mr-2" />
-                  {t.gynecology.bookConsultation}
-                </Button>
-                <Button size="lg" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-full px-8 py-4 text-lg">
-                  <Phone className="h-5 w-5 mr-2" />
-                  {t.gynecology.emergencyMaternity}
-                </Button>
-              </div>
-            </div>
+ 
+{/* Special Gynecology Section */}
+<section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="grid lg:grid-cols-2 gap-16 items-center">
+      {/* Removed the left photo/illustration part */}
+      <div>
+        <div className="inline-flex items-center bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+          <Heart className="h-4 w-4 mr-2" />
+          {t.gynecology.badge}
+        </div>
+        
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+          {t.gynecology.title} 
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"> {t.gynecology.titleHighlight}</span>
+          {t.gynecology.titleEnd}
+        </h2>
+        
+        <p className="text-xl text-gray-600 mb-8">
+          {t.gynecology.description}
+        </p>
+        
+        <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+            <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
+            <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
+          </div>
+          <ImageCarousel images={sliderImages} className="h-full" />
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+            <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
+            <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
+            <div className="text-3xl font-bold text-pink-600 mb-2">4.9★</div>
+            <div className="text-gray-600">{t.gynecology.stats.rating}</div>
           </div>
         </div>
-      </section>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button 
+            size="lg" 
+            className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            onClick={() => {
+              setAppointmentForm(prev => ({ ...prev, doctor: 'Dr Niharika Nayak', department: 'Gynecology' }))
+              document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          >
+            <Calendar className="h-5 w-5 mr-2" />
+            {t.gynecology.bookConsultation}
+          </Button>
+          <Button size="lg" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-full px-8 py-4 text-lg">
+            <Phone className="h-5 w-5 mr-2" />
+            {t.gynecology.emergencyMaternity}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* Founder Section */}
       <section className="py-20 bg-gradient-to-br from-yellow-50 to-orange-50">
@@ -1049,12 +984,14 @@ export default function LandingPage() {
               <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-3xl p-8 shadow-2xl">
                 <div className="flex items-center justify-center h-[400px]">
                   <div className="text-center">
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-12 rounded-full mb-6 relative">
-                      <User className="h-20 w-20 text-white" />
-                      {/* Founder crown icon */}
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-orange-400 p-2 rounded-full">
-                        <Award className="h-6 w-6 text-white" />
-                      </div>
+                    <div className="relative inline-block mb-6">
+                      <img 
+                        src="/images/dr-gk-nayak.jpg" 
+                        alt="Dr G K Nayak - Founder" 
+                        width={220} 
+                        height={220} 
+                        className="rounded-full object-cover shadow-lg border-2 border-white"
+                      />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr G K Nayak</h3>
                     <p className="text-yellow-600 font-medium">Founder & Chief Orthopedic Surgeon</p>
@@ -1792,26 +1729,8 @@ export default function LandingPage() {
                   <span className="text-gray-300 text-sm">{t.footer.hours.pharmacy}</span>
                 </div>
               </div>
-
-              {/* Social Media */}
-              <div className="mt-6">
-                <h4 className="text-md font-semibold mb-3 text-pink-400">{t.footer.social.title}</h4>
-                <div className="flex space-x-3">
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Facebook className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Twitter className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Instagram className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-pink-500 transition-colors">
-                    <Youtube className="h-5 w-5" />
-                  </Link>
-                </div>
-              </div>
             </div>
+            {/* End of grid in footer */}
           </div>
 
           {/* Bottom Footer */}

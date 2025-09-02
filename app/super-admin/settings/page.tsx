@@ -23,23 +23,25 @@ import {
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-0">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <Settings className="h-8 w-8 mr-3 text-pink-500" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+              <Settings className="h-6 sm:h-8 w-6 sm:w-8 mr-2 sm:mr-3 text-pink-500" />
               System Settings
             </h1>
-            <p className="text-gray-600 mt-2">Configure system-wide settings and preferences</p>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+              Configure system-wide settings and preferences
+            </p>
           </div>
-          <div className="flex items-center space-x-3">
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 flex-1 sm:flex-none">
               <RefreshCw className="h-4 w-4 mr-2" />
               Reset to Default
             </Button>
-            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 flex-1 sm:flex-none">
               <Save className="h-4 w-4 mr-2" />
               Save Changes
             </Button>
@@ -48,7 +50,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Settings Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {/* General Settings */}
         <Card className="border-pink-100">
           <CardHeader>
@@ -57,8 +59,8 @@ export default function SettingsPage() {
               General Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
+          <CardContent className="space-y-4 sm:space-y-6">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="hospital-name">Hospital System Name</Label>
               <Input 
                 id="hospital-name" 
@@ -67,7 +69,7 @@ export default function SettingsPage() {
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="system-timezone">System Timezone</Label>
               <Input 
                 id="system-timezone" 
@@ -76,7 +78,7 @@ export default function SettingsPage() {
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="default-language">Default Language</Label>
               <Input 
                 id="default-language" 
@@ -85,7 +87,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Maintenance Mode</Label>
                 <p className="text-sm text-gray-600">Enable system maintenance mode</p>
@@ -93,7 +95,7 @@ export default function SettingsPage() {
               <Switch />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Auto Backup</Label>
                 <p className="text-sm text-gray-600">Enable automatic daily backups</p>
@@ -111,9 +113,9 @@ export default function SettingsPage() {
               Database Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="p-4 bg-green-50 rounded-lg">
-              <div className="flex items-center justify-between">
+          <CardContent className="space-y-4 sm:space-y-6">
+            <div className="p-3 sm:p-4 bg-green-50 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
                 <div>
                   <h4 className="font-semibold text-green-800">Database Status</h4>
                   <p className="text-sm text-green-600">Connected and operational</p>
@@ -122,7 +124,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="backup-frequency">Backup Frequency</Label>
               <Input 
                 id="backup-frequency" 
@@ -131,7 +133,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="retention-period">Data Retention Period</Label>
               <Input 
                 id="retention-period" 
@@ -140,7 +142,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Query Logging</Label>
                 <p className="text-sm text-gray-600">Log database queries for debugging</p>
@@ -163,8 +165,8 @@ export default function SettingsPage() {
               Email Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
+          <CardContent className="space-y-4 sm:space-y-6">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="smtp-server">SMTP Server</Label>
               <Input 
                 id="smtp-server" 
@@ -173,7 +175,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="smtp-port">SMTP Port</Label>
               <Input 
                 id="smtp-port" 
@@ -182,7 +184,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="email-from">From Email Address</Label>
               <Input 
                 id="email-from" 
@@ -191,7 +193,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Email Notifications</Label>
                 <p className="text-sm text-gray-600">Send system notifications via email</p>
@@ -214,8 +216,8 @@ export default function SettingsPage() {
               Security Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
+          <CardContent className="space-y-4 sm:space-y-6">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
               <Input 
                 id="session-timeout" 
@@ -224,7 +226,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="password-policy">Password Policy</Label>
               <Textarea 
                 id="password-policy" 
@@ -234,7 +236,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Two-Factor Authentication</Label>
                 <p className="text-sm text-gray-600">Require 2FA for admin accounts</p>
@@ -242,7 +244,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Login Attempt Monitoring</Label>
                 <p className="text-sm text-gray-600">Monitor and block suspicious login attempts</p>
@@ -250,7 +252,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="max-login-attempts">Max Login Attempts</Label>
               <Input 
                 id="max-login-attempts" 
@@ -269,8 +271,8 @@ export default function SettingsPage() {
               Notification Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>System Alerts</Label>
                 <p className="text-sm text-gray-600">Critical system notifications</p>
@@ -278,7 +280,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>User Activity Alerts</Label>
                 <p className="text-sm text-gray-600">Notifications for user actions</p>
@@ -286,7 +288,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Inventory Alerts</Label>
                 <p className="text-sm text-gray-600">Low stock and expiry notifications</p>
@@ -294,7 +296,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Appointment Reminders</Label>
                 <p className="text-sm text-gray-600">Automated appointment reminders</p>
@@ -302,7 +304,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="notification-frequency">Notification Frequency</Label>
               <Input 
                 id="notification-frequency" 
@@ -321,8 +323,8 @@ export default function SettingsPage() {
               System Performance
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="p-3 bg-blue-50 rounded-lg text-center">
                 <p className="text-2xl font-bold text-blue-600">99.8%</p>
                 <p className="text-sm text-blue-600">Uptime</p>
@@ -333,7 +335,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="cache-duration">Cache Duration (hours)</Label>
               <Input 
                 id="cache-duration" 
@@ -342,7 +344,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Performance Monitoring</Label>
                 <p className="text-sm text-gray-600">Enable system performance tracking</p>
@@ -350,7 +352,7 @@ export default function SettingsPage() {
               <Switch defaultChecked />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="space-y-0.5">
                 <Label>Auto-scaling</Label>
                 <p className="text-sm text-gray-600">Automatically scale resources</p>
@@ -375,29 +377,29 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-4">
-              <div className="p-4 border border-pink-100 rounded-lg">
+              <div className="p-3 sm:p-4 border border-pink-100 rounded-lg">
                 <h4 className="font-semibold text-gray-900">Payment Gateway</h4>
                 <p className="text-sm text-gray-600 mb-2">Razorpay Integration</p>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input 
                     type="password" 
                     defaultValue="rz_test_1234567890"
-                    className="border-pink-200 focus:border-pink-400"
+                    className="border-pink-200 focus:border-pink-400 flex-1"
                   />
                   <Button variant="outline" size="sm">Edit</Button>
                 </div>
               </div>
 
-              <div className="p-4 border border-pink-100 rounded-lg">
+              <div className="p-3 sm:p-4 border border-pink-100 rounded-lg">
                 <h4 className="font-semibold text-gray-900">SMS Service</h4>
                 <p className="text-sm text-gray-600 mb-2">Twilio API Key</p>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input 
                     type="password" 
                     defaultValue="AC1234567890abcdef"
-                    className="border-pink-200 focus:border-pink-400"
+                    className="border-pink-200 focus:border-pink-400 flex-1"
                   />
                   <Button variant="outline" size="sm">Edit</Button>
                 </div>
@@ -405,27 +407,27 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 border border-pink-100 rounded-lg">
+              <div className="p-3 sm:p-4 border border-pink-100 rounded-lg">
                 <h4 className="font-semibold text-gray-900">Google Maps</h4>
                 <p className="text-sm text-gray-600 mb-2">Maps API Key</p>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input 
                     type="password" 
                     defaultValue="AIzaSyC1234567890"
-                    className="border-pink-200 focus:border-pink-400"
+                    className="border-pink-200 focus:border-pink-400 flex-1"
                   />
                   <Button variant="outline" size="sm">Edit</Button>
                 </div>
               </div>
 
-              <div className="p-4 border border-pink-100 rounded-lg">
+              <div className="p-3 sm:p-4 border border-pink-100 rounded-lg">
                 <h4 className="font-semibold text-gray-900">AI Service</h4>
                 <p className="text-sm text-gray-600 mb-2">OpenAI API Key</p>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input 
                     type="password" 
                     defaultValue="sk-1234567890abcdef"
-                    className="border-pink-200 focus:border-pink-400"
+                    className="border-pink-200 focus:border-pink-400 flex-1"
                   />
                   <Button variant="outline" size="sm">Edit</Button>
                 </div>
@@ -436,10 +438,10 @@ export default function SettingsPage() {
       </Card>
 
       {/* Coming Soon Notice */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex items-center px-6 py-3 bg-pink-100 text-pink-700 rounded-full">
-          <Settings className="h-5 w-5 mr-2" />
-          <span className="font-medium">Advanced Configuration Options Coming Soon</span>
+      <div className="mt-6 sm:mt-8 text-center">
+        <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-pink-100 text-pink-700 rounded-full">
+          <Settings className="h-4 sm:h-5 w-4 sm:w-5 mr-2" />
+          <span className="font-medium text-sm sm:text-base">Advanced Configuration Options Coming Soon</span>
         </div>
       </div>
     </div>
