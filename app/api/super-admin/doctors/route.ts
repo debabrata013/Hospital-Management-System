@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
     }
     
     if (specialization) {
-      whereConditions.push('specialization LIKE ?')
-      queryParams.push(`%${specialization}%`)
+      whereConditions.push('specialization = ?')
+      queryParams.push(specialization)
     }
     
     const whereClause = whereConditions.join(' AND ')
@@ -64,10 +64,14 @@ export async function GET(request: NextRequest) {
         experience_years,
         license_number,
         department,
+        address,
+        date_of_birth,
+        gender,
+        joining_date,
+        salary,
         is_active,
         is_verified,
         last_login,
-        joining_date,
         created_at,
         updated_at
       FROM users 
@@ -81,6 +85,7 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(total / limit)
     
     return NextResponse.json({
+      success: true,
       doctors,
       pagination: {
         page,
@@ -93,7 +98,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching doctors:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch doctors' },
+      { success: false, error: 'Failed to fetch doctors' },
       { status: 500 }
     )
   }
@@ -119,207 +124,102 @@ export async function POST(request: NextRequest) {
       salary
     } = body
     
+    // Validation
     if (!name || !email || !password || !contact_number || !specialization || !license_number) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields: name, email, password, contact_number, specialization, license_number' },
         { status: 400 }
       )
     }
     
     const connection = await mysql.createConnection(dbConfig)
     
-    // Check if email already exists
-    const [existingUser] = await connection.execute(
-      'SELECT id FROM users WHERE email = ?',
-      [email]
-    )
-    
-    if ((existingUser as any[]).length > 0) {
-      await connection.end()
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
+    try {
+      // Check if email already exists
+      const [existingUser] = await connection.execute(
+        'SELECT id FROM users WHERE email = ?',
+        [email]
       )
-    }
-    
-    // Check if license number already exists
-    const [existingLicense] = await connection.execute(
-      'SELECT id FROM users WHERE license_number = ?',
-      [license_number]
-    )
-    
-    if ((existingLicense as any[]).length > 0) {
-      await connection.end()
-      return NextResponse.json(
-        { error: 'License number already exists' },
-        { status: 400 }
-      )
-    }
-    
-    // Generate user_id
-    const [lastUser] = await connection.execute(
-      'SELECT user_id FROM users WHERE role = "doctor" ORDER BY id DESC LIMIT 1'
-    )
-    
-    let nextNumber = 1
-    if ((lastUser as any[]).length > 0) {
-      const lastUserId = (lastUser as any)[0].user_id
-      const match = lastUserId.match(/DOC(\d+)/)
-      if (match) {
-        nextNumber = parseInt(match[1]) + 1
+      
+      if ((existingUser as any[]).length > 0) {
+        await connection.end()
+        return NextResponse.json(
+          { success: false, error: 'Email already exists' },
+          { status: 400 }
+        )
       }
+      
+      // Check if license number already exists
+      const [existingLicense] = await connection.execute(
+        'SELECT id FROM users WHERE license_number = ?',
+        [license_number]
+      )
+      
+      if ((existingLicense as any[]).length > 0) {
+        await connection.end()
+        return NextResponse.json(
+          { success: false, error: 'License number already exists' },
+          { status: 400 }
+        )
+      }
+      
+      // Generate user_id
+      const [lastUser] = await connection.execute(
+        'SELECT user_id FROM users WHERE role = "doctor" ORDER BY id DESC LIMIT 1'
+      )
+      
+      let nextNumber = 1
+      if ((lastUser as any[]).length > 0) {
+        const lastUserId = (lastUser as any)[0].user_id
+        const match = lastUserId.match(/DOC(\d+)/)
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1
+        }
+      }
+      
+      const userId = `DOC${nextNumber.toString().padStart(3, '0')}`
+      
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10)
+      
+      // Insert new doctor
+      const [result] = await connection.execute(`
+        INSERT INTO users (
+          user_id, name, email, password_hash, role, contact_number, 
+          specialization, qualification, experience_years, license_number,
+          department, address, date_of_birth, gender, joining_date, salary,
+          is_active, is_verified, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 'doctor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, NOW(), NOW())
+      `, [
+        userId, name, email, passwordHash, contact_number,
+        specialization, qualification || null, experience_years || 0, license_number,
+        department || null, address || null, date_of_birth || null, gender || null,
+        joining_date || null, salary || null
+      ])
+      
+      await connection.end()
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Doctor created successfully',
+        data: {
+          userId,
+          doctorId: (result as any).insertId,
+          name,
+          email,
+          specialization
+        }
+      })
+      
+    } catch (dbError) {
+      await connection.end()
+      throw dbError
     }
-    
-    const userId = `DOC${nextNumber.toString().padStart(3, '0')}`
-    
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10)
-    
-    // Insert new doctor
-    const [result] = await connection.execute(`
-      INSERT INTO users (
-        user_id, name, email, password_hash, role, contact_number, 
-        specialization, qualification, experience_years, license_number,
-        department, address, date_of_birth, gender, joining_date, salary,
-        is_active, is_verified
-      ) VALUES (?, ?, ?, ?, 'doctor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
-    `, [
-      userId, name, email, passwordHash, contact_number,
-      specialization, qualification || null, experience_years || 0, license_number,
-      department || null, address || null, date_of_birth || null, gender || null,
-      joining_date || null, salary || null
-    ])
-    
-    await connection.end()
-    
-    return NextResponse.json({
-      message: 'Doctor created successfully',
-      userId,
-      doctorId: (result as any).insertId
-    })
     
   } catch (error) {
     console.error('Error creating doctor:', error)
     return NextResponse.json(
-      { error: 'Failed to create doctor' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { 
-      id, 
-      name, 
-      email, 
-      contact_number, 
-      specialization,
-      qualification,
-      experience_years,
-      license_number,
-      department,
-      address,
-      date_of_birth,
-      gender,
-      joining_date,
-      salary,
-      is_active
-    } = body
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Doctor ID is required' },
-        { status: 400 }
-      )
-    }
-    
-    const connection = await mysql.createConnection(dbConfig)
-    
-    // Check if email exists for other users
-    const [existingUser] = await connection.execute(
-      'SELECT id FROM users WHERE email = ? AND id != ?',
-      [email, id]
-    )
-    
-    if ((existingUser as any[]).length > 0) {
-      await connection.end()
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
-      )
-    }
-    
-    // Check if license number exists for other users
-    const [existingLicense] = await connection.execute(
-      'SELECT id FROM users WHERE license_number = ? AND id != ?',
-      [license_number, id]
-    )
-    
-    if ((existingLicense as any[]).length > 0) {
-      await connection.end()
-      return NextResponse.json(
-        { error: 'License number already exists' },
-        { status: 400 }
-      )
-    }
-    
-    // Update doctor
-    await connection.execute(`
-      UPDATE users 
-      SET name = ?, email = ?, contact_number = ?, specialization = ?,
-          qualification = ?, experience_years = ?, license_number = ?,
-          department = ?, address = ?, date_of_birth = ?, gender = ?,
-          joining_date = ?, salary = ?, is_active = ?
-      WHERE id = ? AND role = "doctor"
-    `, [
-      name, email, contact_number, specialization, qualification,
-      experience_years, license_number, department, address,
-      date_of_birth, gender, joining_date, salary, is_active, id
-    ])
-    
-    await connection.end()
-    
-    return NextResponse.json({ message: 'Doctor updated successfully' })
-    
-  } catch (error) {
-    console.error('Error updating doctor:', error)
-    return NextResponse.json(
-      { error: 'Failed to update doctor' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Doctor ID is required' },
-        { status: 400 }
-      )
-    }
-    
-    const connection = await mysql.createConnection(dbConfig)
-    
-    // Soft delete by setting is_active to 0
-    await connection.execute(
-      'UPDATE users SET is_active = 0 WHERE id = ? AND role = "doctor"',
-      [id]
-    )
-    
-    await connection.end()
-    
-    return NextResponse.json({ message: 'Doctor deactivated successfully' })
-    
-  } catch (error) {
-    console.error('Error deleting doctor:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete doctor' },
+      { success: false, error: 'Failed to create doctor' },
       { status: 500 }
     )
   }
