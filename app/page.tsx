@@ -848,87 +848,66 @@ export default function LandingPage() {
       </section>
 
       {/* Special Gynecology Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="relative">
-              <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-3xl p-8 shadow-2xl">
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="text-center">
-                    <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-12 rounded-full mb-6 relative">
-                      <User className="h-20 w-20 text-white" />
-                      {/* Baby icon overlay */}
-                      <div className="absolute -bottom-2 -right-2 bg-pink-400 p-3 rounded-full">
-                        <Heart className="h-8 w-8 text-white" />
-                      </div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr Niharika Nayak</h3>
-                    <p className="text-purple-600 font-medium">Gynecologist</p>
-                  </div>
-                </div>
-              </div>
-              {/* Achievement Badge */}
-              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-2xl shadow-lg border border-purple-100">
-                <div className="flex items-center space-x-2">
-                  <Heart className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium text-gray-700">{t.gynecology.achievementBadge}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="inline-flex items-center bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Heart className="h-4 w-4 mr-2" />
-                {t.gynecology.badge}
-              </div>
-              
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                {t.gynecology.title} 
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"> {t.gynecology.titleHighlight}</span>
-                {t.gynecology.titleEnd}
-              </h2>
-              
-              <p className="text-xl text-gray-600 mb-8">
-                {t.gynecology.description}
-              </p>
-              
-              <div className="grid grid-cols-2 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
-                  <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
-                </div>
-                <ImageCarousel images={sliderImages} className="h-full" />
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
-                  <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
-                  <div className="text-3xl font-bold text-pink-600 mb-2">4.9★</div>
-                  <div className="text-gray-600">{t.gynecology.stats.rating}</div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                  onClick={() => {
-                    setAppointmentForm(prev => ({ ...prev, doctor: 'Dr Niharika Nayak', department: 'Gynecology' }))
-                    document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                >
-                  <Calendar className="h-5 w-5 mr-2" />
-                  {t.gynecology.bookConsultation}
-                </Button>
-                <Button size="lg" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-full px-8 py-4 text-lg">
-                  <Phone className="h-5 w-5 mr-2" />
-                  {t.gynecology.emergencyMaternity}
-                </Button>
-              </div>
-            </div>
+ 
+{/* Special Gynecology Section */}
+<section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="grid lg:grid-cols-2 gap-16 items-center">
+      {/* Removed the left photo/illustration part */}
+      <div>
+        <div className="inline-flex items-center bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+          <Heart className="h-4 w-4 mr-2" />
+          {t.gynecology.badge}
+        </div>
+        
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+          {t.gynecology.title} 
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"> {t.gynecology.titleHighlight}</span>
+          {t.gynecology.titleEnd}
+        </h2>
+        
+        <p className="text-xl text-gray-600 mb-8">
+          {t.gynecology.description}
+        </p>
+        
+        <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+            <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
+            <div className="text-gray-600">{t.gynecology.stats.deliveries}</div>
+          </div>
+          <ImageCarousel images={sliderImages} className="h-full" />
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+            <div className="text-3xl font-bold text-purple-600 mb-2">7K+</div>
+            <div className="text-gray-600">{t.gynecology.stats.mothers}</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-pink-100">
+            <div className="text-3xl font-bold text-pink-600 mb-2">4.9★</div>
+            <div className="text-gray-600">{t.gynecology.stats.rating}</div>
           </div>
         </div>
-      </section>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button 
+            size="lg" 
+            className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            onClick={() => {
+              setAppointmentForm(prev => ({ ...prev, doctor: 'Dr Niharika Nayak', department: 'Gynecology' }))
+              document.getElementById('appointment')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          >
+            <Calendar className="h-5 w-5 mr-2" />
+            {t.gynecology.bookConsultation}
+          </Button>
+          <Button size="lg" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-full px-8 py-4 text-lg">
+            <Phone className="h-5 w-5 mr-2" />
+            {t.gynecology.emergencyMaternity}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* Founder Section */}
       <section className="py-20 bg-gradient-to-br from-yellow-50 to-orange-50">
