@@ -186,19 +186,34 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Insert new appointment
+    // Generate unique appointment_id
+    const [lastAppointment] = await connection.execute(
+      'SELECT appointment_id FROM appointments ORDER BY id DESC LIMIT 1'
+    )
+    let nextAppointmentId = 'A001'
+    if ((lastAppointment as any[]).length > 0) {
+      const lastId = (lastAppointment as any[])[0].appointment_id
+      let num = 1
+      if (lastId && /^A\d+$/.test(lastId)) {
+        num = parseInt(lastId.substring(1)) + 1
+      }
+      nextAppointmentId = `A${num.toString().padStart(3, '0')}`
+    }
+
+    // Insert new appointment with appointment_id
     const [result] = await connection.execute(
       `INSERT INTO appointments (
-        patient_id, doctor_id, appointment_date, appointment_time, 
+        appointment_id, patient_id, doctor_id, appointment_date, appointment_time, 
         appointment_type, status, notes, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'Scheduled', ?, NOW(), NOW())`,
-      [patient_id, doctor_id, appointment_date, appointment_time, appointment_type, notes || null]
+      ) VALUES (?, ?, ?, ?, ?, ?, 'Scheduled', ?, NOW(), NOW())`,
+      [nextAppointmentId, patient_id, doctor_id, appointment_date, appointment_time, appointment_type, notes || null]
     )
-    
+
     await connection.end()
-    
+
     return NextResponse.json({
       message: 'Appointment created successfully',
+      appointmentId: nextAppointmentId,
       id: (result as any).insertId
     }, { status: 201 })
     
