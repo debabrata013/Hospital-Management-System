@@ -19,7 +19,8 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
-  Info
+  Info,
+  Phone
 } from 'lucide-react'
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
@@ -31,11 +32,14 @@ function LoginForm() {
   
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
-    email: "",
+    emailOrPhone: "",
     password: "",
-    rememberMe: false
+    rememberMe: false,
+    otp: ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone" | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
 
   // Handle URL messages
   const message = searchParams.get('message')
@@ -77,17 +81,96 @@ function LoginForm() {
     }
   }, [message])
 
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+    
+    if (field === "emailOrPhone" && typeof value === "string") {
+      if (value.includes("@")) {
+        setLoginMethod("email")
+      } else if (/^\d{10}$/.test(value)) {
+        setLoginMethod("phone")
+      } else {
+        setLoginMethod(null)
+      }
+    }
+
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }))
+    }
+  }
+
+  const handleSendOtp = async () => {
+    // Basic validation
+    if (!formData.emailOrPhone.trim() || loginMethod !== 'phone') {
+      setErrors({ emailOrPhone: "Please enter a valid phone number." });
+      return;
+    }
+    
+    try {
+      // API call to send OTP
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: formData.emailOrPhone }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setOtpSent(true);
+        toast.success("OTP sent to your phone number.");
+      } else {
+        toast.error(data.message || "Failed to send OTP.");
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      toast.error("An unexpected error occurred.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) {
-      return
-    }
+    if (loginMethod === 'email') {
+      // Existing email login
+      if (!validateForm()) {
+        return
+      }
+      try {
+        await login({ email: formData.emailOrPhone, password: formData.password, rememberMe: formData.rememberMe })
+      } catch (error) {
+        console.error('Login error:', error)
+      }
+    } else if (loginMethod === 'phone' && otpSent) {
+      // OTP verification
+      try {
+        const res = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: formData.emailOrPhone, otp: formData.otp }),
+        });
 
-    try {
-      await login(formData)
-    } catch (error) {
-      console.error('Login error:', error)
+        const data = await res.json();
+
+        if (res.ok) {
+          // Manually update auth state after successful OTP login
+          // This part depends on how your useAuth hook is implemented
+          // You might need to add a function to `useAuth` to handle this
+          toast.success("Login successful!");
+          router.push(getRedirectPath(data.user.role)); 
+        } else {
+          toast.error(data.message || "Invalid OTP.");
+        }
+      } catch (error) {
+        console.error('OTP verification error:', error);
+        toast.error("An unexpected error occurred.");
+      }
     }
   }
 
@@ -95,33 +178,24 @@ function LoginForm() {
     const newErrors: Record<string, string> = {}
     const emailRegex = /\S+@\S+\.\S+/;
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
+    if (!formData.emailOrPhone.trim()) {
+      newErrors.emailOrPhone = "Email or Phone Number is required";
+    } else if (loginMethod === 'email' && !emailRegex.test(formData.emailOrPhone)) {
+      newErrors.emailOrPhone = "Please enter a valid email address";
+    } else if (loginMethod === 'phone' && !/^\d{10}$/.test(formData.emailOrPhone)) {
+        newErrors.emailOrPhone = "Please enter a valid 10-digit phone number";
     }
 
-    if (!formData.password) {
+    if (loginMethod === 'email' && !formData.password) {
       newErrors.password = "Password is required"
+    }
+    
+    if (loginMethod === 'phone' && otpSent && !formData.otp) {
+        newErrors.otp = "OTP is required";
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ""
-      }))
-    }
   }
 
   // Redirect if already authenticated
@@ -211,52 +285,74 @@ function LoginForm() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email */}
+              {/* Email or Phone Number */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700">Email</Label>
+                <Label htmlFor="emailOrPhone" className="text-gray-700">Email or Phone Number</Label>
                 <div className="relative">
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="e.g., user@example.com"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                    id="emailOrPhone"
+                    type="text"
+                    placeholder="e.g., user@example.com or 1234567890"
+                    value={formData.emailOrPhone}
+                    onChange={(e) => handleInputChange("emailOrPhone", e.target.value)}
+                    className={`pl-10 ${errors.emailOrPhone ? 'border-red-500' : ''}`}
                     required
+                    disabled={otpSent}
                   />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  { loginMethod === 'phone' ? <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /> : <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /> }
                 </div>
-                {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                {errors.emailOrPhone && <p className="text-xs text-red-500">{errors.emailOrPhone}</p>}
               </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center">
-                  <Shield className="h-4 w-4 mr-2 text-pink-500" />
-                  Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 pr-10 ${
-                      errors.password ? 'border-red-500' : ''
-                    }`}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+              {loginMethod === 'email' && (
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center">
+                    <Shield className="h-4 w-4 mr-2 text-pink-500" />
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      className={`border-pink-200 focus:border-pink-400 focus:ring-pink-400 pr-10 ${
+                        errors.password ? 'border-red-500' : ''
+                      }`}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                 </div>
-                {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
-              </div>
+              )}
+
+              {loginMethod === 'phone' && !otpSent && (
+                  <Button type="button" onClick={handleSendOtp} className="w-full">
+                      Send OTP
+                  </Button>
+              )}
+
+              {loginMethod === 'phone' && otpSent && (
+                <div className="space-y-2">
+                    <Label htmlFor="otp">OTP</Label>
+                    <Input 
+                        id="otp" 
+                        type="text" 
+                        value={formData.otp} 
+                        onChange={(e) => handleInputChange('otp', e.target.value)} 
+                        placeholder="Enter OTP"
+                    />
+                    {errors.otp && <p className="text-sm text-red-600">{errors.otp}</p>}
+                </div>
+              )}
 
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
@@ -290,15 +386,8 @@ function LoginForm() {
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Signing In...
                   </>
-                ) : (
-                  'Sign In'
-                )}
+                ) : ( (loginMethod === 'phone' && otpSent) ? 'Verify OTP & Sign In' : 'Sign In')}
               </Button>
-
-
-
-              {/* Quick Login Options */}
-            
             </form>
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode, Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
@@ -29,6 +29,7 @@ interface AuthContextType {
   login: (loginData: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  setAuthState: Dispatch<SetStateAction<AuthState>>;
 }
 
 // --- AUTH CONTEXT ---
@@ -183,6 +184,7 @@ const useProvideAuth = (): AuthContextType => {
     login,
     register,
     logout,
+    setAuthState
   };
 };
 
