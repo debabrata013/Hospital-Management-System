@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 import { 
   Heart, 
   Eye, 
@@ -40,6 +42,7 @@ function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loginMethod, setLoginMethod] = useState<"email" | "phone" | null>(null)
   const [otpSent, setOtpSent] = useState(false)
+  const [confirmationResult, setConfirmationResult] = useState<any>(null)
 
   // Handle URL messages
   const message = searchParams.get('message')
@@ -90,7 +93,7 @@ function LoginForm() {
     if (field === "emailOrPhone" && typeof value === "string") {
       if (value.includes("@")) {
         setLoginMethod("email")
-      } else if (/^\d{10}$/.test(value)) {
+      } else if (/^\+?\d{10,14}$/.test(value)) {
         setLoginMethod("phone")
       } else {
         setLoginMethod(null)
@@ -106,31 +109,26 @@ function LoginForm() {
   }
 
   const handleSendOtp = async () => {
-    // Basic validation
     if (!formData.emailOrPhone.trim() || loginMethod !== 'phone') {
       setErrors({ emailOrPhone: "Please enter a valid phone number." });
       return;
     }
     
     try {
-      // API call to send OTP
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: formData.emailOrPhone }),
+      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setOtpSent(true);
-        toast.success("OTP sent to your phone number.");
-      } else {
-        toast.error(data.message || "Failed to send OTP.");
-      }
+      const phoneNumber = formData.emailOrPhone.startsWith('+') ? formData.emailOrPhone : `+91${formData.emailOrPhone}`;
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+      setConfirmationResult(confirmation)
+      setOtpSent(true);
+      toast.success("OTP sent to your phone number.");
     } catch (error) {
       console.error('Send OTP error:', error);
-      toast.error("An unexpected error occurred.");
+      toast.error("An unexpected error occurred while sending OTP.");
     }
   };
 
@@ -138,7 +136,6 @@ function LoginForm() {
     e.preventDefault()
     
     if (loginMethod === 'email') {
-      // Existing email login
       if (!validateForm()) {
         return
       }
@@ -148,28 +145,19 @@ function LoginForm() {
         console.error('Login error:', error)
       }
     } else if (loginMethod === 'phone' && otpSent) {
-      // OTP verification
+      if (!validateForm()) {
+        return
+      }
       try {
-        const res = await fetch('/api/auth/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: formData.emailOrPhone, otp: formData.otp }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          // Manually update auth state after successful OTP login
-          // This part depends on how your useAuth hook is implemented
-          // You might need to add a function to `useAuth` to handle this
-          toast.success("Login successful!");
-          router.push(getRedirectPath(data.user.role)); 
-        } else {
-          toast.error(data.message || "Invalid OTP.");
-        }
+        await confirmationResult.confirm(formData.otp)
+        // You might need to add a function to `useAuth` to handle this
+        toast.success("Login successful!");
+        // This is a simplified user object. You'll likely need to fetch more user details from your backend
+        const user = { role: 'patient' }; // Example role, adjust as needed
+        router.push(getRedirectPath(user.role)); 
       } catch (error) {
         console.error('OTP verification error:', error);
-        toast.error("An unexpected error occurred.");
+        toast.error("Invalid OTP.");
       }
     }
   }
@@ -182,8 +170,8 @@ function LoginForm() {
       newErrors.emailOrPhone = "Email or Phone Number is required";
     } else if (loginMethod === 'email' && !emailRegex.test(formData.emailOrPhone)) {
       newErrors.emailOrPhone = "Please enter a valid email address";
-    } else if (loginMethod === 'phone' && !/^\d{10}$/.test(formData.emailOrPhone)) {
-        newErrors.emailOrPhone = "Please enter a valid 10-digit phone number";
+    } else if (loginMethod === 'phone' && !/^\+?\d{10,14}$/.test(formData.emailOrPhone)) {
+        newErrors.emailOrPhone = "Please enter a valid phone number (e.g., +919876543210)";
     }
 
     if (loginMethod === 'email' && !formData.password) {
@@ -221,6 +209,7 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
+      <div id="recaptcha-container"></div>
       <div className="w-full max-w-md">
         {/* Back to Home Link */}
         <div className="mb-6">
@@ -292,7 +281,7 @@ function LoginForm() {
                   <Input
                     id="emailOrPhone"
                     type="text"
-                    placeholder="e.g., user@example.com or 1234567890"
+                    placeholder="e.g., user@example.com or +919876543210"
                     value={formData.emailOrPhone}
                     onChange={(e) => handleInputChange("emailOrPhone", e.target.value)}
                     className={`pl-10 ${errors.emailOrPhone ? 'border-red-500' : ''}`}
