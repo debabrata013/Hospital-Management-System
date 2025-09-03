@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { 
-  Plus, Search, Filter, Edit, Trash2, Eye, 
-  Users, Phone, Mail, MapPin, Calendar, User, 
+import {
+  Plus, Search, Filter, Edit, Trash2, Eye,
+  Users, Phone, Mail, MapPin, Calendar, User,
   ArrowLeft, ChevronLeft, ChevronRight, MoreHorizontal
 } from 'lucide-react'
 
@@ -69,7 +69,7 @@ export default function PatientsPage() {
   })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('active')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
@@ -111,7 +111,7 @@ export default function PatientsPage() {
 
       const response = await fetch(`/api/admin/patients?${params}`)
       if (!response.ok) throw new Error('Failed to fetch patients')
-      
+
       const data = await response.json()
       setPatients(data.patients)
       setPagination(data.pagination)
@@ -145,7 +145,7 @@ export default function PatientsPage() {
         title: "Success",
         description: `Patient ${result.patientId} created successfully`
       })
-      
+
       setIsAddDialogOpen(false)
       resetForm()
       fetchPatients()
@@ -178,7 +178,7 @@ export default function PatientsPage() {
         title: "Success",
         description: "Patient updated successfully"
       })
-      
+
       setIsEditDialogOpen(false)
       setSelectedPatient(null)
       resetForm()
@@ -209,7 +209,7 @@ export default function PatientsPage() {
         title: "Success",
         description: "Patient deleted successfully"
       })
-      
+
       fetchPatients()
     } catch (error) {
       toast({
@@ -275,11 +275,11 @@ export default function PatientsPage() {
     const birthDate = new Date(dateOfBirth)
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--
     }
-    
+
     return age
   }
 
@@ -292,32 +292,32 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
       <div className="mb-8">
         <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Patient Management</h1>
-            <p className="text-gray-600 mt-2">Manage all patient records and information</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Patient Management</h1>
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">Manage all patient records and information</p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700">
+              <Button className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Patient
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Patient</DialogTitle>
                 <DialogDescription>Enter patient information to create a new record</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddPatient} className="space-y-4 pb-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">Full Name *</Label>
                     <Input
@@ -338,7 +338,7 @@ export default function PatientsPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="gender">Gender *</Label>
                     <Select value={formData.gender || undefined} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
@@ -380,7 +380,7 @@ export default function PatientsPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="blood_group">Blood Group</Label>
                     <Select value={formData.blood_group || undefined} onValueChange={(value) => setFormData({ ...formData, blood_group: value })}>
@@ -409,7 +409,7 @@ export default function PatientsPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="emergency_contact_number">Emergency Contact Phone *</Label>
                     <Input
@@ -428,7 +428,7 @@ export default function PatientsPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="city">City</Label>
                     <Input
@@ -509,11 +509,11 @@ export default function PatientsPage() {
                     onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
                   />
                 </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <div className="flex flex-col sm:flex-row-reverse sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+                  <Button type="submit" className="w-full sm:w-auto">Add Patient</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="w-full sm:w-auto">
                     Cancel
                   </Button>
-                  <Button type="submit">Add Patient</Button>
                 </div>
               </form>
             </DialogContent>
@@ -536,9 +536,9 @@ export default function PatientsPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -547,7 +547,7 @@ export default function PatientsPage() {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
+              <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); }} className="w-full sm:w-auto">
                 <Filter className="h-4 w-4 mr-2" />
                 Clear
               </Button>
@@ -559,11 +559,11 @@ export default function PatientsPage() {
       {/* Patients List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
+          <CardTitle className="flex items-center text-lg sm:text-xl">
             <Users className="h-5 w-5 mr-2" />
             Patients ({pagination.total})
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} patients
           </CardDescription>
         </CardHeader>
@@ -588,19 +588,19 @@ export default function PatientsPage() {
           ) : (
             <div className="space-y-4">
               {patients.map((patient) => (
-                <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center space-x-4">
+                <div key={patient.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center space-x-4 mb-4 sm:mb-0">
                     <Avatar className="h-12 w-12">
                       <AvatarFallback className="bg-pink-100 text-pink-700">
                         {patient.name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="flex items-center space-x-2">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
                         <h3 className="font-semibold text-gray-900">{patient.name}</h3>
                         {getStatusBadge(patient.is_active)}
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                      <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-600 mt-1">
                         <span className="flex items-center">
                           <User className="h-3 w-3 mr-1" />
                           {patient.patient_id}
@@ -621,12 +621,14 @@ export default function PatientsPage() {
                         )}
                       </div>
                       {patient.address && (
-                        <div className="flex items-center text-sm text-gray-500 mt-1">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {patient.address}
-                          {patient.city && `, ${patient.city}`}
-                          {patient.state && `, ${patient.state}`}
-                          {patient.pincode && ` - ${patient.pincode}`}
+                        <div className="flex items-start text-sm text-gray-500 mt-1">
+                          <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span>
+                            {patient.address}
+                            {patient.city && `, ${patient.city}`}
+                            {patient.state && `, ${patient.state}`}
+                            {patient.pincode && ` - ${patient.pincode}`}
+                          </span>
                         </div>
                       )}
                       {patient.emergency_contact_name && (
@@ -638,21 +640,24 @@ export default function PatientsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEditDialog(patient)}
+                      className="w-1/2 sm:w-auto"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Edit</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeletePatient(patient.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 w-1/2 sm:w-auto"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Delete</span>
                     </Button>
                   </div>
                 </div>
@@ -662,7 +667,7 @@ export default function PatientsPage() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 space-y-4 sm:space-y-0">
               <p className="text-sm text-gray-700">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
@@ -693,13 +698,13 @@ export default function PatientsPage() {
 
       {/* Edit Patient Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
             <DialogDescription>Update patient information</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditPatient} className="space-y-4 pb-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-name">Full Name *</Label>
                 <Input
@@ -720,7 +725,7 @@ export default function PatientsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-gender">Gender *</Label>
                 <Select value={formData.gender || undefined} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
@@ -762,7 +767,7 @@ export default function PatientsPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-blood_group">Blood Group</Label>
                 <Select value={formData.blood_group || undefined} onValueChange={(value) => setFormData({ ...formData, blood_group: value })}>
@@ -791,7 +796,7 @@ export default function PatientsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-emergency_contact_number">Emergency Contact Phone *</Label>
                 <Input
@@ -810,7 +815,7 @@ export default function PatientsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-city">City</Label>
                 <Input
@@ -891,11 +896,11 @@ export default function PatientsPage() {
                 onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
               />
             </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <div className="flex flex-col sm:flex-row-reverse sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+              <Button type="submit" className="w-full sm:w-auto">Update Patient</Button>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit">Update Patient</Button>
             </div>
           </form>
         </DialogContent>
