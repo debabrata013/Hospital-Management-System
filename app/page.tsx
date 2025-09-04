@@ -457,6 +457,7 @@ export default function LandingPage() {
   const [submitMessage, setSubmitMessage] = useState('');
 
   const t = content[language];
+  const FORCE_GIT_UPDATE = "A"; // This is a temporary constant to force git to recognize changes
 
   const sliderImages = [
     '/images/slider-1.jpg',
