@@ -436,7 +436,6 @@ const content = {
 type ContentType = typeof content;
 type Language = keyof ContentType;
 
-// Main component for the landing page
 export default function LandingPage() {
   const { authState, logout } = useAuth();
   const [language, setLanguage] = useState<Language>('english');
@@ -457,7 +456,6 @@ export default function LandingPage() {
   const [submitMessage, setSubmitMessage] = useState('');
 
   const t = content[language];
-  const FORCE_GIT_UPDATE = "A"; // This is a temporary constant to force git to recognize changes
 
   const sliderImages = [
     '/images/slider-1.jpg',
@@ -507,6 +505,7 @@ export default function LandingPage() {
     }
   };
 
+  // Array of doctor profiles for the landing page
   const doctors = [
     {
       id: 1,
