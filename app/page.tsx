@@ -436,6 +436,7 @@ const content = {
 type ContentType = typeof content;
 type Language = keyof ContentType;
 
+// Main component for the landing page
 export default function LandingPage() {
   const { authState, logout } = useAuth();
   const [language, setLanguage] = useState<Language>('english');
