@@ -1,16 +1,16 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode, Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { jwtDecode } from 'jwt-decode';
 import { User, AuthState } from '@/lib/types';
 
 // --- CONFIGURATION ---
 const API_BASE_URL = '/api';
 
 interface LoginData {
-  email: string;
+  login: string; // Can be email or phone number
   password: string;
 }
 
@@ -46,30 +46,6 @@ export const useAuth = () => {
   return useContext(AuthContext);
 };
 
-// --- TOKEN VERIFICATION HOOK ---
-export const useTokenVerification = () => {
-  const { authState } = useAuth();
-  
-  const verifyToken = useCallback(async (token: string) => {
-    try {
-      // Handle both real JWT tokens and mock tokens
-      let decodedUser: User;
-      try {
-        decodedUser = jwtDecode(token);
-      } catch {
-        // If JWT decode fails, try to decode as base64 mock token
-        const mockData = JSON.parse(atob(token));
-        decodedUser = mockData;
-      }
-      return { success: true, user: decodedUser };
-    } catch (error) {
-      return { success: false, error: 'Invalid token' };
-    }
-  }, []);
-
-  return { verifyToken, authState };
-};
-
 // --- CORE AUTH LOGIC HOOK ---
 const useProvideAuth = (): AuthContextType => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -82,33 +58,26 @@ const useProvideAuth = (): AuthContextType => {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    // Check for user data in a secure way (e.g., from a session endpoint)
+    const verifySession = async () => {
       try {
-        // Handle both real JWT tokens and mock tokens
-        let decodedUser: User;
-        try {
-          decodedUser = jwtDecode(token);
-        } catch {
-          // If JWT decode fails, try to decode as base64 mock token
-          const mockData = JSON.parse(atob(token));
-          decodedUser = mockData;
+        const response = await fetch(`${API_BASE_URL}/auth/session`);
+        if (response.ok) {
+          const { user } = await response.json();
+          setAuthState({
+            user,
+            isLoading: false,
+            isAuthenticated: true,
+            error: null,
+          });
+        } else {
+          setAuthState({ user: null, isLoading: false, isAuthenticated: false, error: null });
         }
-        
-        setAuthState({
-          user: decodedUser,
-          isLoading: false,
-          isAuthenticated: true,
-          error: null,
-        });
       } catch (error) {
-        console.error('Invalid token found:', error);
-        localStorage.removeItem('token');
         setAuthState({ user: null, isLoading: false, isAuthenticated: false, error: null });
       }
-    } else {
-      setAuthState({ user: null, isLoading: false, isAuthenticated: false, error: null });
-    }
+    };
+    verifySession();
   }, []);
 
   const login = useCallback(async (loginData: LoginData) => {
@@ -126,10 +95,8 @@ const useProvideAuth = (): AuthContextType => {
         throw new Error(errorData.message || 'Login failed');
       }
 
-      const { token, user } = await response.json();
+      const { user } = await response.json();
 
-      localStorage.setItem('token', token);
-      
       setAuthState({
         user,
         isLoading: false,
@@ -172,11 +139,16 @@ const useProvideAuth = (): AuthContextType => {
     }
   }, [router]);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setAuthState({ user: null, isLoading: false, isAuthenticated: false, error: null });
-    router.push('/login');
-    toast.info('You have been logged out.');
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setAuthState({ user: null, isLoading: false, isAuthenticated: false, error: null });
+      router.push('/login');
+      toast.info('You have been logged out.');
+    }
   }, [router]);
 
   return {
@@ -195,6 +167,8 @@ const getRedirectPath = (role: string): string => {
     'admin': '/admin',
     'doctor': '/doctor',
     'patient': '/patient',
+    'staff': '/staff',
+    'receptionist': '/receptionist',
   };
   return roleRedirects[role] || '/';
 };

@@ -1,70 +1,107 @@
+
 import { NextRequest, NextResponse } from 'next/server';
-import { executeQuery } from '@/lib/mysql-connection';
+import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { serialize } from 'cookie';
+import sequelize from '../../../../lib/sequelize'; // Adjust path
+import User from '../../../../models/User'; // Adjust path
 
-export async function POST(request: NextRequest) {
+const loginSchema = z.object({
+  login: z.string().min(1, "Email or phone number is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    await sequelize.sync(); // Sync models with the database
 
-    // 1. Validate input
-    if (!email || !password) {
-      return NextResponse.json({ message: 'Missing email or password' }, { status: 400 });
+    const body = await req.json();
+    const parsed = loginSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Invalid input", errors: parsed.error.errors },
+        { status: 400 }
+      );
     }
 
-    // 2. Find the user by email
-    const users = await executeQuery('SELECT * FROM Users WHERE email = ?', [email]);
+    const { login, password } = parsed.data;
 
-    if (users.length === 0) {
-      console.log(`Login attempt failed: User with email '${email}' not found.`);
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+    const isEmail = login.includes('@');
+
+    const user = await User.findOne({
+      where: isEmail ? { email: login } : { phoneNumber: login },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { message: "Invalid credentials" },
+        { status: 401 }
+      );
     }
 
-    const user = users[0];
-    console.log(`Login attempt: User '${email}' found. Comparing password...`);
-
-    // 3. Compare the provided password with the stored hash
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      console.log(`Login attempt failed: Invalid password for user '${email}'.`);
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json(
+        { message: "Invalid credentials" },
+        { status: 401 }
+      );
     }
 
-    console.log(`Login successful for user '${email}'.`);
+    if (!user.isActive) {
+      return NextResponse.json(
+        { message: "Account is inactive. Please contact support." },
+        { status: 403 }
+      );
+    }
 
-    // 4. Generate a JWT
     const token = jwt.sign(
-      { userId: user.id, role: user.role }, // Use user.id for MySQL
-      process.env.JWT_SECRET || 'your-default-secret',
-      { expiresIn: '1h' }
-    );
-
-    // 5. Set the token as a secure, httpOnly cookie
-    const response = NextResponse.json(
       {
-        message: 'Login successful',
-        user: { 
-          id: user.id, 
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email, 
-          role: user.role 
-        },
+        userId: user.id,
+        role: user.role,
+        email: user.email,
       },
-      { status: 200 }
+      JWT_SECRET,
+      { expiresIn: '1d' } // Token expires in 1 day
     );
 
-    response.cookies.set('auth-token', token, {
+    const cookie = serialize('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24, // 1 day
       path: '/',
-      maxAge: 60 * 60, // 1 hour
     });
 
-    return response;
+    return new NextResponse(
+      JSON.stringify({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Set-Cookie': cookie,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

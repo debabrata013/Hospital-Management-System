@@ -1,52 +1,90 @@
-// Using a simple interface for now as the database schema is not fully known.
-// This will be replaced with a proper database model.
 
-export interface User {
-  _id: string;
-  userId: string;
-  name: string;
-  email: string;
-  role: string;
-  department?: string;
-  specialization?: string;
-  isActive: boolean;
-  permissions: string[];
-  passwordHash: string;
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../lib/sequelize'; // Adjust path as needed
+
+class User extends Model {
+  public id!: number;
+  public email!: string;
+  public password!: string;
+  public role!: string;
+  public employeeId?: string;
+  public isActive!: boolean;
+  public firstName?: string;
+  public lastName?: string;
+  public phoneNumber?: string;
+  public address?: string;
+  public gender?: 'male' | 'female' | 'other';
+  public dateOfBirth?: Date;
+
+  // Timestamps
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
 }
 
-// Minimal mock for User model with findById and select to prevent runtime errors
-const User = {
-	async findById() {
-		return {
-			_id: 'mockid',
-			userId: 'mockuserid',
-			name: 'Mock User',
-			email: 'mock@example.com',
-			role: 'admin',
-			department: 'mock',
-			specialization: 'mock',
-			isActive: true,
-			permissions: []
-		};
-	},
-};
-
-User.findById = function() {
-	return {
-		select: async function() {
-			return {
-				_id: 'mockid',
-				userId: 'mockuserid',
-				name: 'Mock User',
-				email: 'mock@example.com',
-				role: 'admin',
-				department: 'mock',
-				specialization: 'mock',
-				isActive: true,
-				permissions: []
-			};
-		}
-	};
-};
+User.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true,
+      },
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'patient',
+    },
+    employeeId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    lastName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
+    address: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    gender: {
+      type: DataTypes.ENUM('male', 'female', 'other'),
+      allowNull: true,
+    },
+    dateOfBirth: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+  },
+  {
+    tableName: 'users',
+    sequelize, // Pass the sequelize instance
+  }
+);
 
 export default User;
