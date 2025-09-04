@@ -98,14 +98,6 @@ const content = {
         title: "Digital Reports",
         description: "View and download all your medical reports, test results and prescriptions online"
       },
-      pharmacySystem: {
-        title: "Home Delivery",
-        description: "Get medicines delivered to your home. Direct delivery from our pharmacy to your doorstep"
-      },
-      appointmentBooking: {
-        title: "24/7 सहायता",
-        description: "किसी भी समय हमारी हेल्पलाइन पर कॉल करें या चैट करें। आपातकालीन सेवाएं हमेशा उपलब्ध"
-      }
     },
     about: {
       title: "आरोग्य अस्पताल आपके लिए क्यों सबसे अच्छा है?",
@@ -317,14 +309,6 @@ const content = {
         title: "Digital Reports",
         description: "View and download all your medical reports, test results, and prescriptions online anytime"
       },
-      pharmacySystem: {
-        title: "Home Delivery",
-        description: "Get medicines delivered to your doorstep. Direct delivery from our pharmacy to your home"
-      },
-      appointmentBooking: {
-        title: "24/7 Support",
-        description: "Call or chat with our helpline anytime. Emergency services are always available for you"
-      }
     },
     about: {
       title: "Why NMSC is Best for You?",
@@ -1315,7 +1299,7 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
             <Card className="border-pink-100 hover:shadow-lg transition-all duration-300 group">
               <CardContent className="p-8 text-center">
                 <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
@@ -1340,29 +1324,6 @@ export default function LandingPage() {
               </CardContent>
             </Card>
             
-            <Card className="border-pink-100 hover:shadow-lg transition-all duration-300 group">
-              <CardContent className="p-8 text-center">
-                <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Truck className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{t.features.pharmacySystem.title}</h3>
-                <p className="text-gray-600">
-                  {t.features.pharmacySystem.description}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-pink-100 hover:shadow-lg transition-all duration-300 group">
-              <CardContent className="p-8 text-center">
-                <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Headphones className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{t.features.appointmentBooking.title}</h3>
-                <p className="text-gray-600">
-                  {t.features.appointmentBooking.description}
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
