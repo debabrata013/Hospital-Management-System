@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import User from '../../../../models/User'; // Adjust path as needed
 
+export const dynamic = 'force-dynamic'
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 
 export async function GET(req: NextRequest) {

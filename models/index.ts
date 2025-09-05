@@ -1,7 +1,14 @@
 // This file exports mock models for development. Replace with real models as needed.
 
 import User from './User';
-const AuditLog = {};
+
+// Mock AuditLog model
+const AuditLog = {
+  create: async (data: any) => {
+    console.log('AuditLog.create called with:', data);
+    return { id: Date.now(), ...data };
+  }
+};
 
 const models = { User, AuditLog };
 export default models;
