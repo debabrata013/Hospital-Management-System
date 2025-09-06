@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import PatientSummaryGenerator from '@/components/ai/PatientSummaryGenerator'
+import DietPlanGenerator from '@/components/ai/DietPlanGenerator'
+import AIContentViewModal from '@/components/ai/AIContentViewModal'
+import { useState, useEffect } from 'react'
 import { 
   Brain, 
   Wand2, 
@@ -123,6 +127,55 @@ const aiToolsHistory = [
 ]
 
 export default function DoctorAIToolsPage() {
+  const [stats, setStats] = useState({
+    summariesGenerated: 0,
+    dietPlansCreated: 0,
+    pendingApprovals: 0,
+    approvedToday: 0,
+    recentActivity: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedApproval, setSelectedApproval] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/ai/stats?doctorId=D001'); // Replace with actual doctor ID from session
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleViewApproval = async (approvalId: number) => {
+    try {
+      const response = await fetch(`/api/ai/approval/${approvalId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedApproval(data);
+        setIsModalOpen(true);
+      } else {
+        console.error('Failed to fetch approval details');
+      }
+    } catch (error) {
+      console.error('Error fetching approval details:', error);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedApproval(null);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -169,7 +222,9 @@ export default function DoctorAIToolsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">AI Summaries Generated</p>
-                <p className="text-2xl font-bold text-gray-900">24</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {isLoading ? '...' : stats.summariesGenerated}
+                </p>
               </div>
               <FileText className="h-8 w-8 text-pink-500" />
             </div>
@@ -181,7 +236,9 @@ export default function DoctorAIToolsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Diet Plans Created</p>
-                <p className="text-2xl font-bold text-green-600">18</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {isLoading ? '...' : stats.dietPlansCreated}
+                </p>
               </div>
               <Utensils className="h-8 w-8 text-green-500" />
             </div>
@@ -193,7 +250,9 @@ export default function DoctorAIToolsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                <p className="text-2xl font-bold text-yellow-600">3</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {isLoading ? '...' : stats.pendingApprovals}
+                </p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>
@@ -205,7 +264,9 @@ export default function DoctorAIToolsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Approved Today</p>
-                <p className="text-2xl font-bold text-blue-600">5</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {isLoading ? '...' : stats.approvedToday}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-blue-500" />
             </div>
@@ -216,81 +277,10 @@ export default function DoctorAIToolsPage() {
       {/* AI Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Patient Summary Generator */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-blue-500" />
-              AI Patient Summary Generator
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Patient Selection</label>
-              <Input placeholder="Search patient by name or ID..." className="mt-1" />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium text-gray-700">Doctor's Notes (Bullet Points)</label>
-              <Textarea 
-                placeholder="Enter your consultation notes in bullet points..."
-                className="mt-1"
-                rows={6}
-              />
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Button className="bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600">
-                <Wand2 className="h-4 w-4 mr-2" />
-                Generate Summary
-              </Button>
-              <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <PatientSummaryGenerator onApproval={fetchStats} />
 
         {/* Diet Plan Generator */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Utensils className="h-5 w-5 mr-2 text-green-500" />
-              AI Diet Plan Generator
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Patient Selection</label>
-              <Input placeholder="Search patient by name or ID..." className="mt-1" />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium text-gray-700">Medical Condition & Requirements</label>
-              <Textarea 
-                placeholder="Enter patient's condition, dietary restrictions, and requirements..."
-                className="mt-1"
-                rows={4}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700">Additional Notes</label>
-              <Input placeholder="Age, weight, activity level, preferences..." className="mt-1" />
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Button className="bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate Diet Plan
-              </Button>
-              <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <DietPlanGenerator onApproval={fetchStats} />
       </div>
 
       {/* Pending Approvals */}
@@ -419,26 +409,43 @@ export default function DoctorAIToolsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {aiToolsHistory.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  {getTypeIcon(item.type)}
-                  <div>
-                    <p className="font-medium text-gray-900">{item.type} - {item.patient}</p>
-                    <p className="text-sm text-gray-600">Generated: {item.generatedAt}</p>
-                    {item.approvedBy && (
-                      <p className="text-sm text-gray-600">Approved by: {item.approvedBy}</p>
-                    )}
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Loading recent activity...</p>
+              </div>
+            ) : stats.recentActivity.length > 0 ? (
+              stats.recentActivity.map((item: any) => (
+                <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    {getTypeIcon(item.type === 'patient_summary' ? 'Patient Summary' : 'Diet Plan')}
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {item.type === 'patient_summary' ? 'Patient Summary' : 'Diet Plan'} - {item.patient_name}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Generated: {new Date(item.created_at).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">Approved by: {item.doctor_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    {getStatusBadge(item.status)}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                      onClick={() => handleViewApproval(item.id)}
+                    >
+                      View
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  {getStatusBadge(item.status)}
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                    View
-                  </Button>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No AI tools used yet. Start by generating a patient summary or diet plan above.</p>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -472,6 +479,13 @@ export default function DoctorAIToolsPage() {
           <span className="font-medium">Advanced AI Clinical Tools Coming Soon</span>
         </div>
       </div>
+
+      {/* AI Content View Modal */}
+      <AIContentViewModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        approval={selectedApproval}
+      />
     </div>
   )
 }

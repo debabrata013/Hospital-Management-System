@@ -51,6 +51,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@types/cookie": "^0.6.0",
     "@types/react-dropzone": "^4.2.2",
+    "@xenova/transformers": "^2.17.2",
     "axios": "^1.7.2",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
