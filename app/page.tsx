@@ -455,6 +455,7 @@ export default function LandingPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [showAllDoctors, setShowAllDoctors] = useState(false);
 
   const t = content[language];
 
@@ -510,9 +511,9 @@ export default function LandingPage() {
   const doctors = [
     {
       id: 1,
-      name: 'Dr G K Nayak',
+      name: 'Dr G K Nayak - MBBS D Orth',
       specialization: 'Orthopedics (Founder)',
-      qualification: 'MS (Ortho), Founder',
+      qualification: 'Founder',
       experience: '40+ Years',
       patients: '700K+',
       rating: 4.9,
@@ -523,22 +524,9 @@ export default function LandingPage() {
     },
     {
       id: 2,
-      name: 'Dr Niharika Nayak',
-      specialization: 'Gynecology',
-      qualification: 'MD, DGO',
-      experience: '10+ Years',
-      patients: '15K+',
-      rating: 4.9,
-      availability: 'Tue-Sat, 2pm-5pm',
-      languages: ['Hindi', 'English'],
-      about: 'Dr. Niharika Nayak is a leading gynecologist with 10+ years of experience in gynecology and obstetrics. She has successfully delivered over 5000 babies, bringing joy to thousands of happy parents.',
-      isGynecologist: true
-    },
-    {
-      id: 3,
-      name: 'Dr Vinod Paliwal',
+      name: 'Dr Vinod Paliwal - MBBS D Orth',
       specialization: 'Orthopedics',
-      qualification: 'MS (Ortho)',
+      qualification: '',
       experience: '15+ Years',
       patients: '5k+',
       rating: 4.8,
@@ -547,10 +535,10 @@ export default function LandingPage() {
       about: 'Dr. Vinod Paliwal specializes in orthopedic surgery with expertise in joint replacement and sports injury treatment.'
     },
     {
-      id: 4,
-      name: 'Dr K D Singh',
+      id: 3,
+      name: 'Dr K D Singh - MBBS DA',
       specialization: 'Anesthetics',
-      qualification: 'MD (Anesthesia)',
+      qualification: '',
       experience: '12+ Years',
       patients: '8k+',
       rating: 4.8,
@@ -559,10 +547,10 @@ export default function LandingPage() {
       about: 'Dr. K D Singh is an experienced anesthetist ensuring safe and comfortable surgical procedures for all patients.'
     },
     {
-      id: 5,
-      name: 'Dr Ramakant Dewangan',
+      id: 4,
+      name: 'Dr Ramakant Dewangan - MBBS D Orth',
       specialization: 'Orthopedics',
-      qualification: 'MS (Ortho)',
+      qualification: '',
       experience: '10+ Years',
       patients: '4k+',
       rating: 4.7,
@@ -571,10 +559,10 @@ export default function LandingPage() {
       about: 'Dr. Ramakant Dewangan specializes in orthopedic treatments with focus on bone and joint disorders.'
     },
     {
-      id: 6,
-      name: 'Dr Shreyansh Shukla',
+      id: 5,
+      name: 'Dr Shreyansh Shukla - MBBS MS Ortho',
       specialization: 'Orthopedics',
-      qualification: 'MS (Ortho)',
+      qualification: '',
       experience: '8+ Years',
       patients: '3k+',
       rating: 4.7,
@@ -583,10 +571,10 @@ export default function LandingPage() {
       about: 'Dr. Shreyansh Shukla is a skilled orthopedic surgeon with expertise in minimally invasive procedures.'
     },
     {
-      id: 7,
-      name: 'Dr Punit Mohanty',
+      id: 6,
+      name: 'Dr Punit Mohanty - MBBS MD Ortho',
       specialization: 'Orthopedics',
-      qualification: 'MS (Ortho)',
+      qualification: '',
       experience: '12+ Years',
       patients: '4.5k+',
       rating: 4.8,
@@ -595,52 +583,17 @@ export default function LandingPage() {
       about: 'Dr. Punit Mohanty specializes in orthopedic surgery with particular expertise in spine and joint treatments.'
     },
     {
-      id: 8,
-      name: 'Dr Ajay Rathore',
-      specialization: 'BAMS (Ayurveda)',
-      qualification: 'BAMS',
-      experience: '15+ Years',
-      patients: '6k+',
-      rating: 4.8,
-      availability: 'Mon-Sat, 9am-2pm',
-      languages: ['Hindi', 'English'],
-      about: 'Dr. Ajay Rathore is an experienced Ayurvedic physician providing holistic treatment approaches for various health conditions.'
-    },
-    {
-      id: 9,
-      name: 'Dr Payal Rathore',
-      specialization: 'Visiting Anesthetist',
-      qualification: 'MD (Anesthesia)',
+      id: 7,
+      name: 'Dr Niharika Nayak - MBBS DGO FMAS',
+      specialization: 'Gynecology',
+      qualification: '',
       experience: '10+ Years',
-      patients: '3k+',
-      rating: 4.7,
-      availability: 'On Call',
-      languages: ['Hindi', 'English'],
-      about: 'Dr. Payal Rathore is a visiting anesthetist providing specialized anesthesia services for complex procedures.'
-    },
-    {
-      id: 10,
-      name: 'Dr Shubham Gupta',
-      specialization: 'Visiting Surgeon',
-      qualification: 'MS (Surgery)',
-      experience: '12+ Years',
-      patients: '4k+',
-      rating: 4.8,
-      availability: 'On Call',
-      languages: ['Hindi', 'English'],
-      about: 'Dr. Shubham Gupta is a visiting surgeon with expertise in general and laparoscopic surgical procedures.'
-    },
-    {
-      id: 11,
-      name: 'Dr R K Chandra',
-      specialization: 'Visiting Surgeon',
-      qualification: 'MS (Surgery)',
-      experience: '20+ Years',
-      patients: '7k+',
+      patients: '15K+',
       rating: 4.9,
-      availability: 'On Call',
+      availability: 'Tue-Sat, 2pm-5pm',
       languages: ['Hindi', 'English'],
-      about: 'Dr. R K Chandra is a senior visiting surgeon with extensive experience in complex surgical procedures and patient care.'
+      about: 'Dr. Niharika Nayak is a leading gynecologist with 10+ years of experience in gynecology and obstetrics. She has successfully delivered over 5000 babies, bringing joy to thousands of happy parents.',
+      isGynecologist: true
     }
   ];
 
@@ -756,7 +709,7 @@ export default function LandingPage() {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {doctors.slice(0, 6).map((doctor) => (
+            {(showAllDoctors ? doctors : doctors.slice(0, 6)).map((doctor) => (
               <Card key={doctor.id} className="border-pink-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 <CardContent className="p-0">
                   
@@ -820,14 +773,12 @@ export default function LandingPage() {
           {/* Show More Doctors Button */}
           <div className="text-center mt-12">
             <Button 
+              size="lg" 
               variant="outline" 
               className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-8 py-3 text-lg"
-              onClick={() => {
-                // You can implement a modal or expand functionality here
-                alert('View all doctors functionality can be implemented here')
-              }}
+              onClick={() => setShowAllDoctors(!showAllDoctors)}
             >
-              View All {doctors.length} Doctors
+              {showAllDoctors ? `Show Less` : `View All ${doctors.length} Doctors`}
             </Button>
           </div>
         </div>
