@@ -177,7 +177,6 @@ export default function DoctorDashboard() {
     experience: "12 years" // Placeholder
   };
 
-  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
