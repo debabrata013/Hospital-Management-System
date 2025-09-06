@@ -17,7 +17,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 export async function POST(req: NextRequest) {
   try {
-    await sequelize.sync(); // Sync models with the database
+    // Note: It's generally better to sync the database at startup, not per-request.
+    // await sequelize.sync(); 
 
     const body = await req.json();
     const parsed = loginSchema.safeParse(body);
@@ -35,6 +36,17 @@ export async function POST(req: NextRequest) {
 
     const user = await User.findOne({
       where: isEmail ? { email: login } : { phoneNumber: login },
+      // FIX: Explicitly select the columns that exist in the database
+      attributes: [
+        'id', 
+        'password', 
+        'isActive', 
+        'role', 
+        'email', 
+        'firstName', 
+        'lastName',
+        'phoneNumber'
+      ]
     });
 
     if (!user) {

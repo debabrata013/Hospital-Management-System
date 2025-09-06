@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import initializeDatabase from '../backend/models';
+import models from '../models';
 
 // Interface for authenticated user
 export interface AuthenticatedUser {
@@ -50,7 +50,7 @@ function extractToken(request: NextRequest): string | null {
 // Main authentication function
 export async function authenticateUser(request: NextRequest): Promise<AuthResult | NextResponse> {
   try {
-        const { User } = await initializeDatabase();
+    const { User } = models;
 
     const token = extractToken(request);
     if (!token) {
@@ -190,7 +190,7 @@ export async function logAuditAction(
   ipAddress?: string
 ): Promise<void> {
   try {
-    const { AuditLog } = await initializeDatabase();
+    const { AuditLog } = models;
     await AuditLog.create({
       userId,
       action,
@@ -211,15 +211,8 @@ export function withAuth(
     permissions?: { module: string; action: string };
   } = {}
 ) {
-  let dbInitialized = false;
-
   return async (request: NextRequest): Promise<NextResponse> => {
     try {
-      if (!dbInitialized) {
-        await initializeDatabase();
-        dbInitialized = true;
-      }
-
       let auth: AuthResult | NextResponse;
       if (options.roles) {
         auth = await requireRole(options.roles)(request);

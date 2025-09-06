@@ -1,24 +1,24 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serialize } from 'cookie';
 
-export async function POST(req: NextRequest) {
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+export async function POST() {
+  // Create a cookie that is expired.
   const cookie = serialize('auth-token', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: -1, // Expire the cookie immediately
+    expires: new Date(0), // Set expiry date to the past
     path: '/',
   });
 
   return new NextResponse(
-    JSON.stringify({ message: 'Logout successful' }),
+    JSON.stringify({ message: "Logout successful" }),
     {
       status: 200,
-      headers: {
-        'Set-Cookie': cookie,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Set-Cookie': cookie },
     }
   );
 }
