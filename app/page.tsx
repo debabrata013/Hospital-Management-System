@@ -922,13 +922,14 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center h-[400px]">
                   <div className="text-center">
                     <div className="relative inline-block mb-6">
-                      <img 
-                        src="/images/dr-gk-nayak.jpg" 
-                        alt="Dr G K Nayak - Founder" 
-                        width={220} 
-                        height={220} 
-                        className="rounded-full object-cover shadow-lg border-2 border-white"
-                      />
+                      <div className="relative w-72 h-72 rounded-3xl bg-white shadow-2xl border-8 border-white overflow-hidden">
+                        <Image 
+                          src="/images/dr-gk-nayak.jpg" 
+                          alt="Dr G K Nayak - Founder" 
+                          layout="fill" 
+                          objectFit="contain"
+                        />
+                      </div>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr G K Nayak</h3>
                     <p className="text-yellow-600 font-medium">Founder & Chief Orthopedic Surgeon</p>
