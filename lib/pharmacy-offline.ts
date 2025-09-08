@@ -46,7 +46,9 @@ export class PharmacyOfflineManager {
       createdAt: new Date().toISOString()
     }
     
-    return store.add(offlineBill)
+    await store.add(offlineBill)
+    this.requestBackgroundSync()
+    return offlineBill
   }
 
   async saveOfflinePrescription(prescriptionData: any) {
@@ -62,7 +64,9 @@ export class PharmacyOfflineManager {
       createdAt: new Date().toISOString()
     }
     
-    return store.add(offlinePrescription)
+    await store.add(offlinePrescription)
+    this.requestBackgroundSync()
+    return offlinePrescription
   }
 
   async getOfflineData(storeName: string) {
@@ -82,15 +86,21 @@ export class PharmacyOfflineManager {
     const offlineBills = await this.getOfflineData('billing') as any[]
     const offlinePrescriptions = await this.getOfflineData('prescriptions') as any[]
     
+    let syncedCount = 0
+    
     // Sync bills
     for (const bill of offlineBills) {
       try {
-        await fetch('/api/billing', {
+        const response = await fetch('/api/pharmacy/billing/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bill)
         })
-        await this.removeOfflineData('billing', bill.id)
+        
+        if (response.ok) {
+          await this.removeOfflineData('billing', bill.id)
+          syncedCount++
+        }
       } catch (error) {
         console.error('Failed to sync bill:', error)
       }
@@ -99,16 +109,22 @@ export class PharmacyOfflineManager {
     // Sync prescriptions
     for (const prescription of offlinePrescriptions) {
       try {
-        await fetch('/api/pharmacy/prescriptions', {
+        const response = await fetch('/api/pharmacy/prescriptions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(prescription)
         })
-        await this.removeOfflineData('prescriptions', prescription.id)
+        
+        if (response.ok) {
+          await this.removeOfflineData('prescriptions', prescription.id)
+          syncedCount++
+        }
       } catch (error) {
         console.error('Failed to sync prescription:', error)
       }
     }
+    
+    return syncedCount
   }
 
   async removeOfflineData(storeName: string, id: string) {
@@ -121,6 +137,34 @@ export class PharmacyOfflineManager {
 
   isOnline() {
     return navigator.onLine
+  }
+
+  private requestBackgroundSync() {
+    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready.then((registration) => {
+        return registration.sync.register('pharmacy-sync')
+      }).catch(console.error)
+    }
+  }
+
+  // Auto-sync when coming back online
+  setupAutoSync() {
+    window.addEventListener('online', () => {
+      this.syncOfflineData().then((count) => {
+        if (count > 0) {
+          this.showSyncNotification(count)
+        }
+      })
+    })
+  }
+
+  private showSyncNotification(count: number) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(`Synced ${count} offline items`, {
+        icon: '/icon-192x192.png',
+        badge: '/badge-72x72.png'
+      })
+    }
   }
 }
 

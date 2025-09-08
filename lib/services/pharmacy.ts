@@ -561,8 +561,14 @@ export class PharmacyService {
 
   async dispensePrescription(id: string, items: any[]) {
     try {
+      // Get prescription details for billing
+      const prescription = await this.getPrescriptionById(id)
+      if (!prescription) throw new Error('Prescription not found')
+
       // Update prescription status
       await executeQuery(`UPDATE prescriptions SET status = 'completed' WHERE id = ? OR prescription_id = ?`, [id, id])
+
+      let totalAmount = 0
 
       // Mark items as dispensed and create stock transactions
       for (const item of items) {
@@ -582,11 +588,58 @@ export class PharmacyService {
           reference_id: id,
           notes: `Dispensed from prescription ${id}`
         })
+
+        totalAmount += item.quantity * item.unit_price
+      }
+
+      // Auto-create billing entry
+      if (totalAmount > 0) {
+        await this.createAutoBill({
+          patient_id: prescription.patient_id,
+          prescription_id: id,
+          items,
+          total_amount: totalAmount
+        })
       }
 
       return this.getPrescriptionById(id)
     } catch (error) {
       console.error('Error in dispensePrescription:', error)
+      throw error
+    }
+  }
+
+  async createAutoBill(data: any) {
+    const { executeQuery, dbUtils } = require('@/lib/mysql-connection')
+    const billId = dbUtils.generateId('BILL')
+    
+    try {
+      // Create main bill record
+      await executeQuery(`
+        INSERT INTO billing (
+          bill_id, patient_id, bill_date, bill_type, subtotal, total_amount,
+          paid_amount, balance_amount, payment_status, payment_method, 
+          reference_id, created_by
+        ) VALUES (?, ?, CURDATE(), 'pharmacy', ?, ?, 0, ?, 'pending', 'cash', ?, 1)
+      `, [billId, data.patient_id, data.total_amount, data.total_amount, data.total_amount, data.prescription_id])
+
+      // Get billing record ID
+      const [billRecord] = await executeQuery(`SELECT id FROM billing WHERE bill_id = ?`, [billId])
+
+      // Add billing items
+      for (const item of data.items) {
+        const itemTotal = item.unit_price * item.quantity
+        await executeQuery(`
+          INSERT INTO billing_items (
+            billing_id, item_type, item_name, quantity, unit_price, 
+            total_price, final_amount
+          ) VALUES (?, 'medicine', ?, ?, ?, ?, ?)
+        `, [billRecord.id, item.medicine_name, item.quantity, item.unit_price, itemTotal, itemTotal])
+      }
+
+      return { bill_id: billId, total_amount: data.total_amount }
+    } catch (error) {
+      console.error('Error creating auto-bill:', error)
       throw error
     }
   }

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -28,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Heart, LayoutDashboard, Package, FileText, BarChart3, Plus, Bell, LogOut, User, Building2, Receipt } from 'lucide-react'
+import { registerServiceWorker } from "@/lib/sw-register"
+import { pharmacyOfflineManager } from "@/lib/pharmacy-offline"
 
 const navigationItems = [
   {
@@ -60,6 +63,18 @@ export default function PharmacyLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+
+  useEffect(() => {
+    // Initialize offline functionality
+    registerServiceWorker()
+    pharmacyOfflineManager.init()
+    pharmacyOfflineManager.setupAutoSync()
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
 
   return (
     <SidebarProvider>

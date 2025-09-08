@@ -10,9 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   Search, Plus, Receipt, User, FileText, 
-  ShoppingCart, Calculator, CreditCard
+  ShoppingCart, Calculator, CreditCard, Wifi, WifiOff
 } from 'lucide-react'
 import { toast } from "sonner"
+import { OfflineBilling } from "@/components/pharmacy/offline-billing"
+import { pharmacyOfflineManager } from "@/lib/pharmacy-offline"
 
 export default function PharmacyBillingPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -23,10 +25,24 @@ export default function PharmacyBillingPage() {
   const [showBillDialog, setShowBillDialog] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("cash")
   const [loading, setLoading] = useState(false)
+  const [isOnline, setIsOnline] = useState(true)
 
   // Load all patients on component mount
   useEffect(() => {
     loadPatients()
+    
+    // Monitor online status
+    setIsOnline(navigator.onLine)
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
   }, [])
 
   // Filter patients when search term changes
@@ -124,28 +140,39 @@ export default function PharmacyBillingPage() {
   const processBill = async () => {
     if (!selectedPatient || billItems.length === 0) return
 
-    try {
-      const response = await fetch('/api/pharmacy/billing/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: selectedPatient.id,
-          items: billItems,
-          payment_method: paymentMethod,
-          total_amount: calculateTotal()
-        })
-      })
+    const billData = {
+      patient_id: selectedPatient.id,
+      patient_name: selectedPatient.name,
+      items: billItems,
+      payment_method: paymentMethod,
+      total_amount: calculateTotal()
+    }
 
-      const result = await response.json()
-      
-      if (result.success) {
-        toast.success("Bill created successfully")
+    try {
+      if (isOnline) {
+        const response = await fetch('/api/pharmacy/billing/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(billData)
+        })
+
+        const result = await response.json()
+        
+        if (result.success) {
+          toast.success("Bill created successfully")
+          setBillItems([])
+          setShowBillDialog(false)
+          // Reload prescriptions to update dispensed status
+          await loadPatientPrescriptions(selectedPatient.id)
+        } else {
+          toast.error("Failed to create bill")
+        }
+      } else {
+        // Save offline
+        await pharmacyOfflineManager.saveOfflineBill(billData)
+        toast.success("Bill saved offline - will sync when online")
         setBillItems([])
         setShowBillDialog(false)
-        // Reload prescriptions to update dispensed status
-        await loadPatientPrescriptions(selectedPatient.id)
-      } else {
-        toast.error("Failed to create bill")
       }
     } catch (error) {
       toast.error("Error processing bill")
@@ -160,7 +187,23 @@ export default function PharmacyBillingPage() {
           <h1 className="text-3xl font-bold">Pharmacy Billing</h1>
           <p className="text-gray-600">Search patients and create medicine bills</p>
         </div>
+        <div className="flex items-center gap-2">
+          {isOnline ? (
+            <Badge variant="default" className="flex items-center gap-1">
+              <Wifi className="h-3 w-3" />
+              Online
+            </Badge>
+          ) : (
+            <Badge variant="destructive" className="flex items-center gap-1">
+              <WifiOff className="h-3 w-3" />
+              Offline
+            </Badge>
+          )}
+        </div>
       </div>
+
+      {/* Offline Status Card */}
+      <OfflineBilling />
 
       {/* Patient Search */}
       <Card>
