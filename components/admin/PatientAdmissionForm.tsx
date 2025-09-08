@@ -73,15 +73,16 @@ export default function PatientAdmissionForm({ room, onAdmissionComplete }: Pati
     try {
       const response = await fetch('/api/admin/rooms?status=Available')
       if (response.ok) {
-        const roomsData = await response.json()
-        setAvailableRooms(roomsData.map((room: any) => ({
-          id: room.id.toString(),
-          roomNumber: room.room_number,
-          type: room.room_type,
-          floor: room.floor,
-          capacity: room.capacity,
-          currentOccupancy: room.current_occupancy,
-          status: room.status
+        const payload = await response.json()
+        const list = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+        setAvailableRooms(list.map((room: any) => ({
+          id: String(room.id),
+          roomNumber: room.room_number ?? room.roomNumber ?? '',
+          type: room.room_type ?? room.roomType ?? 'General',
+          floor: Number(room.floor ?? 0),
+          capacity: Number(room.capacity ?? 0),
+          currentOccupancy: Number(room.current_occupancy ?? room.currentOccupancy ?? 0),
+          status: room.status ?? 'Available'
         })))
       }
     } catch (error) {

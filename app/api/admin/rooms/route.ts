@@ -161,20 +161,46 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Room is at full capacity' }, { status: 400 })
         }
 
-        // Create patient record
-        const [patientResult] = await connection.execute(`
-          INSERT INTO patients 
-          (name, contact_number, gender, date_of_birth, address, emergency_contact, medical_history)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [
-          patientData.name,
-          patientData.contactNumber || '',
-          patientData.gender || 'Unknown',
-          patientData.dateOfBirth || null,
-          patientData.address || '',
-          patientData.emergencyContact || '',
-          patientData.medicalHistory || ''
-        ])
+        // Create patient record with schema-aware insert
+        const [patientColumnsRows] = await connection.execute(`
+          SELECT COLUMN_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'patients'
+        `, [process.env.DB_NAME || 'hospital_management'])
+
+        const availableColumns = new Set((patientColumnsRows as any[]).map(c => c.COLUMN_NAME))
+
+        // Map incoming fields to possible column names
+        const insertData: Record<string, any> = {}
+        if (availableColumns.has('name')) insertData['name'] = patientData.name
+        if (availableColumns.has('contact_number')) insertData['contact_number'] = patientData.contactNumber || ''
+        if (availableColumns.has('phone') && !availableColumns.has('contact_number')) insertData['phone'] = patientData.contactNumber || ''
+        if (availableColumns.has('gender')) insertData['gender'] = patientData.gender || 'Unknown'
+        if (availableColumns.has('date_of_birth')) insertData['date_of_birth'] = patientData.dateOfBirth || null
+        if (availableColumns.has('address')) insertData['address'] = patientData.address || ''
+        if (availableColumns.has('medical_history')) insertData['medical_history'] = patientData.medicalHistory || ''
+
+        // Emergency contact variations
+        if (availableColumns.has('emergency_contact')) {
+          insertData['emergency_contact'] = patientData.emergencyContact || ''
+        } else {
+          if (availableColumns.has('emergency_contact_name')) insertData['emergency_contact_name'] = patientData.emergencyContact || patientData.emergencyContactName || ''
+          if (availableColumns.has('emergency_contact_number')) insertData['emergency_contact_number'] = patientData.emergencyContactNumber || patientData.contactNumber || ''
+        }
+
+        // Optional created_at
+        if (availableColumns.has('created_at')) insertData['created_at'] = new Date()
+
+        const keys = Object.keys(insertData)
+        if (keys.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Patients table has no matching columns for insert' }, { status: 500 })
+        }
+
+        const placeholders = keys.map(() => '?').join(', ')
+        const values = keys.map(k => insertData[k])
+        const insertSql = `INSERT INTO patients (${keys.join(', ')}) VALUES (${placeholders})`
+        const [patientResult] = await connection.execute(insertSql, values)
 
         const patientId = (patientResult as any).insertId
 

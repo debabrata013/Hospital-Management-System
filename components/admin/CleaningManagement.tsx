@@ -80,6 +80,43 @@ export default function CleaningManagement({ rooms, onCleaningComplete }: Cleani
     notes: ''
   })
 
+  const [showAddStaff, setShowAddStaff] = useState(false)
+  const [newStaff, setNewStaff] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    shift: 'Morning' as CleaningStaff['shift'],
+    specialization: [] as string[],
+    maxTasks: 3
+  })
+
+  const handleCreateStaff = async () => {
+    if (!newStaff.name || !newStaff.phone) {
+      toast({ title: 'Name and phone are required', variant: 'destructive' })
+      return
+    }
+    try {
+      const response = await fetch('/api/admin/cleaning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createStaff',
+          ...newStaff
+        })
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error || 'Failed to add staff')
+      }
+      setShowAddStaff(false)
+      setNewStaff({ name: '', email: '', phone: '', shift: 'Morning', specialization: [], maxTasks: 3 })
+      await fetchCleaningData()
+      toast({ title: 'Cleaning staff added' })
+    } catch (e: any) {
+      toast({ title: e.message || 'Failed to add staff', variant: 'destructive' })
+    }
+  }
+
   // Fetch cleaning data
   useEffect(() => {
     fetchCleaningData()
@@ -395,6 +432,70 @@ export default function CleaningManagement({ rooms, onCleaningComplete }: Cleani
                   onChange={e => setAssignCleaning({ ...assignCleaning, notes: e.target.value })}
                 />
                 <Button onClick={handleAssignCleaning} className="w-full">Assign Cleaning</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showAddStaff} onOpenChange={setShowAddStaff}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Staff
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Cleaning Staff</DialogTitle>
+                <DialogDescription>Enter details for the new cleaning staff.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Full Name</label>
+                  <Input placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email (optional)</label>
+                  <Input placeholder="Email (optional)" value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <Input placeholder="Phone" value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Shift</label>
+                  <Select value={newStaff.shift} onValueChange={val => setNewStaff({ ...newStaff, shift: val as CleaningStaff['shift'] })}>
+                    <SelectTrigger><SelectValue placeholder="Shift" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Morning">Morning</SelectItem>
+                      <SelectItem value="Afternoon">Afternoon</SelectItem>
+                      <SelectItem value="Evening">Evening</SelectItem>
+                      <SelectItem value="Night">Night</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Max Tasks</label>
+                  <Input type="number" placeholder="Max Tasks" value={newStaff.maxTasks} onChange={e => setNewStaff({ ...newStaff, maxTasks: Number(e.target.value) })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Specializations</label>
+                  <Select onValueChange={val => {
+                    const set = new Set(newStaff.specialization)
+                    set.has(val) ? set.delete(val) : set.add(val)
+                    setNewStaff({ ...newStaff, specialization: Array.from(set) })
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={newStaff.specialization.length ? newStaff.specialization.join(', ') : 'Specializations'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Regular Clean">Regular Clean</SelectItem>
+                      <SelectItem value="Deep Clean">Deep Clean</SelectItem>
+                      <SelectItem value="Sanitization">Sanitization</SelectItem>
+                      <SelectItem value="Maintenance">Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleCreateStaff}>Add Staff</Button>
               </div>
             </DialogContent>
           </Dialog>

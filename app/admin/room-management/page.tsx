@@ -48,6 +48,7 @@ export default function RoomManagementPage() {
   const [showAdmission, setShowAdmission] = useState(false)
   const [admitRoom, setAdmitRoom] = useState<Room | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
+  const [loadingRooms, setLoadingRooms] = useState(false)
   const [showAddRoom, setShowAddRoom] = useState(false)
   const [newRoom, setNewRoom] = useState<Partial<Room>>({
     name: '',
@@ -58,119 +59,103 @@ export default function RoomManagementPage() {
     currentOccupancy: 0,
     status: 'Available'
   })
-  const handleAddRoom = () => {
-    if (!newRoom.name || !newRoom.roomNumber || !newRoom.type || !newRoom.floor || !newRoom.capacity) {
-      toast({ title: 'All fields are required', variant: 'destructive' })
+  const handleAddRoom = async () => {
+    if (!newRoom.roomNumber || !newRoom.type || !newRoom.floor || !newRoom.capacity) {
+      toast({ title: 'Room number, type, floor, capacity are required', variant: 'destructive' })
       return
     }
-    const id = (rooms.length + 1).toString()
-    setRooms([
-      ...rooms,
-      {
-        id,
-        name: newRoom.name!,
-        roomNumber: newRoom.roomNumber!,
-        type: newRoom.type as Room['type'],
-        floor: Number(newRoom.floor),
-        capacity: Number(newRoom.capacity),
-        currentOccupancy: 0,
-        status: newRoom.status as Room['status']
+    try {
+      const res = await fetch('/api/admin/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createRoom',
+          roomNumber: newRoom.roomNumber,
+          roomName: newRoom.name || '',
+          roomType: newRoom.type,
+          floor: Number(newRoom.floor),
+          capacity: Number(newRoom.capacity),
+          dailyRate: 0,
+          description: ''
+        })
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Failed to create room')
       }
-    ])
-    setShowAddRoom(false)
-    setNewRoom({
-      name: '',
-      roomNumber: '',
-      type: 'General',
-      floor: 1,
-      capacity: 1,
-      currentOccupancy: 0,
-      status: 'Available'
-    })
-    toast({ title: 'Room added successfully!' })
+      setShowAddRoom(false)
+      setNewRoom({ name: '', roomNumber: '', type: 'General', floor: 1, capacity: 1, currentOccupancy: 0, status: 'Available' })
+      await fetchRooms()
+      toast({ title: 'Room added successfully!' })
+    } catch (e: any) {
+      toast({ title: e.message || 'Failed to add room', variant: 'destructive' })
+    }
   }
   const [patients, setPatients] = useState<Patient[]>([])
+  const [loadingPatients, setLoadingPatients] = useState(false)
   const [selectedTab, setSelectedTab] = useState('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const { toast } = useToast()
 
-  // Mock data - replace with API calls
+  async function fetchRooms() {
+    try {
+      setLoadingRooms(true)
+      const res = await fetch('/api/admin/rooms', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to load rooms')
+      const data = await res.json()
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
+      const mapped: Room[] = list.map((r: any) => ({
+        id: String(r.id),
+        name: r.room_name || '',
+        roomNumber: r.room_number,
+        type: (r.room_type || 'General'),
+        floor: Number(r.floor || 0),
+        capacity: Number(r.capacity || 0),
+        currentOccupancy: Number(r.current_occupancy || 0),
+        status: r.status || 'Available'
+      }))
+      setRooms(mapped)
+    } catch (e) {
+      console.error(e)
+      toast({ title: 'Unable to load rooms', variant: 'destructive' })
+    } finally {
+      setLoadingRooms(false)
+    }
+  }
+
   useEffect(() => {
-    // Mock rooms data
-    const mockRooms: Room[] = [
-      {
-        id: '1',
-        roomNumber: '101',
-        type: 'General',
-        floor: 1,
-        capacity: 2,
-        currentOccupancy: 1,
-        status: 'Occupied',
-        name: ''
-      },
-      {
-        id: '2',
-        roomNumber: '102',
-        type: 'Private',
-        floor: 1,
-        capacity: 1,
-        currentOccupancy: 0,
-        status: 'Available',
-        name: ''
-      },
-      {
-        id: '3',
-        roomNumber: '201',
-        type: 'ICU',
-        floor: 2,
-        capacity: 1,
-        currentOccupancy: 1,
-        status: 'Occupied',
-        name: ''
-      },
-      {
-        id: '4',
-        roomNumber: '202',
-        type: 'Semi-Private',
-        floor: 2,
-        capacity: 2,
-        currentOccupancy: 0,
-        status: 'Cleaning Required',
-        name: ''
-      }
-    ]
-
-    // Mock patients data
-    const mockPatients: Patient[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        admissionDate: '2024-01-08',
-        expectedDischargeDate: '2024-01-15',
-        roomId: '1',
-        diagnosis: 'Pneumonia',
-        medications: ['Amoxicillin', 'Paracetamol'],
-        notes: 'Patient responding well to treatment',
-        status: 'Admitted'
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        admissionDate: '2024-01-09',
-        expectedDischargeDate: '2024-01-16',
-        roomId: '3',
-        diagnosis: 'Heart Attack',
-        medications: ['Aspirin', 'Nitroglycerin'],
-        notes: 'Critical condition, monitoring required',
-        status: 'Admitted'
-      }
-    ]
-
-    setRooms(mockRooms)
-    setPatients(mockPatients)
+    fetchRooms()
+    fetchAdmissions()
   }, [])
+
+  async function fetchAdmissions() {
+    try {
+      setLoadingPatients(true)
+      const res = await fetch('/api/admin/room-assignments?status=Active', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to load admissions')
+      const data = await res.json()
+      const mapped: Patient[] = (Array.isArray(data) ? data : []).map((row: any) => ({
+        id: String(row.id),
+        name: row.patient_name || row.name || 'Unknown',
+        admissionDate: row.admission_date ? String(row.admission_date).slice(0,10) : '',
+        expectedDischargeDate: row.expected_discharge_date ? String(row.expected_discharge_date).slice(0,10) : '',
+        actualDischargeDate: row.actual_discharge_date ? String(row.actual_discharge_date).slice(0,10) : undefined,
+        roomId: String(row.room_id),
+        diagnosis: row.diagnosis || '',
+        medications: [],
+        notes: row.notes || '',
+        status: 'Admitted'
+      }))
+      setPatients(mapped)
+    } catch (e) {
+      console.error(e)
+      toast({ title: 'Unable to load admissions', variant: 'destructive' })
+    } finally {
+      setLoadingPatients(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -207,9 +192,8 @@ export default function RoomManagementPage() {
 
 
   const refreshData = () => {
-    // Refresh data after operations
-    // In a real app, this would refetch from API
-    window.location.reload()
+    fetchRooms()
+    fetchAdmissions()
   }
 
   return (

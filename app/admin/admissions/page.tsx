@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,7 +14,6 @@ import {
   Eye,
   User,
   Calendar,
-  Clock,
   Activity,
   MapPin,
   Stethoscope,
@@ -21,63 +21,17 @@ import {
   LogOut
 } from 'lucide-react'
 
-// Mock admission data
-const mockAdmissions = [
-  {
-    id: "ADM001",
-    patientName: "Rajesh Kumar",
-    patientId: "P001",
-    age: 45,
-    gender: "Male",
-    admissionDate: "2024-01-08",
-    admissionTime: "02:30 PM",
-    doctorName: "Dr. Priya Sharma",
-    department: "Cardiology",
-    room: "ICU-101",
-    bedNumber: "B-15",
-    condition: "Post-Surgery Recovery",
-    status: "stable",
-    expectedDischarge: "2024-01-12",
-    insurance: "Yes",
-    emergencyContact: "+91 98765 43210"
-  },
-  {
-    id: "ADM002",
-    patientName: "Sunita Devi",
-    patientId: "P002",
-    age: 38,
-    gender: "Female",
-    admissionDate: "2024-01-09",
-    admissionTime: "08:15 AM",
-    doctorName: "Dr. Amit Patel",
-    department: "Gynecology",
-    room: "Ward-205",
-    bedNumber: "B-32",
-    condition: "Pregnancy Complications",
-    status: "improving",
-    expectedDischarge: "2024-01-11",
-    insurance: "Yes",
-    emergencyContact: "+91 87654 32109"
-  },
-  {
-    id: "ADM003",
-    patientName: "Mohammed Ali",
-    patientId: "P003",
-    age: 62,
-    gender: "Male",
-    admissionDate: "2024-01-07",
-    admissionTime: "11:45 PM",
-    doctorName: "Dr. Sarah Johnson",
-    department: "Internal Medicine",
-    room: "CCU-301",
-    bedNumber: "B-08",
-    condition: "Cardiac Monitoring",
-    status: "critical",
-    expectedDischarge: "2024-01-15",
-    insurance: "No",
-    emergencyContact: "+91 76543 21098"
-  }
-]
+type AdmittedPatient = {
+  id: number
+  patientId: number
+  name: string
+  age: number
+  condition: string
+  roomNumber: string
+  admissionDate: string
+  status: string
+  doctor?: { name: string }
+}
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -115,6 +69,126 @@ const getRoomTypeColor = (room: string) => {
 }
 
 export default function AdmissionsPage() {
+  const [loading, setLoading] = useState(false)
+  const [admissions, setAdmissions] = useState<AdmittedPatient[]>([])
+  const [showNewAdmission, setShowNewAdmission] = useState(false)
+  const [rooms, setRooms] = useState<any[]>([])
+  const [loadingRooms, setLoadingRooms] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [form, setForm] = useState({
+    name: '',
+    gender: 'Unknown',
+    dateOfBirth: '',
+    contactNumber: '',
+    emergencyContact: '',
+    diagnosis: '',
+    expectedDischargeDate: '',
+    notes: '',
+    roomId: ''
+  })
+
+  async function fetchAdmissions() {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/admin/admitted-patients', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to load admissions')
+      const data = await res.json()
+      setAdmissions(Array.isArray(data) ? data : [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function dischargePatient(patientId: number) {
+    try {
+      const res = await fetch('/api/admin/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dischargePatient', patientId })
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Failed to discharge patient')
+      }
+      await fetchAdmissions()
+      alert('Patient discharged successfully')
+    } catch (e: any) {
+      alert(e.message || 'Discharge failed')
+    }
+  }
+
+  useEffect(() => {
+    fetchAdmissions()
+  }, [])
+
+  async function openNewAdmission() {
+    setShowNewAdmission(true)
+    if (rooms.length === 0) {
+      try {
+        setLoadingRooms(true)
+        const res = await fetch('/api/admin/rooms?status=Available', { cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to load rooms')
+        const data = await res.json()
+        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
+        setRooms(list)
+      } catch (e) {
+        console.error(e)
+        alert('Could not load rooms')
+      } finally {
+        setLoadingRooms(false)
+      }
+    }
+  }
+
+  async function submitNewAdmission(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.name || !form.roomId) {
+      alert('Please provide patient name and select a room')
+      return
+    }
+    try {
+      setSubmitting(true)
+      const payload = {
+        action: 'admitPatient',
+        roomId: Number(form.roomId),
+        patientData: {
+          name: form.name,
+          contactNumber: form.contactNumber,
+          gender: form.gender,
+          dateOfBirth: form.dateOfBirth || null,
+          address: '',
+          emergencyContact: form.emergencyContact,
+          medicalHistory: '',
+          expectedDischargeDate: form.expectedDischargeDate || null,
+          diagnosis: form.diagnosis,
+          notes: form.notes
+        }
+      }
+      const res = await fetch('/api/admin/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Failed to admit patient')
+      }
+      setShowNewAdmission(false)
+      setForm({
+        name: '', gender: 'Unknown', dateOfBirth: '', contactNumber: '', emergencyContact: '',
+        diagnosis: '', expectedDischargeDate: '', notes: '', roomId: ''
+      })
+      await fetchAdmissions()
+      alert('Patient admitted successfully')
+    } catch (e: any) {
+      alert(e.message || 'Admission failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       
@@ -129,11 +203,82 @@ export default function AdmissionsPage() {
             Manage patient admissions, room assignments, and discharge processes
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          New Admission
-        </Button>
+        <div className="flex gap-2">
+          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600" onClick={fetchAdmissions}>
+            Refresh
+          </Button>
+          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600" onClick={openNewAdmission}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Admission
+          </Button>
+        </div>
       </div>
+
+      {showNewAdmission && (
+        <Card className="border-pink-200 mb-6">
+          <CardHeader>
+            <CardTitle>New Admission</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4" onSubmit={submitNewAdmission}>
+              <div>
+                <label className="text-sm text-gray-700">Patient Name</label>
+                <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Gender</label>
+                <select className="w-full h-10 border rounded px-3" value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Date of Birth</label>
+                <Input type="date" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Contact Number</label>
+                <Input value={form.contactNumber} onChange={e => setForm({ ...form, contactNumber: e.target.value })} placeholder="Phone" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Emergency Contact</label>
+                <Input value={form.emergencyContact} onChange={e => setForm({ ...form, emergencyContact: e.target.value })} placeholder="Emergency contact" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Diagnosis</label>
+                <Input value={form.diagnosis} onChange={e => setForm({ ...form, diagnosis: e.target.value })} placeholder="Diagnosis" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Expected Discharge</label>
+                <Input type="date" value={form.expectedDischargeDate} onChange={e => setForm({ ...form, expectedDischargeDate: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm text-gray-700">Notes</label>
+                <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Room</label>
+                <select className="w-full h-10 border rounded px-3" value={form.roomId} onChange={e => setForm({ ...form, roomId: e.target.value })}>
+                  <option value="">{loadingRooms ? 'Loading rooms...' : 'Select room'}</option>
+                  {rooms.map((r: any) => (
+                    <option key={r.id} value={r.id}>{r.room_number || r.roomName || `Room ${r.id}`}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 sm:col-span-2">
+                <Button type="submit" disabled={submitting} className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+                  {submitting ? 'Submitting...' : 'Admit Patient'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowNewAdmission(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -213,18 +358,24 @@ export default function AdmissionsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockAdmissions.map((admission) => (
+            {loading && (
+              <div className="text-sm text-gray-500">Loading admissions...</div>
+            )}
+            {!loading && admissions.length === 0 && (
+              <div className="text-sm text-gray-500">No current admissions found.</div>
+            )}
+            {admissions.map((admission) => (
               <div key={admission.id} className="p-4 sm:p-5 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <div className="flex-shrink-0 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
                   <Bed className="h-8 w-8" />
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-2 flex-wrap">
-                    <h3 className="font-bold text-lg sm:text-xl text-gray-900">{admission.patientName}</h3>
+                    <h3 className="font-bold text-lg sm:text-xl text-gray-900">{admission.name}</h3>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{admission.id}</Badge>
-                      <Badge className={getRoomTypeColor(admission.room)}>{admission.room}</Badge>
-                      {getStatusBadge(admission.status)}
+                      <Badge variant="outline">PID: {admission.patientId}</Badge>
+                      <Badge className={getRoomTypeColor(String(admission.roomNumber))}>{admission.roomNumber}</Badge>
+                      {getStatusBadge(admission.status || 'admitted')}
                     </div>
                   </div>
 
@@ -232,42 +383,34 @@ export default function AdmissionsPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-pink-500" />
-                        <span>{admission.age} years • {admission.gender} • ID: {admission.patientId}</span>
+                        <span>{admission.age} years • ID: {admission.patientId}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Stethoscope className="h-4 w-4 text-pink-500" />
-                        <span className="font-medium">{admission.doctorName}</span>
-                        <span className="text-gray-500">• {admission.department}</span>
+                        <span className="font-medium">{admission.doctor?.name || 'Not Assigned'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-pink-500" />
-                        <span>Admitted: {new Date(admission.admissionDate).toLocaleDateString()} at {admission.admissionTime}</span>
+                        <span>Admitted: {new Date(admission.admissionDate).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-pink-500" />
-                        <span>Room: {admission.room} • Bed: {admission.bedNumber}</span>
+                        <span>Room: {admission.roomNumber}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-pink-500" />
-                        <span>Expected Discharge: {new Date(admission.expectedDischarge).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Insurance:</span>
-                        <Badge className={admission.insurance === 'Yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                          {admission.insurance}
-                        </Badge>
+                        <span className="font-medium">Condition:</span>
+                        <span>{admission.condition || '—'}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-3 bg-gray-50 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Condition: {admission.condition}</p>
-                      <p className="text-xs text-gray-600">Emergency Contact: {admission.emergencyContact}</p>
+                      <p className="text-sm font-medium text-gray-900">Condition: {admission.condition || '—'}</p>
                     </div>
-                    <div>{getStatusIcon(admission.status)}</div>
+                    <div>{getStatusIcon(admission.status || 'admitted')}</div>
                   </div>
                 </div>
 
@@ -278,7 +421,7 @@ export default function AdmissionsPage() {
                   <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                  <Button variant="outline" size="sm" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => dischargePatient(admission.patientId)}>
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </div>

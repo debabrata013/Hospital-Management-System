@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const [rows] = await connection.execute(`
       SELECT 
         ra.id,
+        ra.patient_id,
         p.name,
         p.date_of_birth,
         ra.diagnosis,
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
     // Transform the data to match the expected format
     const admittedPatients = (rows as any[]).map(row => ({
       id: row.id,
+      patientId: row.patient_id,
       name: row.name,
       age: new Date().getFullYear() - new Date(row.date_of_birth).getFullYear(),
       condition: row.diagnosis,

@@ -106,28 +106,55 @@ export async function GET(request: NextRequest) {
         })
 
       } else {
-        // Return both tasks and staff
-        const [tasks] = await connection.execute(`
-          SELECT 
-            ct.id,
-            ct.room_id as roomId,
-            r.room_number as roomNumber,
-            ct.assigned_to as assignedTo,
-            ct.scheduled_date as assignedDate,
-            ct.completed_date as completedDate,
-            ct.status,
-            ct.priority,
-            ct.cleaning_type as cleaningType,
-            ct.notes,
-            ct.estimated_duration as estimatedDuration,
-            ct.created_at as createdAt,
-            ct.updated_at as updatedAt
-          FROM room_cleaning ct
-          JOIN rooms r ON ct.room_id = r.id
-          ORDER BY ct.scheduled_date DESC
-        `)
-        
-        const [staff] = await connection.execute(`
+        // Return both tasks and staff with schema-aware selection
+        // Detect room_cleaning columns
+        const [taskCols] = await connection.execute(`
+          SELECT COLUMN_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'room_cleaning'
+        `, [process.env.DB_NAME || 'u153229971_Hospital'])
+        const taskAvailable = new Set((taskCols as any[]).map((c: any) => c.COLUMN_NAME))
+
+        // Build dynamic select for tasks
+        const fields: string[] = [
+          'ct.id',
+          'ct.room_id as roomId',
+          'r.room_number as roomNumber',
+          'ct.assigned_to as assignedTo'
+        ]
+        if (taskAvailable.has('scheduled_date')) fields.push('ct.scheduled_date as assignedDate')
+        if (taskAvailable.has('completed_date')) fields.push('ct.completed_date as completedDate')
+        if (taskAvailable.has('status')) fields.push('ct.status')
+        if (taskAvailable.has('priority')) fields.push('ct.priority')
+        if (taskAvailable.has('cleaning_type')) fields.push('ct.cleaning_type as cleaningType')
+        if (taskAvailable.has('notes')) fields.push('ct.notes')
+        if (taskAvailable.has('estimated_duration')) fields.push('ct.estimated_duration as estimatedDuration')
+        if (taskAvailable.has('created_at')) fields.push('ct.created_at as createdAt')
+        if (taskAvailable.has('updated_at')) fields.push('ct.updated_at as updatedAt')
+
+        const taskSelect = `SELECT ${fields.join(', ')} FROM room_cleaning ct JOIN rooms r ON ct.room_id = r.id ORDER BY ${taskAvailable.has('scheduled_date') ? 'ct.scheduled_date' : 'ct.id'} DESC`
+
+        const [rawTasks] = await connection.execute(taskSelect)
+
+        // Normalize tasks with defaults
+        const tasks = (rawTasks as any[]).map((t: any) => ({
+          id: t.id,
+          roomId: t.roomId,
+          roomNumber: t.roomNumber,
+          assignedTo: t.assignedTo || 'Unassigned',
+          assignedDate: t.assignedDate || t.createdAt || null,
+          completedDate: t.completedDate || null,
+          status: t.status || 'Pending',
+          priority: t.priority || 'Medium',
+          cleaningType: t.cleaningType || 'Regular Clean',
+          notes: t.notes || '',
+          estimatedDuration: t.estimatedDuration || 30,
+          createdAt: t.createdAt || null,
+          updatedAt: t.updatedAt || null
+        }))
+
+        // Staff
+        const [staffRows] = await connection.execute(`
           SELECT 
             id,
             name,
@@ -141,13 +168,32 @@ export async function GET(request: NextRequest) {
             created_at as createdAt
           FROM cleaning_staff
         `)
-        
+
+        const staff = (staffRows as any[]).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          email: s.email || '',
+          phone: s.phone || '',
+          status: s.status || ((s.currentTasks || 0) >= (s.maxTasks || 0) ? 'Busy' : 'Available'),
+          currentTasks: Number(s.currentTasks || 0),
+          maxTasks: Number(s.maxTasks || 0),
+          specialization: (() => {
+            try {
+              if (!s.specialization) return []
+              const val = typeof s.specialization === 'string' ? s.specialization : JSON.stringify(s.specialization)
+              const parsed = JSON.parse(val)
+              return Array.isArray(parsed) ? parsed : []
+            } catch {
+              return []
+            }
+          })(),
+          shift: s.shift || 'Morning',
+          createdAt: s.createdAt || null
+        }))
+
         return NextResponse.json({
           success: true,
-          data: {
-            tasks: tasks,
-            staff: staff
-          },
+          data: { tasks, staff },
           message: 'Cleaning data retrieved successfully'
         })
       }
@@ -306,6 +352,84 @@ export async function POST(request: NextRequest) {
           success: true,
           data: tasks[0],
           message: 'Cleaning assigned successfully'
+        }, { status: 201 })
+
+      } else if (action === 'createStaff') {
+        // Create new cleaning staff (schema-aware)
+        const { name, email, phone, shift, specialization, maxTasks } = data
+
+        if (!name || !phone) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 })
+        }
+
+        // Detect available columns on cleaning_staff
+        const [cols] = await connection.execute(`
+          SELECT COLUMN_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'cleaning_staff'
+        `, [process.env.DB_NAME || 'u153229971_Hospital'])
+        const available = new Set((cols as any[]).map(c => c.COLUMN_NAME))
+
+        // If table does not exist, create a minimal one
+        if (!Array.isArray(cols) || (cols as any[]).length === 0) {
+          await connection.execute(`
+            CREATE TABLE IF NOT EXISTS cleaning_staff (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(255) NOT NULL,
+              email VARCHAR(255) NULL,
+              phone VARCHAR(50) NOT NULL,
+              status VARCHAR(50) DEFAULT 'Available',
+              current_tasks INT DEFAULT 0,
+              max_tasks INT DEFAULT 3,
+              specialization JSON NULL,
+              shift VARCHAR(50) DEFAULT 'Morning',
+              created_at DATETIME DEFAULT NOW()
+            )
+          `)
+          // refresh columns
+          const [cols2] = await connection.execute(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'cleaning_staff'
+          `, [process.env.DB_NAME || 'u153229971_Hospital'])
+          ;(cols as any[]) = cols2 as any
+        }
+
+        // Build safe email (avoid null and duplicate empty string)
+        const providedEmail = typeof email === 'string' ? email.trim() : ''
+        const safeEmail = providedEmail || `${String(phone).trim() || 'staff'}-${Date.now()}@clean.local`
+
+        const insertData: Record<string, any> = {}
+        if (available.has('name')) insertData['name'] = name
+        if (available.has('email')) insertData['email'] = safeEmail
+        if (available.has('phone')) insertData['phone'] = phone
+        if (available.has('status')) insertData['status'] = 'Available'
+        if (available.has('current_tasks')) insertData['current_tasks'] = 0
+        if (available.has('max_tasks')) insertData['max_tasks'] = Number(maxTasks) || 3
+        if (available.has('specialization')) insertData['specialization'] = Array.isArray(specialization) ? JSON.stringify(specialization) : JSON.stringify([])
+        if (available.has('shift')) insertData['shift'] = shift || 'Morning'
+        if (available.has('created_at')) insertData['created_at'] = new Date()
+
+        const keys = Object.keys(insertData)
+        if (keys.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'cleaning_staff has no expected columns' }, { status: 500 })
+        }
+
+        const placeholders = keys.map(() => '?').join(', ')
+        const values = keys.map(k => insertData[k])
+        const sql = `INSERT INTO cleaning_staff (${keys.join(', ')}) VALUES (${placeholders})`
+        const [result] = await connection.execute(sql, values)
+
+        const staffId = (result as any).insertId
+
+        await connection.commit()
+
+        return NextResponse.json({
+          success: true,
+          data: { id: staffId },
+          message: 'Cleaning staff created successfully'
         }, { status: 201 })
 
       } else {
