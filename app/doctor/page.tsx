@@ -84,25 +84,6 @@ export default function DoctorDashboard() {
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [pendingTasksLoading, setPendingTasksLoading] = useState(true);
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  if (!user) {
-    return <div className="flex items-center justify-center h-screen">Please log in to view the dashboard.</div>;
-  }
-
-  // Use logged-in user data, with placeholders for details not in the auth state
-  const doctorInfo = {
-    name: `${user.firstName} ${user.lastName}`,
-    specialization: "Cardiologist", // Placeholder - to be fetched from a doctor profile API
-    department: "Cardiology Department", // Placeholder
-    employeeId: user.id,
-    experience: "12 years" // Placeholder
-  };
-
-  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -178,6 +159,24 @@ export default function DoctorDashboard() {
       fetchPendingTasks();
     }
   }, [user]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Please log in to view the dashboard.</div>;
+  }
+
+  // Use logged-in user data, with placeholders for details not in the auth state
+  const doctorInfo = {
+    name: `${user.firstName} ${user.lastName}`,
+    specialization: "Cardiologist", // Placeholder - to be fetched from a doctor profile API
+    department: "Cardiology Department", // Placeholder
+    employeeId: user.id,
+    experience: "12 years" // Placeholder
+  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -267,10 +266,10 @@ export default function DoctorDashboard() {
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
-                <AvatarFallback className="bg-pink-100 text-pink-700">{initials}</AvatarFallback>
+                <AvatarFallback className="bg-pink-100 text-pink-700">{user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'DR'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{doctorInfo.name}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user ? `${user.firstName} ${user.lastName}` : 'Doctor'}</p>
                 <p className="text-xs text-gray-500 truncate">Cardiologist</p>
               </div>
             </div>
@@ -287,10 +286,10 @@ export default function DoctorDashboard() {
               <div className="flex items-center space-x-4">
                 <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">{doctorInfo.name}</h1>
+                  <h1 className="text-xl font-bold text-gray-900">{user ? `${user.firstName} ${user.lastName}` : 'Doctor'}</h1>
                   <p className="text-sm text-gray-500 flex items-center">
                     <Stethoscope className="h-4 w-4 mr-1" />
-                    {doctorInfo.specialization}
+                    Cardiologist
                   </p>
                 </div>
               </div>
@@ -314,7 +313,7 @@ export default function DoctorDashboard() {
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
-                        <AvatarFallback className="bg-pink-100 text-pink-700">{initials}</AvatarFallback>
+                        <AvatarFallback className="bg-pink-100 text-pink-700">{user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'DR'}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
@@ -405,7 +404,7 @@ export default function DoctorDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Experience</p>
-                      <p className="text-3xl font-bold text-green-600">{doctorInfo.experience.split(' ')[0]}</p>
+                      <p className="text-3xl font-bold text-green-600">12</p>
                       <p className="text-sm text-green-600 mt-1">
                         Years of practice
                       </p>

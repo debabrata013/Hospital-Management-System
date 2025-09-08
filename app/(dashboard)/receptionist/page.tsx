@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useOffline } from "@/hooks/use-offline"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -60,7 +61,9 @@ import {
   Settings,
   UserCog,
   Shield,
-  Stethoscope
+  Stethoscope,
+  Sync,
+  AlertCircle
 } from 'lucide-react'
 
 // Mock data for receptionist dashboard
@@ -206,9 +209,59 @@ const navigationItems = [
 
 export default function ReceptionistDashboard() {
   const [notifications] = useState(8)
-  const [isOnline, setIsOnline] = useState(true)
   const [newPatientDialog, setNewPatientDialog] = useState(false)
   const [emergencyDialog, setEmergencyDialog] = useState(false)
+  const [registrationForm, setRegistrationForm] = useState({
+    firstName: '',
+    lastName: '',
+    age: '',
+    gender: '',
+    phone: '',
+    address: '',
+    emergencyContact: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { isOnline, pendingSyncCount, saveRegistration, forceSync, isInitialized } = useOffline()
+
+  const handleRegistrationSubmit = async () => {
+    if (!registrationForm.firstName || !registrationForm.lastName || !registrationForm.age || !registrationForm.gender || !registrationForm.phone) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await saveRegistration({
+        firstName: registrationForm.firstName,
+        lastName: registrationForm.lastName,
+        age: parseInt(registrationForm.age),
+        gender: registrationForm.gender,
+        phone: registrationForm.phone,
+        address: registrationForm.address,
+        emergencyContact: registrationForm.emergencyContact
+      });
+
+      // Reset form and close dialog
+      setRegistrationForm({
+        firstName: '',
+        lastName: '',
+        age: '',
+        gender: '',
+        phone: '',
+        address: '',
+        emergencyContact: ''
+      });
+      setNewPatientDialog(false);
+      
+      // Show success message (you can replace this with a toast notification)
+      alert(isOnline ? 'Patient registered successfully!' : 'Patient registration saved offline. Will sync when connection is restored.');
+    } catch (error) {
+      console.error('Registration failed:', error);
+      alert('Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -319,17 +372,40 @@ export default function ReceptionistDashboard() {
               
               <div className="flex items-center space-x-4">
                 {/* Online Status */}
-                <div className="flex items-center space-x-2">
-                  {isOnline ? (
-                    <>
-                      <Wifi className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-green-600">Online</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-red-600">Offline</span>
-                    </>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    {isOnline ? (
+                      <>
+                        <Wifi className="h-4 w-4 text-green-500" />
+                        <span className="text-sm text-green-600">Online</span>
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="h-4 w-4 text-red-500" />
+                        <span className="text-sm text-red-600">Offline</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Pending Sync Indicator */}
+                  {pendingSyncCount > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs">
+                        <Sync className="h-3 w-3" />
+                        <span>{pendingSyncCount} pending</span>
+                      </div>
+                      {isOnline && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={forceSync}
+                          className="text-xs px-2 py-1 h-6"
+                        >
+                          <Sync className="h-3 w-3 mr-1" />
+                          Sync
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -656,25 +732,57 @@ export default function ReceptionistDashboard() {
               Enter patient details for registration. All fields marked with * are required.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+            {/* Offline Warning */}
+            {!isOnline && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-sm text-yellow-700">
+                    You're currently offline. Registration data will be saved locally and synced when connection is restored.
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="firstName" className="text-sm font-medium">First Name *</label>
-                <Input id="firstName" placeholder="Enter first name" />
+                <Input 
+                  id="firstName" 
+                  placeholder="Enter first name" 
+                  value={registrationForm.firstName}
+                  onChange={(e) => setRegistrationForm(prev => ({ ...prev, firstName: e.target.value }))}
+                />
               </div>
               <div className="space-y-2">
                 <label htmlFor="lastName" className="text-sm font-medium">Last Name *</label>
-                <Input id="lastName" placeholder="Enter last name" />
+                <Input 
+                  id="lastName" 
+                  placeholder="Enter last name" 
+                  value={registrationForm.lastName}
+                  onChange={(e) => setRegistrationForm(prev => ({ ...prev, lastName: e.target.value }))}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="age" className="text-sm font-medium">Age *</label>
-                <Input id="age" type="number" placeholder="Enter age" />
+                <Input 
+                  id="age" 
+                  type="number" 
+                  placeholder="Enter age" 
+                  value={registrationForm.age}
+                  onChange={(e) => setRegistrationForm(prev => ({ ...prev, age: e.target.value }))}
+                />
               </div>
               <div className="space-y-2">
                 <label htmlFor="gender" className="text-sm font-medium">Gender *</label>
-                <select className="w-full p-2 border rounded-md">
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={registrationForm.gender}
+                  onChange={(e) => setRegistrationForm(prev => ({ ...prev, gender: e.target.value }))}
+                >
                   <option value="">Select gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -684,7 +792,12 @@ export default function ReceptionistDashboard() {
             </div>
             <div className="space-y-2">
               <label htmlFor="phone" className="text-sm font-medium">Phone Number *</label>
-              <Input id="phone" placeholder="+91 98765 43210" />
+              <Input 
+                id="phone" 
+                placeholder="+91 98765 43210" 
+                value={registrationForm.phone}
+                onChange={(e) => setRegistrationForm(prev => ({ ...prev, phone: e.target.value }))}
+              />
             </div>
             <div className="space-y-2">
               <label htmlFor="address" className="text-sm font-medium">Address</label>
@@ -693,19 +806,48 @@ export default function ReceptionistDashboard() {
                 placeholder="Enter complete address" 
                 className="w-full p-2 border rounded-md"
                 rows={3}
+                value={registrationForm.address}
+                onChange={(e) => setRegistrationForm(prev => ({ ...prev, address: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="emergency" className="text-sm font-medium">Emergency Contact</label>
-              <Input id="emergency" placeholder="Emergency contact number" />
+              <Input 
+                id="emergency" 
+                placeholder="Emergency contact number" 
+                value={registrationForm.emergencyContact}
+                onChange={(e) => setRegistrationForm(prev => ({ ...prev, emergencyContact: e.target.value }))}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewPatientDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setNewPatientDialog(false)
+              setRegistrationForm({
+                firstName: '',
+                lastName: '',
+                age: '',
+                gender: '',
+                phone: '',
+                address: '',
+                emergencyContact: ''
+              })
+            }}>
               Cancel
             </Button>
-            <Button className="bg-pink-500 hover:bg-pink-600">
-              Register Patient
+            <Button 
+              className="bg-pink-500 hover:bg-pink-600" 
+              onClick={handleRegistrationSubmit}
+              disabled={isSubmitting || !registrationForm.firstName || !registrationForm.lastName || !registrationForm.age || !registrationForm.gender || !registrationForm.phone}
+            >
+              {isSubmitting ? (
+                <>
+                  <Sync className="h-4 w-4 mr-2 animate-spin" />
+                  {isOnline ? 'Registering...' : 'Saving Offline...'}
+                </>
+              ) : (
+                'Register Patient'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
