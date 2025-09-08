@@ -1,20 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { 
-  FileText, Search, Filter, Eye, CheckCircle, 
-  Clock, AlertCircle, Printer, Download
+  Search, Eye, CheckCircle, Filter, Calendar, User, 
+  Clock, AlertCircle, Printer, Download, FileText
 } from 'lucide-react'
 import { usePrescriptions } from "@/hooks/usePharmacy"
 import { toast } from "sonner"
+import { printPrescription, downloadPrescriptionPDF } from "@/lib/pdf-generator"
 
 export default function PrescriptionsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -37,16 +36,50 @@ export default function PrescriptionsPage() {
     }
   }
 
+  const handlePrint = (prescription: any) => {
+    try {
+      printPrescription({
+        prescription_id: prescription.prescription_id || prescription.prescription_number,
+        patient_name: prescription.patient_name,
+        patient_id: prescription.patient_id,
+        doctor_name: prescription.doctor_name,
+        prescription_date: prescription.prescription_date || prescription.created_at,
+        items: prescription.items || [],
+        total_amount: prescription.total_amount || 0,
+        notes: prescription.notes
+      })
+      toast.success("Prescription sent to printer")
+    } catch (error) {
+      toast.error("Failed to print prescription")
+    }
+  }
+
+  const handleDownloadPDF = (prescription: any) => {
+    try {
+      downloadPrescriptionPDF({
+        prescription_id: prescription.prescription_id || prescription.prescription_number,
+        patient_name: prescription.patient_name,
+        patient_id: prescription.patient_id,
+        doctor_name: prescription.doctor_name,
+        prescription_date: prescription.prescription_date || prescription.created_at,
+        items: prescription.items || [],
+        total_amount: prescription.total_amount || 0,
+        notes: prescription.notes
+      })
+      toast.success("PDF downloaded successfully")
+    } catch (error) {
+      toast.error("Failed to download PDF")
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="destructive"><Clock className="h-3 w-3 mr-1" />Pending</Badge>
-      case 'partially_dispensed':
-        return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Partial</Badge>
+        return <Badge variant="outline" className="text-orange-600 border-orange-200">Pending</Badge>
+      case 'completed':
+        return <Badge variant="outline" className="text-green-600 border-green-200">Completed</Badge>
       case 'dispensed':
-        return <Badge variant="default"><CheckCircle className="h-3 w-3 mr-1" />Dispensed</Badge>
-      case 'cancelled':
-        return <Badge variant="outline">Cancelled</Badge>
+        return <Badge variant="outline" className="text-blue-600 border-blue-200">Dispensed</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -61,44 +94,30 @@ export default function PrescriptionsPage() {
           <p className="text-gray-600">Manage and dispense prescriptions</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline">
-            <Printer className="h-4 w-4 mr-2" />
-            Print Queue
+          <Button variant="outline" onClick={() => refetch()}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Refresh
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search and Filters */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="pt-6">
           <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by patient name, doctor, or prescription number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by patient name, doctor, or prescription number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="partially_dispensed">Partially Dispensed</SelectItem>
-                <SelectItem value="dispensed">Dispensed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -129,6 +148,8 @@ export default function PrescriptionsPage() {
                   setShowDetailsDialog(true)
                 }}
                 onDispense={handleDispense}
+                onPrint={handlePrint}
+                onDownloadPDF={handleDownloadPDF}
               />
             </CardContent>
           </Card>
@@ -152,6 +173,8 @@ export default function PrescriptionsPage() {
                   setShowDetailsDialog(true)
                 }}
                 onDispense={handleDispense}
+                onPrint={handlePrint}
+                onDownloadPDF={handleDownloadPDF}
               />
             </CardContent>
           </Card>
@@ -179,6 +202,8 @@ export default function PrescriptionsPage() {
                   setShowDetailsDialog(true)
                 }}
                 onDispense={handleDispense}
+                onPrint={handlePrint}
+                onDownloadPDF={handleDownloadPDF}
               />
             </CardContent>
           </Card>
@@ -199,14 +224,14 @@ export default function PrescriptionsPage() {
             <div className="space-y-6">
               {/* Patient & Doctor Info */}
               <div className="grid grid-cols-2 gap-6">
-                <div>
+                <div className="p-4 bg-blue-50 rounded-lg">
                   <h3 className="font-semibold mb-2">Patient Information</h3>
                   <div className="space-y-1 text-sm">
                     <p><span className="font-medium">Name:</span> {selectedPrescription.patient_name}</p>
                     <p><span className="font-medium">ID:</span> {selectedPrescription.patient_id}</p>
                   </div>
                 </div>
-                <div>
+                <div className="p-4 bg-green-50 rounded-lg">
                   <h3 className="font-semibold mb-2">Doctor Information</h3>
                   <div className="space-y-1 text-sm">
                     <p><span className="font-medium">Name:</span> Dr. {selectedPrescription.doctor_name}</p>
@@ -218,7 +243,7 @@ export default function PrescriptionsPage() {
               {/* Prescription Items */}
               <div>
                 <h3 className="font-semibold mb-2">Prescribed Medicines</h3>
-                <div className="border rounded-lg">
+                <div className="border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-6 gap-4 p-3 bg-gray-50 font-medium text-sm">
                     <div>Medicine</div>
                     <div>Dosage</div>
@@ -234,27 +259,27 @@ export default function PrescriptionsPage() {
                       <div>{item.frequency}</div>
                       <div>{item.duration}</div>
                       <div>{item.quantity}</div>
-                      <div>₹{Number(item.total_price || 0).toFixed(2)}</div>
+                      <div>₹{(item.unit_price * item.quantity).toFixed(2)}</div>
                     </div>
-                  )) || (
-                    <div className="p-4 text-center text-gray-500">
-                      No items available
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
 
-              {/* Total Amount */}
+              {/* Total */}
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <span className="font-semibold">Total Amount:</span>
                 <span className="text-xl font-bold">₹{Number(selectedPrescription.total_amount || 0).toFixed(2)}</span>
               </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline">
+              {/* Action Buttons */}
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => handlePrint(selectedPrescription)}>
                   <Printer className="h-4 w-4 mr-2" />
                   Print
+                </Button>
+                <Button variant="outline" onClick={() => handleDownloadPDF(selectedPrescription)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
                 </Button>
                 {selectedPrescription.status === 'pending' && (
                   <Button onClick={() => handleDispense(selectedPrescription.id, selectedPrescription.items || [])}>
@@ -276,24 +301,26 @@ function PrescriptionList({
   loading, 
   error, 
   onViewDetails, 
-  onDispense 
+  onDispense,
+  onPrint,
+  onDownloadPDF
 }: {
   prescriptions: any[]
   loading: boolean
   error: string | null
   onViewDetails: (prescription: any) => void
   onDispense: (id: string, items: any[]) => void
+  onPrint: (prescription: any) => void
+  onDownloadPDF: (prescription: any) => void
 }) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="destructive"><Clock className="h-3 w-3 mr-1" />Pending</Badge>
-      case 'partially_dispensed':
-        return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Partial</Badge>
+        return <Badge variant="outline" className="text-orange-600 border-orange-200">Pending</Badge>
+      case 'completed':
+        return <Badge variant="outline" className="text-green-600 border-green-200">Completed</Badge>
       case 'dispensed':
-        return <Badge variant="default"><CheckCircle className="h-3 w-3 mr-1" />Dispensed</Badge>
-      case 'cancelled':
-        return <Badge variant="outline">Cancelled</Badge>
+        return <Badge variant="outline" className="text-blue-600 border-blue-200">Dispensed</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -304,7 +331,7 @@ function PrescriptionList({
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-600">Error: {error}</div>
+    return <div className="text-center py-8 text-red-500">Error: {error}</div>
   }
 
   if (!prescriptions || prescriptions.length === 0) {
@@ -350,6 +377,12 @@ function PrescriptionList({
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => onViewDetails(prescription)}>
                 <Eye className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onPrint(prescription)}>
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onDownloadPDF(prescription)}>
+                <Download className="h-4 w-4" />
               </Button>
               {prescription.status === 'pending' && (
                 <Button 
