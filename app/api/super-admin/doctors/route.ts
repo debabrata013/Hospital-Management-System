@@ -1,100 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
-import mysql from 'mysql2/promise'
-import bcrypt from 'bcryptjs'
+import fs from 'fs'
+import path from 'path'
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'hospital_management',
-  port: parseInt(process.env.DB_PORT || '3306')
+interface User {
+  id: number
+  user_id: string
+  username: string
+  name: string
+  email: string
+  mobile: string
+  password: string
+  password_hash: string
+  role: string
+  department: string
+  isActive: boolean
+  permissions: string[]
+  dashboards: string[]
+  createdAt: string
+  lastLogin: string | null
 }
 
+interface UserDatabase {
+  users: User[]
+  roles: Record<string, any>
+  security_settings: any
+}
+
+function loadUserDatabase(): UserDatabase {
+  try {
+    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
+    const data = fs.readFileSync(dbPath, 'utf8')
+    return JSON.parse(data)
+  } catch (error) {
+    console.error('Failed to load user database:', error)
+    throw new Error('Database connection failed')
+  }
+}
+
+function saveUserDatabase(database: UserDatabase): void {
+  try {
+    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
+    fs.writeFileSync(dbPath, JSON.stringify(database, null, 2))
+  } catch (error) {
+    console.error('Failed to save user database:', error)
+    throw new Error('Database save failed')
+  }
+}
+
+// GET - Fetch all doctors
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const search = searchParams.get('search') || ''
-    const status = searchParams.get('status') || 'all'
-    const specialization = searchParams.get('specialization') || ''
+    const database = loadUserDatabase()
     
-    const offset = (page - 1) * limit
-    
-    const connection = await mysql.createConnection(dbConfig)
-    
-    // Build query conditions
-    let whereConditions = ['role = "doctor"']
-    let queryParams: any[] = []
-    
-    if (search) {
-      whereConditions.push('(name LIKE ? OR email LIKE ? OR user_id LIKE ? OR license_number LIKE ?)')
-      queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`)
-    }
-    
-    if (status !== 'all') {
-      whereConditions.push('is_active = ?')
-      queryParams.push(status === 'active' ? 1 : 0)
-    }
-    
-    if (specialization) {
-      whereConditions.push('specialization = ?')
-      queryParams.push(specialization)
-    }
-    
-    const whereClause = whereConditions.join(' AND ')
-    
-    // Get total count
-    const [countResult] = await connection.execute(
-      `SELECT COUNT(*) as total FROM users WHERE ${whereClause}`,
-      queryParams
-    )
-    const total = (countResult as any)[0].total
-    
-    // Get doctors with pagination
-    const [doctors] = await connection.execute(`
-      SELECT 
-        id,
-        user_id,
-        name,
-        email,
-        contact_number,
-        specialization,
-        qualification,
-        experience_years,
-        license_number,
-        department,
-        address,
-        date_of_birth,
-        gender,
-        joining_date,
-        salary,
-        is_active,
-        is_verified,
-        last_login,
-        created_at,
-        updated_at
-      FROM users 
-      WHERE ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `, [...queryParams, limit, offset])
-    
-    await connection.end()
-    
-    const totalPages = Math.ceil(total / limit)
+    // Filter only doctor role users
+    const doctors = database.users.filter(user => user.role === 'doctor')
     
     return NextResponse.json({
       success: true,
-      doctors,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages
-      }
+      doctors: doctors.map(doctor => ({
+        id: doctor.id,
+        user_id: doctor.user_id,
+        name: doctor.name,
+        email: doctor.email,
+        mobile: doctor.mobile,
+        department: doctor.department,
+        isActive: doctor.isActive,
+        createdAt: doctor.createdAt,
+        lastLogin: doctor.lastLogin
+      }))
     })
-    
   } catch (error) {
     console.error('Error fetching doctors:', error)
     return NextResponse.json(
@@ -104,122 +78,210 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST - Create new doctor
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { 
-      name, 
-      email, 
-      password, 
-      contact_number, 
-      specialization,
-      qualification,
-      experience_years,
-      license_number,
-      department,
-      address,
-      date_of_birth,
-      gender,
-      joining_date,
-      salary
-    } = body
+    const { name, mobile, password, department } = await request.json()
     
-    // Validation
-    if (!name || !email || !password || !contact_number || !specialization || !license_number) {
+    // Validate input
+    if (!name || !mobile || !password) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: name, email, password, contact_number, specialization, license_number' },
+        { success: false, error: 'Name, mobile, and password are required' },
         { status: 400 }
       )
     }
     
-    const connection = await mysql.createConnection(dbConfig)
-    
-    try {
-      // Check if email already exists
-      const [existingUser] = await connection.execute(
-        'SELECT id FROM users WHERE email = ?',
-        [email]
+    // Validate mobile number (10 digits starting with 6-9)
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      return NextResponse.json(
+        { success: false, error: 'Please enter a valid 10-digit mobile number' },
+        { status: 400 }
       )
-      
-      if ((existingUser as any[]).length > 0) {
-        await connection.end()
-        return NextResponse.json(
-          { success: false, error: 'Email already exists' },
-          { status: 400 }
-        )
-      }
-      
-      // Check if license number already exists
-      const [existingLicense] = await connection.execute(
-        'SELECT id FROM users WHERE license_number = ?',
-        [license_number]
-      )
-      
-      if ((existingLicense as any[]).length > 0) {
-        await connection.end()
-        return NextResponse.json(
-          { success: false, error: 'License number already exists' },
-          { status: 400 }
-        )
-      }
-      
-      // Generate user_id
-      const [lastUser] = await connection.execute(
-        'SELECT user_id FROM users WHERE role = "doctor" ORDER BY id DESC LIMIT 1'
-      )
-      
-      let nextNumber = 1
-      if ((lastUser as any[]).length > 0) {
-        const lastUserId = (lastUser as any)[0].user_id
-        const match = lastUserId.match(/DOC(\d+)/)
-        if (match) {
-          nextNumber = parseInt(match[1]) + 1
-        }
-      }
-      
-      const userId = `DOC${nextNumber.toString().padStart(3, '0')}`
-      
-      // Hash password
-      const passwordHash = await bcrypt.hash(password, 10)
-      
-      // Insert new doctor
-      const [result] = await connection.execute(`
-        INSERT INTO users (
-          user_id, name, email, password_hash, role, contact_number, 
-          specialization, qualification, experience_years, license_number,
-          department, address, date_of_birth, gender, joining_date, salary,
-          is_active, is_verified, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 'doctor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, NOW(), NOW())
-      `, [
-        userId, name, email, passwordHash, contact_number,
-        specialization, qualification || null, experience_years || 0, license_number,
-        department || null, address || null, date_of_birth || null, gender || null,
-        joining_date || null, salary || null
-      ])
-      
-      await connection.end()
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Doctor created successfully',
-        data: {
-          userId,
-          doctorId: (result as any).insertId,
-          name,
-          email,
-          specialization
-        }
-      })
-      
-    } catch (dbError) {
-      await connection.end()
-      throw dbError
     }
     
+    // Validate password (6 digits)
+    if (!/^\d{6}$/.test(password)) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be exactly 6 digits' },
+        { status: 400 }
+      )
+    }
+    
+    const database = loadUserDatabase()
+    
+    // Check if mobile already exists
+    const existingUser = database.users.find(user => user.mobile === mobile)
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'Mobile number already exists' },
+        { status: 400 }
+      )
+    }
+    
+    // Generate new doctor ID
+    const doctorUsers = database.users.filter(user => user.role === 'doctor')
+    const nextId = Math.max(...database.users.map(u => u.id), 0) + 1
+    const nextDoctorNumber = doctorUsers.length + 1
+    const userId = `DR${nextDoctorNumber.toString().padStart(3, '0')}`
+    
+    // Create new doctor
+    const newDoctor: User = {
+      id: nextId,
+      user_id: userId,
+      username: `doctor${nextDoctorNumber}`,
+      name: name,
+      email: `${userId.toLowerCase()}@hospital.com`,
+      mobile: mobile,
+      password: password,
+      password_hash: "",
+      role: "doctor",
+      department: department || "General Medicine",
+      isActive: true,
+      permissions: ["view_patients", "manage_prescriptions", "view_appointments", "update_medical_records"],
+      dashboards: ["doctor"],
+      createdAt: new Date().toISOString(),
+      lastLogin: null
+    }
+    
+    database.users.push(newDoctor)
+    saveUserDatabase(database)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Doctor created successfully',
+      doctor: {
+        id: newDoctor.id,
+        user_id: newDoctor.user_id,
+        name: newDoctor.name,
+        email: newDoctor.email,
+        mobile: newDoctor.mobile,
+        department: newDoctor.department
+      }
+    })
   } catch (error) {
     console.error('Error creating doctor:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to create doctor' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Update doctor
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, name, mobile, password, department } = await request.json()
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Doctor ID is required' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate mobile number if provided
+    if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
+      return NextResponse.json(
+        { success: false, error: 'Please enter a valid 10-digit mobile number' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate password if provided
+    if (password && !/^\d{6}$/.test(password)) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be exactly 6 digits' },
+        { status: 400 }
+      )
+    }
+    
+    const database = loadUserDatabase()
+    
+    // Find doctor to update
+    const doctorIndex = database.users.findIndex(user => user.id === id && user.role === 'doctor')
+    if (doctorIndex === -1) {
+      return NextResponse.json(
+        { success: false, error: 'Doctor not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Check if mobile already exists for other users
+    if (mobile) {
+      const existingUser = database.users.find(user => user.mobile === mobile && user.id !== id)
+      if (existingUser) {
+        return NextResponse.json(
+          { success: false, error: 'Mobile number already exists' },
+          { status: 400 }
+        )
+      }
+    }
+    
+    // Update doctor
+    if (name) database.users[doctorIndex].name = name
+    if (mobile) database.users[doctorIndex].mobile = mobile
+    if (password) database.users[doctorIndex].password = password
+    if (department) database.users[doctorIndex].department = department
+    
+    saveUserDatabase(database)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Doctor updated successfully',
+      doctor: {
+        id: database.users[doctorIndex].id,
+        user_id: database.users[doctorIndex].user_id,
+        name: database.users[doctorIndex].name,
+        email: database.users[doctorIndex].email,
+        mobile: database.users[doctorIndex].mobile,
+        department: database.users[doctorIndex].department
+      }
+    })
+  } catch (error) {
+    console.error('Error updating doctor:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update doctor' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE - Delete doctor
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = parseInt(searchParams.get('id') || '0')
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Doctor ID is required' },
+        { status: 400 }
+      )
+    }
+    
+    const database = loadUserDatabase()
+    
+    // Find doctor to delete
+    const doctorIndex = database.users.findIndex(user => user.id === id && user.role === 'doctor')
+    if (doctorIndex === -1) {
+      return NextResponse.json(
+        { success: false, error: 'Doctor not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Remove doctor from database
+    database.users.splice(doctorIndex, 1)
+    saveUserDatabase(database)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Doctor deleted successfully'
+    })
+  } catch (error) {
+    console.error('Error deleting doctor:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete doctor' },
       { status: 500 }
     )
   }

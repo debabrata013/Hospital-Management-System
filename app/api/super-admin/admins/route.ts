@@ -1,277 +1,286 @@
 import { NextRequest, NextResponse } from 'next/server'
-import mysql from 'mysql2/promise'
-import bcrypt from 'bcryptjs'
+import fs from 'fs'
+import path from 'path'
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'hospital_management',
-  port: parseInt(process.env.DB_PORT || '3306')
+interface User {
+  id: number
+  user_id: string
+  username: string
+  name: string
+  email: string
+  mobile: string
+  password: string
+  password_hash: string
+  role: string
+  department: string
+  isActive: boolean
+  permissions: string[]
+  dashboards: string[]
+  createdAt: string
+  lastLogin: string | null
 }
 
+interface UserDatabase {
+  users: User[]
+  roles: Record<string, any>
+  security_settings: any
+}
+
+function loadUserDatabase(): UserDatabase {
+  try {
+    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
+    const data = fs.readFileSync(dbPath, 'utf8')
+    return JSON.parse(data)
+  } catch (error) {
+    console.error('Failed to load user database:', error)
+    throw new Error('Database connection failed')
+  }
+}
+
+function saveUserDatabase(database: UserDatabase): void {
+  try {
+    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
+    fs.writeFileSync(dbPath, JSON.stringify(database, null, 2))
+  } catch (error) {
+    console.error('Failed to save user database:', error)
+    throw new Error('Database save failed')
+  }
+}
+
+// GET - Fetch all admins
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const search = searchParams.get('search') || ''
-    const status = searchParams.get('status') || 'all'
+    const database = loadUserDatabase()
     
-    const offset = (page - 1) * limit
-    
-    const connection = await mysql.createConnection(dbConfig)
-    
-    // Build query conditions
-    let whereConditions = ['role IN ("admin", "super-admin")']
-    let queryParams: any[] = []
-    
-    if (search) {
-      whereConditions.push('(name LIKE ? OR email LIKE ? OR user_id LIKE ?)')
-      queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`)
-    }
-    
-    if (status !== 'all') {
-      whereConditions.push('is_active = ?')
-      queryParams.push(status === 'active' ? 1 : 0)
-    }
-    
-    const whereClause = whereConditions.join(' AND ')
-    
-    // Get total count
-    const [countResult] = await connection.execute(
-      `SELECT COUNT(*) as total FROM users WHERE ${whereClause}`,
-      queryParams
-    )
-    const total = (countResult as any)[0].total
-    
-    // Get admins with pagination
-    const [admins] = await connection.execute(`
-      SELECT 
-        id,
-        user_id,
-        name,
-        email,
-        role,
-        contact_number,
-        department,
-        is_active,
-        is_verified,
-        last_login,
-        created_at,
-        updated_at
-      FROM users 
-      WHERE ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `, [...queryParams, limit, offset])
-    
-    await connection.end()
-    
-    const totalPages = Math.ceil(total / limit)
+    // Filter only admin role users
+    const admins = database.users.filter(user => user.role === 'admin')
     
     return NextResponse.json({
-      admins,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages
-      }
+      success: true,
+      admins: admins.map(admin => ({
+        id: admin.id,
+        user_id: admin.user_id,
+        name: admin.name,
+        email: admin.email,
+        mobile: admin.mobile,
+        department: admin.department,
+        isActive: admin.isActive,
+        createdAt: admin.createdAt,
+        lastLogin: admin.lastLogin
+      }))
     })
-    
   } catch (error) {
     console.error('Error fetching admins:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch admins' },
+      { success: false, error: 'Failed to fetch admins' },
       { status: 500 }
     )
   }
 }
 
+// POST - Create new admin
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { 
-      name, 
-      email, 
-      password, 
-      role, 
-      contact_number, 
-      department,
-      address,
-      date_of_birth,
-      gender
-    } = body
+    const { name, mobile, password } = await request.json()
     
-    if (!name || !email || !password || !role || !contact_number) {
+    // Validate input
+    if (!name || !mobile || !password) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { success: false, error: 'Name, mobile, and password are required' },
         { status: 400 }
       )
     }
     
-    if (!['admin', 'super-admin'].includes(role)) {
+    // Validate mobile number (10 digits starting with 6-9)
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
       return NextResponse.json(
-        { error: 'Invalid role. Must be admin or super-admin' },
+        { success: false, error: 'Please enter a valid 10-digit mobile number' },
         { status: 400 }
       )
     }
     
-    const connection = await mysql.createConnection(dbConfig)
-    
-    // Check if email already exists
-    const [existingUser] = await connection.execute(
-      'SELECT id FROM users WHERE email = ?',
-      [email]
-    )
-    
-    if ((existingUser as any[]).length > 0) {
-      await connection.end()
+    // Validate password (6 digits)
+    if (!/^\d{6}$/.test(password)) {
       return NextResponse.json(
-        { error: 'Email already exists' },
+        { success: false, error: 'Password must be exactly 6 digits' },
         { status: 400 }
       )
     }
     
-    // Generate user_id
-    const [lastUser] = await connection.execute(
-      'SELECT user_id FROM users WHERE role IN ("admin", "super-admin") ORDER BY id DESC LIMIT 1'
-    )
+    const database = loadUserDatabase()
     
-    let nextNumber = 1
-    if ((lastUser as any[]).length > 0) {
-      const lastUserId = (lastUser as any)[0].user_id
-      const match = lastUserId.match(/ADM(\d+)/)
-      if (match) {
-        nextNumber = parseInt(match[1]) + 1
-      }
+    // Check if mobile already exists
+    const existingUser = database.users.find(user => user.mobile === mobile)
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'Mobile number already exists' },
+        { status: 400 }
+      )
     }
     
-    const userId = `ADM${nextNumber.toString().padStart(3, '0')}`
+    // Generate new admin ID
+    const adminUsers = database.users.filter(user => user.role === 'admin')
+    const nextId = Math.max(...database.users.map(u => u.id), 0) + 1
+    const nextAdminNumber = adminUsers.length + 1
+    const userId = `AD${nextAdminNumber.toString().padStart(3, '0')}`
     
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10)
+    // Create new admin
+    const newAdmin: User = {
+      id: nextId,
+      user_id: userId,
+      username: `admin${nextAdminNumber}`,
+      name: name,
+      email: `${userId.toLowerCase()}@hospital.com`,
+      mobile: mobile,
+      password: password,
+      password_hash: "",
+      role: "admin",
+      department: "Administration",
+      isActive: true,
+      permissions: ["manage_users", "view_reports", "manage_appointments", "manage_rooms", "manage_billing"],
+      dashboards: ["admin"],
+      createdAt: new Date().toISOString(),
+      lastLogin: null
+    }
     
-    // Insert new admin
-    const [result] = await connection.execute(`
-      INSERT INTO users (
-        user_id, name, email, password_hash, role, contact_number, 
-        department, address, date_of_birth, gender, is_active, is_verified
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
-    `, [
-      userId, name, email, passwordHash, role, contact_number,
-      department || null, address || null, date_of_birth || null, gender || null
-    ])
-    
-    await connection.end()
+    database.users.push(newAdmin)
+    saveUserDatabase(database)
     
     return NextResponse.json({
+      success: true,
       message: 'Admin created successfully',
-      userId,
-      adminId: (result as any).insertId
+      admin: {
+        id: newAdmin.id,
+        user_id: newAdmin.user_id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        mobile: newAdmin.mobile,
+        department: newAdmin.department
+      }
     })
-    
   } catch (error) {
     console.error('Error creating admin:', error)
     return NextResponse.json(
-      { error: 'Failed to create admin' },
+      { success: false, error: 'Failed to create admin' },
       { status: 500 }
     )
   }
 }
 
+// PUT - Update admin
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { 
-      id, 
-      name, 
-      email, 
-      role, 
-      contact_number, 
-      department,
-      address,
-      date_of_birth,
-      gender,
-      is_active
-    } = body
+    const { id, name, mobile, password } = await request.json()
     
     if (!id) {
       return NextResponse.json(
-        { error: 'Admin ID is required' },
+        { success: false, error: 'Admin ID is required' },
         { status: 400 }
       )
     }
     
-    const connection = await mysql.createConnection(dbConfig)
-    
-    // Check if email exists for other users
-    const [existingUser] = await connection.execute(
-      'SELECT id FROM users WHERE email = ? AND id != ?',
-      [email, id]
-    )
-    
-    if ((existingUser as any[]).length > 0) {
-      await connection.end()
+    // Validate mobile number if provided
+    if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
       return NextResponse.json(
-        { error: 'Email already exists' },
+        { success: false, error: 'Please enter a valid 10-digit mobile number' },
         { status: 400 }
       )
+    }
+    
+    // Validate password if provided
+    if (password && !/^\d{6}$/.test(password)) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be exactly 6 digits' },
+        { status: 400 }
+      )
+    }
+    
+    const database = loadUserDatabase()
+    
+    // Find admin to update
+    const adminIndex = database.users.findIndex(user => user.id === id && user.role === 'admin')
+    if (adminIndex === -1) {
+      return NextResponse.json(
+        { success: false, error: 'Admin not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Check if mobile already exists for other users
+    if (mobile) {
+      const existingUser = database.users.find(user => user.mobile === mobile && user.id !== id)
+      if (existingUser) {
+        return NextResponse.json(
+          { success: false, error: 'Mobile number already exists' },
+          { status: 400 }
+        )
+      }
     }
     
     // Update admin
-    await connection.execute(`
-      UPDATE users 
-      SET name = ?, email = ?, role = ?, contact_number = ?, department = ?,
-          address = ?, date_of_birth = ?, gender = ?, is_active = ?
-      WHERE id = ? AND role IN ("admin", "super-admin")
-    `, [
-      name, email, role, contact_number, department,
-      address, date_of_birth, gender, is_active, id
-    ])
+    if (name) database.users[adminIndex].name = name
+    if (mobile) database.users[adminIndex].mobile = mobile
+    if (password) database.users[adminIndex].password = password
     
-    await connection.end()
+    saveUserDatabase(database)
     
-    return NextResponse.json({ message: 'Admin updated successfully' })
-    
+    return NextResponse.json({
+      success: true,
+      message: 'Admin updated successfully',
+      admin: {
+        id: database.users[adminIndex].id,
+        user_id: database.users[adminIndex].user_id,
+        name: database.users[adminIndex].name,
+        email: database.users[adminIndex].email,
+        mobile: database.users[adminIndex].mobile,
+        department: database.users[adminIndex].department
+      }
+    })
   } catch (error) {
     console.error('Error updating admin:', error)
     return NextResponse.json(
-      { error: 'Failed to update admin' },
+      { success: false, error: 'Failed to update admin' },
       { status: 500 }
     )
   }
 }
 
+// DELETE - Delete admin
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const id = parseInt(searchParams.get('id') || '0')
     
     if (!id) {
       return NextResponse.json(
-        { error: 'Admin ID is required' },
+        { success: false, error: 'Admin ID is required' },
         { status: 400 }
       )
     }
     
-    const connection = await mysql.createConnection(dbConfig)
+    const database = loadUserDatabase()
     
-    // Soft delete by setting is_active to 0
-    await connection.execute(
-      'UPDATE users SET is_active = 0 WHERE id = ? AND role IN ("admin", "super-admin")',
-      [id]
-    )
+    // Find admin to delete
+    const adminIndex = database.users.findIndex(user => user.id === id && user.role === 'admin')
+    if (adminIndex === -1) {
+      return NextResponse.json(
+        { success: false, error: 'Admin not found' },
+        { status: 404 }
+      )
+    }
     
-    await connection.end()
+    // Remove admin from database
+    database.users.splice(adminIndex, 1)
+    saveUserDatabase(database)
     
-    return NextResponse.json({ message: 'Admin deactivated successfully' })
-    
+    return NextResponse.json({
+      success: true,
+      message: 'Admin deleted successfully'
+    })
   } catch (error) {
     console.error('Error deleting admin:', error)
     return NextResponse.json(
-      { error: 'Failed to delete admin' },
+      { success: false, error: 'Failed to delete admin' },
       { status: 500 }
     )
   }
