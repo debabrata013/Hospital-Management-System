@@ -1,119 +1,155 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { SignJWT } from 'jose'
+import fs from 'fs'
+import path from 'path'
 
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { serialize } from 'cookie';
-import sequelize from '../../../../lib/sequelize'; // Adjust path
-import User from '../../../../models/User'; // Adjust path
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+)
 
-const loginSchema = z.object({
-  login: z.string().min(1, "Email or phone number is required"),
-  password: z.string().min(1, "Password is required"),
-});
+interface User {
+  id: number
+  user_id: string
+  username: string
+  name: string
+  email: string
+  mobile: string
+  password: string
+  role: string
+  department: string
+  isActive: boolean
+  permissions: string[]
+  dashboards: string[]
+  lastLogin: string | null
+}
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+interface UserDatabase {
+  users: User[]
+  roles: Record<string, any>
+  security_settings: any
+}
 
-export async function POST(req: NextRequest) {
+function loadUserDatabase(): UserDatabase {
   try {
-    // Note: It's generally better to sync the database at startup, not per-request.
-    // await sequelize.sync(); 
+    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
+    const data = fs.readFileSync(dbPath, 'utf8')
+    return JSON.parse(data)
+  } catch (error) {
+    console.error('Failed to load user database:', error)
+    throw new Error('Database connection failed')
+  }
+}
 
-    const body = await req.json();
-    const parsed = loginSchema.safeParse(body);
+function updateLastLogin(userId: number): void {
+  try {
+    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
+    const database = loadUserDatabase()
+    
+    const userIndex = database.users.findIndex(user => user.id === userId)
+    if (userIndex !== -1) {
+      database.users[userIndex].lastLogin = new Date().toISOString()
+      fs.writeFileSync(dbPath, JSON.stringify(database, null, 2))
+    }
+  } catch (error) {
+    console.error('Failed to update last login:', error)
+  }
+}
 
-    if (!parsed.success) {
+export async function POST(request: NextRequest) {
+  try {
+    const { mobile, password } = await request.json()
+
+    // Validate mobile number (exactly 10 digits)
+    if (!mobile || !/^\d{10}$/.test(mobile)) {
       return NextResponse.json(
-        { message: "Invalid input", errors: parsed.error.errors },
+        { message: 'Please enter a valid 10-digit mobile number' },
         { status: 400 }
-      );
+      )
     }
 
-    const { login, password } = parsed.data;
+    // Validate password (exactly 6 digits)
+    if (!password || !/^\d{6}$/.test(password)) {
+      return NextResponse.json(
+        { message: 'Please enter a valid 6-digit password' },
+        { status: 400 }
+      )
+    }
 
-    const isEmail = login.includes('@');
+    const database = loadUserDatabase()
 
-    const user = await User.findOne({
-      where: isEmail ? { email: login } : { phoneNumber: login },
-      // FIX: Explicitly select the columns that exist in the database
-      attributes: [
-        'id', 
-        'password', 
-        'isActive', 
-        'role', 
-        'email', 
-        'firstName', 
-        'lastName',
-        'phoneNumber'
-      ]
-    });
+    // Find user by mobile number
+    const user = database.users.find(u => u.mobile === mobile)
 
     if (!user) {
       return NextResponse.json(
-        { message: "Invalid credentials" },
+        { message: 'Invalid mobile number or password' },
         { status: 401 }
-      );
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { message: "Invalid credentials" },
-        { status: 401 }
-      );
+      )
     }
 
     if (!user.isActive) {
       return NextResponse.json(
-        { message: "Account is inactive. Please contact support." },
-        { status: 403 }
-      );
+        { message: 'Account is deactivated. Please contact administrator.' },
+        { status: 401 }
+      )
     }
 
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        role: user.role,
-        email: user.email,
-      },
-      JWT_SECRET,
-      { expiresIn: '1d' } // Token expires in 1 day
-    );
+    // Verify password (plain text comparison)
+    if (password !== user.password) {
+      return NextResponse.json(
+        { message: 'Invalid mobile number or password' },
+        { status: 401 }
+      )
+    }
 
-    const cookie = serialize('auth-token', token, {
+    updateLastLogin(user.id)
+
+    // Create JWT token
+    const token = await new SignJWT({
+      userId: user.id,
+      userIdString: user.user_id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      department: user.department,
+      permissions: user.permissions
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .sign(JWT_SECRET)
+
+    const userData = {
+      id: user.id,
+      user_id: user.user_id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      department: user.department,
+      permissions: user.permissions,
+      dashboards: user.dashboards
+    }
+
+    const response = NextResponse.json({
+      message: 'Login successful',
+      user: userData
+    })
+
+    response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 1 day
-      path: '/',
-    });
+      maxAge: 24 * 60 * 60
+    })
 
-    return new NextResponse(
-      JSON.stringify({
-        message: "Login successful",
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        },
-      }),
-      {
-        status: 200,
-        headers: {
-          'Set-Cookie': cookie,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return response
+
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json( 
-      { message: "Internal server error" },
+    console.error('Login error:', error)
+    return NextResponse.json(
+      { message: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }

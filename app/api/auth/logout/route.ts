@@ -1,24 +1,28 @@
+import { NextRequest, NextResponse } from 'next/server'
 
-import { NextResponse } from 'next/server';
-import { serialize } from 'cookie';
+export async function POST(request: NextRequest) {
+  try {
+    // Create response
+    const response = NextResponse.json({
+      message: 'Logout successful'
+    })
 
-const NODE_ENV = process.env.NODE_ENV || 'development';
+    // Clear the auth token cookie
+    response.cookies.set('auth-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0, // Expire immediately
+      path: '/'
+    })
 
-export async function POST() {
-  // Create a cookie that is expired.
-  const cookie = serialize('auth-token', '', {
-    httpOnly: true,
-    secure: NODE_ENV === 'production',
-    sameSite: 'lax',
-    expires: new Date(0), // Set expiry date to the past
-    path: '/',
-  });
+    return response
 
-  return new NextResponse(
-    JSON.stringify({ message: "Logout successful" }),
-    {
-      status: 200,
-      headers: { 'Set-Cookie': cookie },
-    }
-  );
+  } catch (error) {
+    console.error('Logout error:', error)
+    return NextResponse.json(
+      { message: 'Logout failed' },
+      { status: 500 }
+    )
+  }
 }
