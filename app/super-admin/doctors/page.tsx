@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -23,6 +24,11 @@ interface Doctor {
   isActive: boolean
   createdAt: string
   lastLogin: string | null
+  experience: string
+  patientsTreated: string
+  description: string
+  available: string
+  languages: string
 }
 
 const departments = [
@@ -50,7 +56,12 @@ export default function DoctorsPage() {
     name: '',
     mobile: '',
     password: '',
-    department: ''
+    department: '',
+    experience: '',
+    patientsTreated: '',
+    description: '',
+    available: '',
+    languages: ''
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -93,7 +104,7 @@ export default function DoctorsPage() {
       if (data.success) {
         toast.success('Doctor created successfully')
         setIsCreateOpen(false)
-        setFormData({ name: '', mobile: '', password: '', department: '' })
+        setFormData({ name: '', mobile: '', password: '', department: '', experience: '', patientsTreated: '', description: '', available: '', languages: '' })
         fetchDoctors()
       } else {
         toast.error(data.error || 'Failed to create doctor')
@@ -128,7 +139,7 @@ export default function DoctorsPage() {
         toast.success('Doctor updated successfully')
         setIsEditOpen(false)
         setEditingDoctor(null)
-        setFormData({ name: '', mobile: '', password: '', department: '' })
+        setFormData({ name: '', mobile: '', password: '', department: '', experience: '', patientsTreated: '', description: '', available: '', languages: '' })
         fetchDoctors()
       } else {
         toast.error(data.error || 'Failed to update doctor')
@@ -169,13 +180,18 @@ export default function DoctorsPage() {
       name: doctor.name,
       mobile: doctor.mobile,
       password: '',
-      department: doctor.department
+      department: doctor.department,
+      experience: doctor.experience || '',
+      patientsTreated: doctor.patientsTreated || '',
+      description: doctor.description || '',
+      available: doctor.available || '',
+      languages: doctor.languages || ''
     })
     setIsEditOpen(true)
   }
 
   const resetForm = () => {
-    setFormData({ name: '', mobile: '', password: '', department: '' })
+    setFormData({ name: '', mobile: '', password: '', department: '', experience: '', patientsTreated: '', description: '', available: '', languages: '' })
     setEditingDoctor(null)
   }
 
@@ -261,6 +277,52 @@ export default function DoctorsPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="experience">Experience</Label>
+                  <Input
+                    id="experience"
+                    value={formData.experience}
+                    onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                    placeholder="e.g., 5 years"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="patientsTreated">Patients Treated</Label>
+                  <Input
+                    id="patientsTreated"
+                    value={formData.patientsTreated}
+                    onChange={(e) => setFormData({...formData, patientsTreated: e.target.value})}
+                    placeholder="e.g., 1000+"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Brief description about the doctor"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="available">Available</Label>
+                  <Input
+                    id="available"
+                    value={formData.available}
+                    onChange={(e) => setFormData({...formData, available: e.target.value})}
+                    placeholder="e.g., Mon-Sat, 9am-1pm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="languages">Languages</Label>
+                  <Input
+                    id="languages"
+                    value={formData.languages}
+                    onChange={(e) => setFormData({...formData, languages: e.target.value})}
+                    placeholder="e.g., Hindi, English"
+                  />
                 </div>
               </div>
               <DialogFooter className="mt-6">
@@ -418,6 +480,52 @@ export default function DoctorsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-experience">Experience</Label>
+                <Input
+                  id="edit-experience"
+                  value={formData.experience}
+                  onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                  placeholder="e.g., 5 years"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-patientsTreated">Patients Treated</Label>
+                <Input
+                  id="edit-patientsTreated"
+                  value={formData.patientsTreated}
+                  onChange={(e) => setFormData({...formData, patientsTreated: e.target.value})}
+                  placeholder="e.g., 1000+"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Brief description about the doctor"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-available">Available</Label>
+                <Input
+                  id="edit-available"
+                  value={formData.available}
+                  onChange={(e) => setFormData({...formData, available: e.target.value})}
+                  placeholder="e.g., Mon-Sat, 9am-1pm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-languages">Languages</Label>
+                <Input
+                  id="edit-languages"
+                  value={formData.languages}
+                  onChange={(e) => setFormData({...formData, languages: e.target.value})}
+                  placeholder="e.g., Hindi, English"
+                />
               </div>
             </div>
             <DialogFooter className="mt-6">
