@@ -23,7 +23,75 @@
         "patient"
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLogin": null
+      "lastLogin": "2025-09-09T06:46:30.893Z"
+    },
+    {
+      "id": 2,
+      "user_id": "AD001",
+      "username": "admin",
+      "name": "Hospital Administrator",
+      "email": "admin@hospital.com",
+      "mobile": "9876543211",
+      "password": "admin123",
+      "password_hash": "",
+      "role": "admin",
+      "department": "Administration",
+      "isActive": true,
+      "permissions": [
+        "manage_users",
+        "view_reports",
+        "manage_departments"
+      ],
+      "dashboards": [
+        "admin"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": "2025-09-09T06:46:30.903Z"
+    },
+    {
+      "id": 3,
+      "user_id": "DR001",
+      "username": "doctor",
+      "name": "Dr. Rajesh Kumar",
+      "email": "doctor@hospital.com",
+      "mobile": "9876543212",
+      "password": "doctor123",
+      "password_hash": "",
+      "role": "doctor",
+      "department": "Cardiology",
+      "isActive": true,
+      "permissions": [
+        "view_patients",
+        "manage_prescriptions",
+        "view_medical_records"
+      ],
+      "dashboards": [
+        "doctor"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": "2025-09-09T06:46:30.911Z"
+    },
+    {
+      "id": 4,
+      "user_id": "PT001",
+      "username": "patient",
+      "name": "Amit Sharma",
+      "email": "patient@hospital.com",
+      "mobile": "9876543213",
+      "password": "patient123",
+      "password_hash": "",
+      "role": "patient",
+      "department": "General",
+      "isActive": true,
+      "permissions": [
+        "view_own_records",
+        "book_appointments"
+      ],
+      "dashboards": [
+        "patient"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": "2025-09-09T06:46:30.917Z"
     }
   ],
   "roles": {
