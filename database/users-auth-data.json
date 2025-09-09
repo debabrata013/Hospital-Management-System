@@ -20,10 +20,12 @@
         "admin",
         "doctor",
         "pharmacy",
-        "patient"
+        "patient",
+        "staff",
+        "receptionist"
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLogin": "2025-09-09T06:46:30.893Z"
+      "lastLogin": "2025-09-09T06:50:14.943Z"
     },
     {
       "id": 2,
@@ -32,7 +34,7 @@
       "name": "Hospital Administrator",
       "email": "admin@hospital.com",
       "mobile": "9876543211",
-      "password": "admin123",
+      "password": "654321",
       "password_hash": "",
       "role": "admin",
       "department": "Administration",
@@ -40,13 +42,15 @@
       "permissions": [
         "manage_users",
         "view_reports",
-        "manage_departments"
+        "manage_appointments",
+        "manage_rooms",
+        "manage_billing"
       ],
       "dashboards": [
         "admin"
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLogin": "2025-09-09T06:46:30.903Z"
+      "lastLogin": "2025-09-09T06:50:14.955Z"
     },
     {
       "id": 3,
@@ -55,7 +59,7 @@
       "name": "Dr. Rajesh Kumar",
       "email": "doctor@hospital.com",
       "mobile": "9876543212",
-      "password": "doctor123",
+      "password": "111111",
       "password_hash": "",
       "role": "doctor",
       "department": "Cardiology",
@@ -63,35 +67,109 @@
       "permissions": [
         "view_patients",
         "manage_prescriptions",
-        "view_medical_records"
+        "view_appointments",
+        "update_medical_records"
       ],
       "dashboards": [
         "doctor"
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLogin": "2025-09-09T06:46:30.911Z"
+      "lastLogin": "2025-09-09T06:50:14.979Z"
     },
     {
       "id": 4,
+      "user_id": "PH001",
+      "username": "pharmacist",
+      "name": "Pharmacist Priya",
+      "email": "pharmacy@hospital.com",
+      "mobile": "9876543213",
+      "password": "222222",
+      "password_hash": "",
+      "role": "pharmacy",
+      "department": "Pharmacy",
+      "isActive": true,
+      "permissions": [
+        "manage_medicines",
+        "view_prescriptions",
+        "manage_inventory",
+        "dispense_medicines"
+      ],
+      "dashboards": [
+        "pharmacy"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": "2025-09-09T06:50:15.051Z"
+    },
+    {
+      "id": 5,
+      "user_id": "ST001",
+      "username": "staff",
+      "name": "Staff Nurse Sunita",
+      "email": "staff@hospital.com",
+      "mobile": "9876543214",
+      "password": "333333",
+      "password_hash": "",
+      "role": "staff",
+      "department": "Nursing",
+      "isActive": true,
+      "permissions": [
+        "view_patients",
+        "update_patient_status",
+        "assist_doctors"
+      ],
+      "dashboards": [
+        "staff"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": "2025-09-09T06:50:15.114Z"
+    },
+    {
+      "id": 6,
+      "user_id": "RC001",
+      "username": "receptionist",
+      "name": "Receptionist Kavita",
+      "email": "reception@hospital.com",
+      "mobile": "9876543215",
+      "password": "444444",
+      "password_hash": "",
+      "role": "receptionist",
+      "department": "Front Desk",
+      "isActive": true,
+      "permissions": [
+        "manage_appointments",
+        "view_patients",
+        "manage_billing",
+        "patient_registration"
+      ],
+      "dashboards": [
+        "receptionist"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": "2025-09-09T06:50:15.142Z"
+    },
+    {
+      "id": 7,
       "user_id": "PT001",
       "username": "patient",
-      "name": "Amit Sharma",
+      "name": "Patient Amit Sharma",
       "email": "patient@hospital.com",
-      "mobile": "9876543213",
-      "password": "patient123",
+      "mobile": "9876543216",
+      "password": "555555",
       "password_hash": "",
       "role": "patient",
       "department": "General",
       "isActive": true,
       "permissions": [
         "view_own_records",
-        "book_appointments"
+        "book_appointments",
+        "view_prescriptions",
+        "view_bills"
       ],
       "dashboards": [
         "patient"
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLogin": "2025-09-09T06:46:30.917Z"
+      "lastLogin": "2025-09-09T06:50:15.154Z"
     }
   ],
   "roles": {
@@ -192,22 +270,22 @@
   },
   "security_settings": {
     "password_policy": {
-      "min_length": 8,
-      "require_uppercase": true,
-      "require_lowercase": true,
+      "min_length": 6,
+      "require_uppercase": false,
+      "require_lowercase": false,
       "require_numbers": true,
-      "require_special_chars": true,
+      "require_special_chars": false,
       "password_expiry_days": 90
     },
     "session_settings": {
-      "session_timeout_minutes": 30,
+      "session_timeout_minutes": 60,
       "max_concurrent_sessions": 3,
-      "remember_me_days": 30
+      "require_2fa": false
     },
-    "security_features": {
-      "two_factor_auth": false,
-      "account_lockout_attempts": 5,
-      "lockout_duration_minutes": 15
+    "login_attempts": {
+      "max_attempts": 5,
+      "lockout_duration_minutes": 15,
+      "reset_attempts_after_minutes": 60
     }
   }
 }
