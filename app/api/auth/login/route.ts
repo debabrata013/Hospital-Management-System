@@ -1,58 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT } from 'jose'
-import fs from 'fs'
-import path from 'path'
+import mysql from 'mysql2/promise'
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 )
 
-interface User {
-  id: number
-  user_id: string
-  username: string
-  name: string
-  email: string
-  mobile: string
-  password: string
-  role: string
-  department: string
-  isActive: boolean
-  permissions: string[]
-  dashboards: string[]
-  lastLogin: string | null
-}
-
-interface UserDatabase {
-  users: User[]
-  roles: Record<string, any>
-  security_settings: any
-}
-
-function loadUserDatabase(): UserDatabase {
-  try {
-    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
-    const data = fs.readFileSync(dbPath, 'utf8')
-    return JSON.parse(data)
-  } catch (error) {
-    console.error('Failed to load user database:', error)
-    throw new Error('Database connection failed')
-  }
-}
-
-function updateLastLogin(userId: number): void {
-  try {
-    const dbPath = path.join(process.cwd(), 'database', 'users-auth-data.json')
-    const database = loadUserDatabase()
-    
-    const userIndex = database.users.findIndex(user => user.id === userId)
-    if (userIndex !== -1) {
-      database.users[userIndex].lastLogin = new Date().toISOString()
-      fs.writeFileSync(dbPath, JSON.stringify(database, null, 2))
-    }
-  } catch (error) {
-    console.error('Failed to update last login:', error)
-  }
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: parseInt(process.env.DB_PORT || '3306')
 }
 
 export async function POST(request: NextRequest) {
@@ -77,36 +36,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const database = loadUserDatabase()
+    const connection = await mysql.createConnection(dbConfig)
 
     // Find user by mobile number or email
-    const user = database.users.find(u => 
-      isMobileLogin ? u.mobile === login : u.email === login
+    const [users] = await connection.execute(
+      'SELECT * FROM users WHERE (contact_number = ? OR email = ?) AND is_active = 1',
+      [login, login]
     )
 
-    if (!user) {
+    await connection.end()
+
+    const userArray = users as any[]
+    if (userArray.length === 0) {
       return NextResponse.json(
         { message: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
-    if (!user.isActive) {
-      return NextResponse.json(
-        { message: 'Account is deactivated. Please contact administrator.' },
-        { status: 401 }
-      )
-    }
+    const user = userArray[0]
 
-    // Verify password (plain text comparison)
-    if (password !== user.password) {
+    // For now, check if password matches password_hash directly (plain text)
+    // In production, you should use bcrypt to compare hashed passwords
+    if (password !== user.password_hash) {
       return NextResponse.json(
         { message: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
-    updateLastLogin(user.id)
+    // Update last login
+    const connection2 = await mysql.createConnection(dbConfig)
+    await connection2.execute(
+      'UPDATE users SET last_login = NOW() WHERE id = ?',
+      [user.id]
+    )
+    await connection2.end()
 
     // Create JWT token
     const token = await new SignJWT({
@@ -115,8 +80,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       name: user.name,
-      department: user.department,
-      permissions: user.permissions
+      department: user.department || user.specialization,
+      permissions: []
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -128,11 +93,10 @@ export async function POST(request: NextRequest) {
       user_id: user.user_id,
       name: user.name,
       email: user.email,
-      mobile: user.mobile,
+      mobile: user.contact_number,
       role: user.role,
-      department: user.department,
-      permissions: user.permissions,
-      dashboards: user.dashboards
+      department: user.department || user.specialization,
+      permissions: []
     }
 
     const response = NextResponse.json({
