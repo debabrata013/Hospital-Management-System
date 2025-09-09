@@ -170,7 +170,15 @@ export async function PUT(request: NextRequest) {
   try {
     const { id, name, mobile, password, department, experience, patientsTreated, description, available, languages } = await request.json()
     
+    // Debug logging
+    console.log('Doctor update request received:')
+    console.log('ID:', id, 'Type:', typeof id)
+    console.log('Name:', name)
+    console.log('Mobile:', mobile, 'Type:', typeof mobile, 'Length:', mobile?.length)
+    console.log('Password:', password, 'Type:', typeof password, 'Length:', password?.length)
+    
     if (!id) {
+      console.log('Validation failed: Missing ID')
       return NextResponse.json(
         { success: false, error: 'Doctor ID is required' },
         { status: 400 }
@@ -179,6 +187,7 @@ export async function PUT(request: NextRequest) {
     
     // Validate mobile number if provided
     if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
+      console.log('Validation failed: Invalid mobile format')
       return NextResponse.json(
         { success: false, error: 'Please enter a valid 10-digit mobile number' },
         { status: 400 }
@@ -187,6 +196,7 @@ export async function PUT(request: NextRequest) {
     
     // Validate password if provided
     if (password && !/^\d{6}$/.test(password)) {
+      console.log('Validation failed: Invalid password format')
       return NextResponse.json(
         { success: false, error: 'Password must be exactly 6 digits' },
         { status: 400 }

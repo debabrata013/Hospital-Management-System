@@ -53,8 +53,15 @@ export async function POST(request: NextRequest) {
   try {
     const { name, mobile, password } = await request.json()
     
+    // Debug logging
+    console.log('Admin creation request received:')
+    console.log('Name:', name)
+    console.log('Mobile:', mobile, 'Type:', typeof mobile, 'Length:', mobile?.length)
+    console.log('Password:', password, 'Type:', typeof password, 'Length:', password?.length)
+    
     // Validate input
     if (!name || !mobile || !password) {
+      console.log('Validation failed: Missing fields')
       return NextResponse.json(
         { success: false, error: 'Name, mobile, and password are required' },
         { status: 400 }
@@ -63,6 +70,7 @@ export async function POST(request: NextRequest) {
     
     // Validate mobile number (10 digits starting with 6-9)
     if (!/^[6-9]\d{9}$/.test(mobile)) {
+      console.log('Validation failed: Invalid mobile format')
       return NextResponse.json(
         { success: false, error: 'Please enter a valid 10-digit mobile number' },
         { status: 400 }
@@ -71,6 +79,7 @@ export async function POST(request: NextRequest) {
     
     // Validate password (6 digits)
     if (!/^\d{6}$/.test(password)) {
+      console.log('Validation failed: Invalid password format')
       return NextResponse.json(
         { success: false, error: 'Password must be exactly 6 digits' },
         { status: 400 }
