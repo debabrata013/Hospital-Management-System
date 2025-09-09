@@ -1,40 +1,50 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { jwtVerify } from 'jose'
 
-import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import { cookies } from 'next/headers';
-import User from '../../../../models/User'; // Adjust path as needed
-export const dynamic = 'force-dynamic'
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
-export async function GET(req: NextRequest) {
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+)
+
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
+    const token = request.cookies.get('auth-token')?.value
 
     if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { message: 'No session found' },
+        { status: 401 }
+      )
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    // Verify JWT token
+    const { payload } = await jwtVerify(token, JWT_SECRET)
 
-    if (!decoded) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    // Return user data
+    const userData = {
+      id: payload.userId,
+      user_id: payload.userIdString,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role,
+      department: payload.department,
+      permissions: payload.permissions
     }
 
-    const user = await User.findByPk(decoded.userId, {
-      attributes: ['id', 'email', 'role', 'firstName', 'lastName'], // Only return essential, non-sensitive data
-    });
-
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ user }, { status: 200 });
+    return NextResponse.json({
+      message: 'Session valid',
+      user: userData
+    })
 
   } catch (error) {
-    console.error("Session verification error:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
+    console.error('Session verification error:', error)
+    
+    // Clear invalid token
+    const response = NextResponse.json(
+      { message: 'Invalid session' },
+      { status: 401 }
+    )
+    response.cookies.delete('auth-token')
+    
+    return response
   }
 }

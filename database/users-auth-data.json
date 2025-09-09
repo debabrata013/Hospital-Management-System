@@ -1,0 +1,145 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "user_id": "SA001",
+      "username": "superadmin",
+      "name": "Super Administrator",
+      "email": "superadmin@hospital.com",
+      "mobile": "9876543210",
+      "password": "123456",
+      "password_hash": "",
+      "role": "super-admin",
+      "department": "Administration",
+      "isActive": true,
+      "permissions": [
+        "all"
+      ],
+      "dashboards": [
+        "super-admin",
+        "admin",
+        "doctor",
+        "pharmacy",
+        "patient"
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "lastLogin": null
+    }
+  ],
+  "roles": {
+    "super-admin": {
+      "name": "Super Administrator",
+      "permissions": [
+        "all"
+      ],
+      "dashboards": [
+        "super-admin",
+        "admin",
+        "doctor",
+        "pharmacy",
+        "patient",
+        "staff",
+        "receptionist"
+      ],
+      "description": "Full system access with all permissions"
+    },
+    "admin": {
+      "name": "Hospital Administrator",
+      "permissions": [
+        "manage_users",
+        "view_reports",
+        "manage_appointments",
+        "manage_rooms",
+        "manage_billing"
+      ],
+      "dashboards": [
+        "admin"
+      ],
+      "description": "Hospital administration and management"
+    },
+    "doctor": {
+      "name": "Doctor",
+      "permissions": [
+        "view_patients",
+        "manage_prescriptions",
+        "view_appointments",
+        "update_medical_records"
+      ],
+      "dashboards": [
+        "doctor"
+      ],
+      "description": "Medical professionals with patient care access"
+    },
+    "pharmacy": {
+      "name": "Pharmacist",
+      "permissions": [
+        "manage_medicines",
+        "view_prescriptions",
+        "manage_inventory",
+        "dispense_medicines"
+      ],
+      "dashboards": [
+        "pharmacy"
+      ],
+      "description": "Pharmacy operations and medicine management"
+    },
+    "staff": {
+      "name": "Hospital Staff",
+      "permissions": [
+        "view_patients",
+        "update_patient_status",
+        "assist_doctors"
+      ],
+      "dashboards": [
+        "staff"
+      ],
+      "description": "General hospital staff and nursing"
+    },
+    "receptionist": {
+      "name": "Receptionist",
+      "permissions": [
+        "manage_appointments",
+        "view_patients",
+        "manage_billing",
+        "patient_registration"
+      ],
+      "dashboards": [
+        "receptionist"
+      ],
+      "description": "Front desk operations and patient management"
+    },
+    "patient": {
+      "name": "Patient",
+      "permissions": [
+        "view_own_records",
+        "book_appointments",
+        "view_prescriptions",
+        "view_bills"
+      ],
+      "dashboards": [
+        "patient"
+      ],
+      "description": "Patient portal access"
+    }
+  },
+  "security_settings": {
+    "password_policy": {
+      "min_length": 8,
+      "require_uppercase": true,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_special_chars": true,
+      "password_expiry_days": 90
+    },
+    "session_settings": {
+      "session_timeout_minutes": 30,
+      "max_concurrent_sessions": 3,
+      "remember_me_days": 30
+    },
+    "security_features": {
+      "two_factor_auth": false,
+      "account_lockout_attempts": 5,
+      "lockout_duration_minutes": 15
+    }
+  }
+}
