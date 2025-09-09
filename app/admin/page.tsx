@@ -391,6 +391,28 @@ export default function AdminDashboard() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+
+              {/* Add-ons */}
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-gray-600 font-medium mb-2">
+                  Add-ons
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/erp" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <LayoutDashboard className="h-5 w-5" />
+                          <span>ERP</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
             </div>
           </SidebarContent>
           

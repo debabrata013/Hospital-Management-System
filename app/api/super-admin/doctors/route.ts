@@ -12,44 +12,33 @@ const dbConfig = {
 // GET - Fetch all doctors
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '100')
+
     const connection = await mysql.createConnection(dbConfig)
-    
-    const [doctors] = await connection.execute(`
-      SELECT 
-        id, user_id, name, email, contact_number, department, specialization,
-        is_active, created_at, last_login, experience_years, qualification
-      FROM users 
-      WHERE role = 'doctor'
-      ORDER BY created_at DESC
-    `)
-    
-    await connection.end()
-    
-    return NextResponse.json({
-      success: true,
-      doctors: (doctors as any[]).map(doctor => ({
-        id: doctor.id,
-        user_id: doctor.user_id,
-        name: doctor.name,
-        email: doctor.email,
-        mobile: doctor.contact_number,
-        department: doctor.department || doctor.specialization,
-        isActive: doctor.is_active === 1,
-        createdAt: doctor.created_at,
-        lastLogin: doctor.last_login,
-        experience: doctor.experience_years ? `${doctor.experience_years} years` : '',
-        patientsTreated: '',
-        description: doctor.qualification || '',
-        available: '',
-        languages: ''
-      }))
-    })
-  } catch (error) {
-    console.error('Error fetching doctors:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch doctors' },
-      { status: 500 }
+    const [rows] = await connection.execute(
+      `SELECT id, user_id, name, email, contact_number, department, specialization
+       FROM users
+       WHERE role = 'doctor'
+       ORDER BY name ASC
+       LIMIT ?`,
+      [limit]
     )
+    await connection.end()
+
+    const doctors = (rows as any[]).map(d => ({
+      id: d.id,
+      user_id: d.user_id,
+      name: d.name,
+      email: d.email,
+      contact_number: d.contact_number,
+      department: d.department,
+      specialization: d.specialization,
+    }))
+
+    return NextResponse.json({ success: true, doctors })
+  } catch (e) {
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
 
