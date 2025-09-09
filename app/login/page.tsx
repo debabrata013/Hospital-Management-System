@@ -7,14 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   Heart, 
   Eye, 
   EyeOff, 
   ArrowLeft, 
-  Mail, 
   Shield,
   Loader2,
   CheckCircle,
@@ -32,12 +30,10 @@ function LoginForm() {
   
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
-    emailOrPhone: "",
-    password: "",
-    rememberMe: false
+    mobileNumber: "",
+    password: ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone" | null>(null)
 
   // Handle URL messages
   const message = searchParams.get('message')
@@ -79,21 +75,11 @@ function LoginForm() {
     }
   }, [message])
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
-    
-    if (field === "emailOrPhone" && typeof value === "string") {
-      if (value.includes("@")) {
-        setLoginMethod("email")
-      } else if (/^\+?\d{10,14}$/.test(value)) {
-        setLoginMethod("phone")
-      } else {
-        setLoginMethod(null)
-      }
-    }
 
     if (errors[field]) {
       setErrors(prev => ({
@@ -112,7 +98,7 @@ function LoginForm() {
 
     try {
       await login({
-        login: formData.emailOrPhone,
+        login: formData.mobileNumber,
         password: formData.password
       });
     } catch (error) {
@@ -123,19 +109,11 @@ function LoginForm() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-    const emailRegex = /\S+@\S+\.\S+/;
 
-    if (!formData.emailOrPhone.trim()) {
-      newErrors.emailOrPhone = "Email or Phone Number is required";
-    } else {
-      if(loginMethod === 'email' && !emailRegex.test(formData.emailOrPhone)) {
-        newErrors.emailOrPhone = "Please enter a valid email address";
-      } else if (loginMethod === 'phone' && !/^\+?\d{10,14}$/.test(formData.emailOrPhone)) {
-        newErrors.emailOrPhone = "Please enter a valid phone number (e.g., +919876543210)";
-      } else if (loginMethod === null && !emailRegex.test(formData.emailOrPhone)) {
-        // Default validation to email if no specific format is detected yet
-        newErrors.emailOrPhone = "Please enter a valid email or phone number";
-      }
+    if (!formData.mobileNumber.trim()) {
+      newErrors.mobileNumber = "Mobile number is required";
+    } else if (!/^[6-9]\d{9}$/.test(formData.mobileNumber)) {
+      newErrors.mobileNumber = "Please enter a valid 10-digit mobile number";
     }
 
     if (!formData.password) {
@@ -228,36 +206,34 @@ function LoginForm() {
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-gray-900">Sign In</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              Enter your mobile number and password to access your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email or Phone Number */}
+              {/* Mobile Number */}
               <div className="space-y-2">
-                <Label htmlFor="emailOrPhone" className="flex items-center text-gray-700">
-                  {loginMethod === 'phone' ? (
-                    <Phone className="h-4 w-4 mr-2 text-pink-500" />
-                  ) : (
-                    <Mail className="h-4 w-4 mr-2 text-pink-500" />
-                  )}
-                  {loginMethod === 'phone' ? 'Phone Number' : 'Email Address or Phone number'}
+                <Label htmlFor="mobileNumber" className="flex items-center text-gray-700">
+                  <Phone className="h-4 w-4 mr-2 text-pink-500" />
+                  Mobile Number
                 </Label>
                 <div className="relative">
                   <Input
-                    id="emailOrPhone"
-                    type="text"
-                    placeholder="e.g., user@example.com or +919876543210"
-                    value={formData.emailOrPhone}
-                    onChange={(e) => handleInputChange("emailOrPhone", e.target.value)}
-                    className={`pl-10 ${errors.emailOrPhone ? 'border-red-500' : ''}`}
+                    id="mobileNumber"
+                    type="tel"
+                    placeholder="Enter 10-digit mobile number"
+                    value={formData.mobileNumber}
+                    onChange={(e) => handleInputChange("mobileNumber", e.target.value)}
+                    className={`pl-10 ${errors.mobileNumber ? 'border-red-500' : 'border-pink-200 focus:border-pink-400 focus:ring-pink-400'}`}
+                    maxLength={10}
                     required
                   />
-                  { loginMethod === 'phone' ? <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /> : <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /> }
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
-                {errors.emailOrPhone && <p className="text-xs text-red-500">{errors.emailOrPhone}</p>}
+                {errors.mobileNumber && <p className="text-xs text-red-500">{errors.mobileNumber}</p>}
               </div>
 
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="flex items-center">
                   <Shield className="h-4 w-4 mr-2 text-pink-500" />
@@ -284,27 +260,6 @@ function LoginForm() {
                   </button>
                 </div>
                 {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onCheckedChange={(checked) => handleInputChange('rememberMe', checked as boolean)}
-                    className="border-pink-300 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
-                  />
-                  <Label htmlFor="rememberMe" className="text-sm text-gray-600">
-                    Remember me
-                  </Label>
-                </div>
-                <Link 
-                  href="/forgot-password" 
-                  className="text-sm text-pink-500 hover:text-pink-600 font-medium"
-                >
-                  Forgot password?
-                </Link>
               </div>
 
               {/* Login Button */}

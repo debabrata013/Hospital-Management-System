@@ -57,32 +57,36 @@ function updateLastLogin(userId: number): void {
 
 export async function POST(request: NextRequest) {
   try {
-    const { mobile, password } = await request.json()
+    const { login, password } = await request.json()
 
-    // Validate mobile number (exactly 10 digits)
-    if (!mobile || !/^\d{10}$/.test(mobile)) {
+    // Check if login is mobile number or email
+    const isMobileLogin = /^[6-9]\d{9}$/.test(login)
+    const isEmailLogin = /\S+@\S+\.\S+/.test(login)
+
+    if (!login || (!isMobileLogin && !isEmailLogin)) {
       return NextResponse.json(
-        { message: 'Please enter a valid 10-digit mobile number' },
+        { message: 'Please enter a valid mobile number or email' },
         { status: 400 }
       )
     }
 
-    // Validate password (exactly 6 digits)
-    if (!password || !/^\d{6}$/.test(password)) {
+    if (!password || password.length < 4) {
       return NextResponse.json(
-        { message: 'Please enter a valid 6-digit password' },
+        { message: 'Password must be at least 4 characters long' },
         { status: 400 }
       )
     }
 
     const database = loadUserDatabase()
 
-    // Find user by mobile number
-    const user = database.users.find(u => u.mobile === mobile)
+    // Find user by mobile number or email
+    const user = database.users.find(u => 
+      isMobileLogin ? u.mobile === login : u.email === login
+    )
 
     if (!user) {
       return NextResponse.json(
-        { message: 'Invalid mobile number or password' },
+        { message: 'Invalid credentials' },
         { status: 401 }
       )
     }
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     // Verify password (plain text comparison)
     if (password !== user.password) {
       return NextResponse.json(
-        { message: 'Invalid mobile number or password' },
+        { message: 'Invalid credentials' },
         { status: 401 }
       )
     }
