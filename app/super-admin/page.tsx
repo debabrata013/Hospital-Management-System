@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -94,6 +95,7 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { logout } = useAuth()
 
   useEffect(() => {
     fetchDashboardData()
@@ -129,7 +131,7 @@ export default function SuperAdminDashboard() {
   }
 
   const handleLogout = () => {
-    router.push("/login")
+    logout()
   }
 
   return (

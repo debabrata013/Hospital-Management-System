@@ -25,7 +25,7 @@
         "receptionist"
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLogin": "2025-09-09T06:50:14.943Z"
+      "lastLogin": "2025-09-09T07:09:09.439Z"
     },
     {
       "id": 2,
@@ -170,6 +170,56 @@
       ],
       "createdAt": "2025-01-01T00:00:00.000Z",
       "lastLogin": "2025-09-09T06:50:15.154Z"
+    },
+    {
+      "id": 8,
+      "user_id": "AD002",
+      "username": "admin2",
+      "name": "Updated Test Admin",
+      "email": "ad002@hospital.com",
+      "mobile": "9876543299",
+      "password": "654321",
+      "password_hash": "",
+      "role": "admin",
+      "department": "Administration",
+      "isActive": true,
+      "permissions": [
+        "manage_users",
+        "view_reports",
+        "manage_appointments",
+        "manage_rooms",
+        "manage_billing"
+      ],
+      "dashboards": [
+        "admin"
+      ],
+      "createdAt": "2025-09-09T07:14:12.241Z",
+      "lastLogin": "2025-09-09T07:14:12.454Z"
+    },
+    {
+      "id": 9,
+      "user_id": "AD003",
+      "username": "admin3",
+      "name": "dev",
+      "email": "ad003@hospital.com",
+      "mobile": "8249396835",
+      "password": "123456",
+      "password_hash": "",
+      "role": "admin",
+      "department": "Administration",
+      "isActive": true,
+      "permissions": [
+        "manage_users",
+        "view_reports",
+        "manage_appointments",
+        "manage_rooms",
+        "manage_billing"
+      ],
+      "dashboards": [
+        "admin"
+      ],
+      "createdAt": "2025-09-09T07:16:59.061Z",
+      "lastLogin": null
     }
   ],
   "roles": {
