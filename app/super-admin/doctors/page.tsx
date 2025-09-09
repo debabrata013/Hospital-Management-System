@@ -92,14 +92,49 @@ export default function DoctorsPage() {
     e.preventDefault()
     setSubmitting(true)
 
+    // Clean and validate form data
+    const cleanData = {
+      name: formData.name.trim(),
+      mobile: formData.mobile.trim(),
+      password: formData.password.trim(),
+      department: formData.department.trim(),
+      experience: formData.experience.trim(),
+      patientsTreated: formData.patientsTreated.trim(),
+      description: formData.description.trim(),
+      available: formData.available.trim(),
+      languages: formData.languages.trim()
+    }
+
+    // Frontend validation
+    if (!cleanData.name || !cleanData.mobile || !cleanData.password) {
+      toast.error('Please fill in all required fields')
+      setSubmitting(false)
+      return
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanData.mobile)) {
+      toast.error('Please enter a valid 10-digit mobile number starting with 6-9')
+      setSubmitting(false)
+      return
+    }
+
+    if (!/^\d{6}$/.test(cleanData.password)) {
+      toast.error('Password must be exactly 6 digits')
+      setSubmitting(false)
+      return
+    }
+
+    console.log('Sending doctor data:', cleanData) // Debug log
+
     try {
       const response = await fetch('/api/super-admin/doctors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanData)
       })
 
       const data = await response.json()
+      console.log('Response:', response.status, data) // Debug log
 
       if (data.success) {
         toast.success('Doctor created successfully')
@@ -123,17 +158,61 @@ export default function DoctorsPage() {
 
     setSubmitting(true)
 
+    // Clean and validate form data
+    const cleanData = {
+      id: editingDoctor.id,
+      name: formData.name.trim(),
+      mobile: formData.mobile.trim(),
+      password: formData.password.trim(),
+      department: formData.department.trim(),
+      experience: formData.experience.trim(),
+      patientsTreated: formData.patientsTreated.trim(),
+      description: formData.description.trim(),
+      available: formData.available.trim(),
+      languages: formData.languages.trim()
+    }
+
+    // Frontend validation
+    if (!cleanData.name) {
+      toast.error('Name is required')
+      setSubmitting(false)
+      return
+    }
+
+    if (!cleanData.mobile) {
+      toast.error('Mobile number is required')
+      setSubmitting(false)
+      return
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanData.mobile)) {
+      toast.error('Please enter a valid 10-digit mobile number starting with 6-9')
+      setSubmitting(false)
+      return
+    }
+
+    if (cleanData.password && !/^\d{6}$/.test(cleanData.password)) {
+      toast.error('Password must be exactly 6 digits')
+      setSubmitting(false)
+      return
+    }
+
+    // Remove empty password from request if not provided
+    if (!cleanData.password) {
+      delete cleanData.password
+    }
+
+    console.log('Sending doctor update data:', cleanData) // Debug log
+
     try {
       const response = await fetch('/api/super-admin/doctors', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingDoctor.id,
-          ...formData
-        })
+        body: JSON.stringify(cleanData)
       })
 
       const data = await response.json()
+      console.log('Response:', response.status, data) // Debug log
 
       if (data.success) {
         toast.success('Doctor updated successfully')
@@ -247,11 +326,17 @@ export default function DoctorsPage() {
                   <Input
                     id="mobile"
                     value={formData.mobile}
-                    onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '') // Only digits
+                      if (value.length <= 10) {
+                        setFormData({...formData, mobile: value})
+                      }
+                    }}
                     placeholder="10-digit mobile number"
                     maxLength={10}
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">Must start with 6, 7, 8, or 9</p>
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
@@ -259,11 +344,17 @@ export default function DoctorsPage() {
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '') // Only digits
+                      if (value.length <= 6) {
+                        setFormData({...formData, password: value})
+                      }
+                    }}
                     placeholder="6-digit password"
                     maxLength={6}
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">Exactly 6 digits</p>
                 </div>
                 <div>
                   <Label htmlFor="department">Department/Specialization</Label>
@@ -451,11 +542,17 @@ export default function DoctorsPage() {
                 <Input
                   id="edit-mobile"
                   value={formData.mobile}
-                  onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '') // Only digits
+                    if (value.length <= 10) {
+                      setFormData({...formData, mobile: value})
+                    }
+                  }}
                   placeholder="10-digit mobile number"
                   maxLength={10}
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">Must start with 6, 7, 8, or 9</p>
               </div>
               <div>
                 <Label htmlFor="edit-password">New Password (optional)</Label>
@@ -463,10 +560,16 @@ export default function DoctorsPage() {
                   id="edit-password"
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '') // Only digits
+                    if (value.length <= 6) {
+                      setFormData({...formData, password: value})
+                    }
+                  }}
                   placeholder="6-digit password (leave empty to keep current)"
                   maxLength={6}
                 />
+                <p className="text-xs text-gray-500 mt-1">Exactly 6 digits (optional)</p>
               </div>
               <div>
                 <Label htmlFor="edit-department">Department/Specialization</Label>

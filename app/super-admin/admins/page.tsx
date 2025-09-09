@@ -64,14 +64,43 @@ export default function AdminsPage() {
     e.preventDefault()
     setSubmitting(true)
 
+    // Clean and validate form data
+    const cleanData = {
+      name: formData.name.trim(),
+      mobile: formData.mobile.trim(),
+      password: formData.password.trim()
+    }
+
+    // Frontend validation
+    if (!cleanData.name || !cleanData.mobile || !cleanData.password) {
+      toast.error('Please fill in all required fields')
+      setSubmitting(false)
+      return
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanData.mobile)) {
+      toast.error('Please enter a valid 10-digit mobile number starting with 6-9')
+      setSubmitting(false)
+      return
+    }
+
+    if (!/^\d{6}$/.test(cleanData.password)) {
+      toast.error('Password must be exactly 6 digits')
+      setSubmitting(false)
+      return
+    }
+
+    console.log('Sending admin data:', cleanData) // Debug log
+
     try {
       const response = await fetch('/api/super-admin/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanData)
       })
 
       const data = await response.json()
+      console.log('Response:', response.status, data) // Debug log
 
       if (data.success) {
         toast.success('Admin created successfully')
@@ -213,11 +242,17 @@ export default function AdminsPage() {
                   <Input
                     id="mobile"
                     value={formData.mobile}
-                    onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '') // Only digits
+                      if (value.length <= 10) {
+                        setFormData({...formData, mobile: value})
+                      }
+                    }}
                     placeholder="10-digit mobile number"
                     maxLength={10}
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">Must start with 6, 7, 8, or 9</p>
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
@@ -225,11 +260,17 @@ export default function AdminsPage() {
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '') // Only digits
+                      if (value.length <= 6) {
+                        setFormData({...formData, password: value})
+                      }
+                    }}
                     placeholder="6-digit password"
                     maxLength={6}
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">Exactly 6 digits</p>
                 </div>
               </div>
               <DialogFooter className="mt-6">
