@@ -24,7 +24,7 @@ export default function AdminLayout({
     <ProtectedRoute requiredRole={['admin', 'super-admin']}>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
+        {/* <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
@@ -46,17 +46,17 @@ export default function AdminLayout({
               </div>
             </div>
           </div>
-        </header>
+        </header> */}
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar */}
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div >
+{/*            
             <div className="lg:col-span-1">
               <div className="space-y-6">
-                {/* User Session Card */}
+                
                 <UserSession />
                 
-                {/* Navigation Menu */}
+               
                 <nav className="bg-white rounded-lg shadow p-4">
                   <h3 className="font-semibold text-gray-900 mb-4">Navigation</h3>
                   <ul className="space-y-2">
@@ -108,9 +108,9 @@ export default function AdminLayout({
                   </ul>
                 </nav>
               </div>
-            </div>
+            </div> */}
 
-            {/* Main Content */}
+            
             <div className="lg:col-span-3">
               {children}
             </div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 
 import { 
   Sidebar,
@@ -89,6 +90,7 @@ interface Appointment {
 
 export default function AdminDashboard() {
   const router = useRouter();   // ✅ correctly initialized router
+  const { user, logout } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,9 +101,7 @@ export default function AdminDashboard() {
   const [notifications] = useState(7);
 
   const handleLogout = () => {
-    // Clear any auth data if needed
-    // localStorage.removeItem("token")
-    router.push("/login");   // ✅ redirect works
+    logout();
   };
 
   useEffect(() => {
@@ -227,7 +227,9 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-gray-900">आरोग्य अस्पताल</h2>
-                <p className="text-sm text-gray-500">शाखा प्रशासक</p>
+                <p className="text-sm text-gray-500">
+                  {user?.name || 'Admin'} - {user?.role || 'Administrator'}
+                </p>
               </div>
             </div>
           </SidebarHeader>
@@ -393,15 +395,37 @@ export default function AdminDashboard() {
           </SidebarContent>
           
           <SidebarFooter className="border-t border-pink-100 p-4">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback className="bg-pink-100 text-pink-700">SJ</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{branchInfo.adminName}</p>
-                <p className="text-xs text-gray-500 truncate">Branch Administrator</p>
+            <div className="space-y-3">
+              {/* Current User Info */}
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="bg-pink-100 text-pink-700">
+                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user?.name || 'Administrator'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.role === 'admin' ? 'Branch Administrator' : user?.role || 'Administrator'}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {user?.mobile || user?.email}
+                  </p>
+                </div>
               </div>
+              
+              {/* Logout Button */}
+              <Button 
+                onClick={handleLogout}
+                variant="outline" 
+                size="sm" 
+                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </SidebarFooter>
           
@@ -450,14 +474,7 @@ export default function AdminDashboard() {
                   <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuLabel>Admin Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Users className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Branch Settings
-                    </DropdownMenuItem>
+                    
                     <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
   <LogOut className="mr-2 h-4 w-4" />
