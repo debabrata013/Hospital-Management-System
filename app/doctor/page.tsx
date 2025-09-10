@@ -217,6 +217,26 @@ export default function DoctorDashboard() {
     }
   }
 
+  const handleTaskClick = (task: any) => {
+    switch (task.type) {
+      case 'prescription_review':
+        // Navigate to patient page with prescription focus
+        window.location.href = `/doctor/patients/${task.Patient.id}?tab=prescriptions&prescriptionId=${task.id.replace('PRESC_', '')}`;
+        break;
+      case 'appointment_prep':
+        // Navigate to patient page for appointment preparation
+        window.location.href = `/doctor/patients/${task.Patient.id}?tab=appointments&appointmentId=${task.id.replace('APPT_', '')}`;
+        break;
+      case 'lab_review':
+        // Navigate to lab results
+        window.location.href = `/doctor/lab-results?patientId=${task.Patient.id}`;
+        break;
+      default:
+        // Default to patient page
+        window.location.href = `/doctor/patients/${task.Patient.id}`;
+    }
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
@@ -571,7 +591,11 @@ export default function DoctorDashboard() {
                     <p>Loading tasks...</p>
                   ) : pendingTasks.length > 0 ? (
                     pendingTasks.map((task: any) => (
-                      <div key={task.id} className={`p-4 rounded-xl border ${getPriorityColor(task.priority)}`}>
+                      <div 
+                        key={task.id} 
+                        className={`p-4 rounded-xl border ${getPriorityColor(task.priority)} cursor-pointer hover:shadow-md transition-all duration-200`}
+                        onClick={() => handleTaskClick(task)}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             {getTaskIcon(task.type)}
@@ -585,6 +609,10 @@ export default function DoctorDashboard() {
                               {task.priority}
                             </Badge>
                             <p className="text-xs opacity-75 mt-1">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
+                            <Button variant="outline" size="sm" className="h-8 mt-1">
+                              <Eye className="h-4 w-4 mr-1" />
+                              Review
+                            </Button>
                           </div>
                         </div>
                       </div>
