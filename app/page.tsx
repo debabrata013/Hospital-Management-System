@@ -517,7 +517,12 @@ export default function LandingPage() {
       experience: '40+ Years',
       patients: '700K+',
       rating: 4.9,
-      availability: 'Mon-Sat, 9am-1pm',
+      availability: 'Mon-Sat',
+      availabilityTimes: {
+        morning: '8:00 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English'],
       about: 'Dr. G K Nayak is the founder of NMSC and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
       isFounder: true
@@ -530,7 +535,12 @@ export default function LandingPage() {
       experience: '15+ Years',
       patients: '5k+',
       rating: 4.8,
-      availability: 'Mon-Fri, 10am-1pm',
+      availability: 'Mon-Fri',
+      availabilityTimes: {
+        morning: '8:00 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English'],
       about: 'Dr. Vinod Paliwal specializes in orthopedic surgery with expertise in joint replacement and sports injury treatment.'
     },
@@ -542,7 +552,12 @@ export default function LandingPage() {
       experience: '12+ Years',
       patients: '8k+',
       rating: 4.8,
-      availability: 'Mon-Sat, 8am-6pm',
+      availability: 'Mon-Sat',
+      availabilityTimes: {
+        morning: '8:00 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English'],
       about: 'Dr. K D Singh is an experienced anesthetist ensuring safe and comfortable surgical procedures for all patients.'
     },
@@ -554,7 +569,12 @@ export default function LandingPage() {
       experience: '10+ Years',
       patients: '4k+',
       rating: 4.7,
-      availability: 'Tue-Sat, 9am-12pm',
+      availability: 'Tue-Sat',
+      availabilityTimes: {
+        morning: '8:00 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English'],
       about: 'Dr. Ramakant Dewangan specializes in orthopedic treatments with focus on bone and joint disorders.'
     },
@@ -566,7 +586,12 @@ export default function LandingPage() {
       experience: '8+ Years',
       patients: '3k+',
       rating: 4.7,
-      availability: 'Mon-Fri, 2pm-5pm',
+      availability: 'Mon-Fri',
+      availabilityTimes: {
+        morning: '8:00 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English'],
       about: 'Dr. Shreyansh Shukla is a skilled orthopedic surgeon with expertise in minimally invasive procedures.'
     },
@@ -578,7 +603,12 @@ export default function LandingPage() {
       experience: '12+ Years',
       patients: '4.5k+',
       rating: 4.8,
-      availability: 'Mon-Sat, 10am-1pm',
+      availability: 'Mon-Sat',
+      availabilityTimes: {
+        morning: '8:00 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English', 'Odia'],
       about: 'Dr. Punit Mohanty specializes in orthopedic surgery with particular expertise in spine and joint treatments.'
     },
@@ -590,7 +620,12 @@ export default function LandingPage() {
       experience: '10+ Years',
       patients: '15K+',
       rating: 4.9,
-      availability: 'Tue-Sat, 2pm-5pm',
+      availability: 'Tue-Sat',
+      availabilityTimes: {
+        morning: '10:30 AM - 2:00 PM',
+        break: '2:00 PM - 5:00 PM',
+        evening: '5:00 PM - 7:00 PM'
+      },
       languages: ['Hindi', 'English'],
       about: 'Dr. Niharika Nayak is a leading gynecologist with 10+ years of experience in gynecology and obstetrics. She has successfully delivered over 5000 babies, bringing joy to thousands of happy parents.',
       isGynecologist: true
@@ -734,10 +769,26 @@ export default function LandingPage() {
                     </div>
                     
                     {/* Additional Info */}
-                    <div className="space-y-2 mb-6">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Clock className="h-4 w-4 mr-2 text-green-500" />
-                        <span>{t.doctors.availability}: {doctor.availability}</span>
+                    <div className="space-y-3 mb-6">
+                      <div className="text-sm text-gray-600">
+                        <div className="flex items-center mb-2">
+                          <Clock className="h-4 w-4 mr-2 text-green-500" />
+                          <span className="font-medium">{t.doctors.availability}: {doctor.availability}</span>
+                        </div>
+                        <div className="ml-6 space-y-1">
+                          <div className="flex items-center justify-between bg-green-50 px-3 py-1 rounded">
+                            <span className="text-xs font-medium text-green-700">Morning:</span>
+                            <span className="text-xs text-green-600">{doctor.availabilityTimes.morning}</span>
+                          </div>
+                          <div className="flex items-center justify-between bg-orange-50 px-3 py-1 rounded">
+                            <span className="text-xs font-medium text-orange-700">Break:</span>
+                            <span className="text-xs text-orange-600">{doctor.availabilityTimes.break}</span>
+                          </div>
+                          <div className="flex items-center justify-between bg-blue-50 px-3 py-1 rounded">
+                            <span className="text-xs font-medium text-blue-700">Evening:</span>
+                            <span className="text-xs text-blue-600">{doctor.availabilityTimes.evening}</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Globe className="h-4 w-4 mr-2 text-blue-500" />
