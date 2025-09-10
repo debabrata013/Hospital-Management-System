@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useOffline } from "@/hooks/use-offline"
+import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -211,6 +212,12 @@ export default function ReceptionistDashboard() {
   const [notifications] = useState(8)
   const [newPatientDialog, setNewPatientDialog] = useState(false)
   const [emergencyDialog, setEmergencyDialog] = useState(false)
+  const { logout, authState } = useAuth()
+  
+  const handleLogout = () => {
+    logout()
+  }
+  
   const [registrationForm, setRegistrationForm] = useState({
     firstName: '',
     lastName: '',
@@ -335,14 +342,19 @@ export default function ReceptionistDashboard() {
           </SidebarContent>
           
           <SidebarFooter className="border-t border-pink-100 p-4">
-            <div className="flex items-center space-x-3">
+            {/* User Info */}
+            <div className="flex items-center space-x-3 p-2 bg-pink-50 rounded-lg mb-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback className="bg-pink-100 text-pink-700">RC</AvatarFallback>
+                <AvatarFallback className="bg-pink-100 text-pink-700">
+                  {authState.user?.name?.charAt(0)?.toUpperCase() || 'R'}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">Receptionist</p>
-                <p className="text-xs text-gray-500 truncate">reception@hospital.com</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {authState.user?.name || 'Receptionist'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">Reception Department</p>
               </div>
               <div className="flex items-center">
                 {isOnline ? (
@@ -352,6 +364,15 @@ export default function ReceptionistDashboard() {
                 )}
               </div>
             </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm font-medium">Logout</span>
+            </button>
           </SidebarFooter>
           
           <SidebarRail />
@@ -453,7 +474,7 @@ export default function ReceptionistDashboard() {
                       Preferences
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
+                    <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </DropdownMenuItem>
