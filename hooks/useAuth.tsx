@@ -168,6 +168,7 @@ const getRedirectPath = (role: string): string => {
     'patient': '/patient',
     'staff': '/staff',
     'receptionist': '/receptionist',
+    'pharmacy': '/pharmacy',
   };
   return roleRedirects[role] || '/';
 };

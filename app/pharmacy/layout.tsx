@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
   Sidebar,
@@ -63,6 +64,11 @@ export default function PharmacyLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { logout, authState } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+  }
 
   useEffect(() => {
     // Initialize offline functionality
@@ -136,33 +142,31 @@ export default function PharmacyLayout({
                 <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">8</span>
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="flex items-center space-x-3 cursor-pointer hover:bg-pink-50 p-2 rounded-lg">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
-                    <AvatarFallback className="bg-pink-100 text-pink-700">P</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">Pharmacist</p>
-                    <p className="text-xs text-gray-500 truncate">Pharmacy Department</p>
-                  </div>
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuLabel>Pharmacy Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
+            {/* User Info */}
+            <div className="flex items-center space-x-3 p-2 bg-pink-50 rounded-lg mb-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
+                <AvatarFallback className="bg-pink-100 text-pink-700">
+                  {authState.user?.name?.charAt(0)?.toUpperCase() || 'P'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {authState.user?.name || 'Pharmacist'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">Pharmacy Department</p>
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm font-medium">Logout</span>
+            </button>
           </SidebarFooter>
           
           <SidebarRail />
@@ -206,7 +210,7 @@ export default function PharmacyLayout({
                       Profile Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
+                    <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </DropdownMenuItem>

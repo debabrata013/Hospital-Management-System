@@ -75,6 +75,8 @@ export default function PatientDetailPage() {
       fetchAppointments()
       if (appointmentId) {
         fetchAppointmentDetails()
+      } else {
+        setLoading(false)
       }
     }
   }, [patientId, appointmentId])
@@ -88,6 +90,11 @@ export default function PatientDetailPage() {
       }
     } catch (error) {
       console.error('Error fetching patient data:', error)
+    } finally {
+      // Set loading to false if no appointment ID to fetch
+      if (!appointmentId) {
+        setLoading(false)
+      }
     }
   }
 
