@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       LEFT JOIN users u ON ra.assigned_by = u.id
       WHERE ra.status = 'Active'
       ORDER BY ra.admission_date DESC
-      LIMIT 10
     `)
 
     await connection.end()

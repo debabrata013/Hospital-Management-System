@@ -87,13 +87,22 @@ export default function AdmissionsPage() {
     roomId: ''
   })
 
+  const [stats, setStats] = useState<{ admittedPatients?: number; availableBeds?: number; dischargesToday?: number; criticalPatients?: number }>({})
+
   async function fetchAdmissions() {
     try {
       setLoading(true)
-      const res = await fetch('/api/admin/admitted-patients', { cache: 'no-store' })
-      if (!res.ok) throw new Error('Failed to load admissions')
-      const data = await res.json()
+      const [admissionsRes, statsRes] = await Promise.all([
+        fetch('/api/admin/admitted-patients', { cache: 'no-store' }),
+        fetch('/api/admin/dashboard-stats', { cache: 'no-store' })
+      ])
+      if (!admissionsRes.ok) throw new Error('Failed to load admissions')
+      const data = await admissionsRes.json()
       setAdmissions(Array.isArray(data) ? data : [])
+      if (statsRes.ok) {
+        const s = await statsRes.json()
+        setStats(s || {})
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -287,7 +296,7 @@ export default function AdmissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Admitted</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">23</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.admittedPatients ?? '—'}</p>
               </div>
               <Bed className="h-6 sm:h-8 w-6 sm:w-8 text-pink-500" />
             </div>
@@ -298,7 +307,7 @@ export default function AdmissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Available Beds</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">12</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.availableBeds ?? '—'}</p>
               </div>
               <MapPin className="h-6 sm:h-8 w-6 sm:w-8 text-green-500" />
             </div>
@@ -309,7 +318,7 @@ export default function AdmissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Discharges Today</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600">5</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">{stats.dischargesToday ?? '—'}</p>
               </div>
               <LogOut className="h-6 sm:h-8 w-6 sm:w-8 text-blue-500" />
             </div>
@@ -320,7 +329,7 @@ export default function AdmissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Critical Patients</p>
-                <p className="text-xl sm:text-2xl font-bold text-red-600">3</p>
+                <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.criticalPatients ?? '—'}</p>
               </div>
               <Activity className="h-6 sm:h-8 w-6 sm:w-8 text-red-500" />
             </div>
@@ -493,3 +502,4 @@ export default function AdmissionsPage() {
     </div>
   )
 }
+
