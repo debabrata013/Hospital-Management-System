@@ -32,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin } from 'lucide-react'
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays } from 'lucide-react'
 
 
 // Mock data removed - using real API data from /api/doctor/appointments
@@ -47,6 +47,7 @@ const navigationItems = [
     items: [
       { title: "Dashboard", icon: LayoutDashboard, url: "/doctor", isActive: true },
       { title: "Today's Schedule", icon: Calendar, url: "/doctor/schedule" },
+      { title: "Leave Requests", icon: CalendarDays, url: "/doctor/leave-requests" },
     ]
   },
   {
