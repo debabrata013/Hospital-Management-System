@@ -15,9 +15,6 @@ class User extends Model {
   public address?: string;
   public gender?: 'male' | 'female' | 'other';
   public dateOfBirth?: Date;
-  public name?: string;
-  public lockUntil?: Date;
-  public lastLogin?: Date;
 
   // Timestamps
   public readonly createdAt!: Date;
@@ -66,10 +63,6 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     phoneNumber: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -85,14 +78,6 @@ User.init(
     },
     dateOfBirth: {
       type: DataTypes.DATEONLY,
-      allowNull: true,
-    },
-    lockUntil: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    lastLogin: {
-      type: DataTypes.DATE,
       allowNull: true,
     },
   },

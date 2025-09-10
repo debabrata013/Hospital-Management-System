@@ -53,6 +53,7 @@ const navigationItems = [
     title: "रोगी प्रबंधन (Patient Care)",
     items: [
       { title: "Patient Records", icon: Users, url: "/doctor/patients" },
+      { title: "Patient Information Center", icon: FileText, url: "/doctor/patient-info" },
       { title: "Consultations", icon: Stethoscope, url: "/doctor/consultations" },
       { title: "Medical History", icon: FileText, url: "/doctor/history" },
     ]
