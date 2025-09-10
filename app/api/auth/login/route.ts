@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT } from 'jose'
 import mysql from 'mysql2/promise'
+import bcrypt from 'bcryptjs'
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -56,9 +57,9 @@ export async function POST(request: NextRequest) {
 
     const user = userArray[0]
 
-    // For now, check if password matches password_hash directly (plain text)
-    // In production, you should use bcrypt to compare hashed passwords
-    if (password !== user.password_hash) {
+    // Compare password with hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash)
+    if (!isPasswordValid) {
       return NextResponse.json(
         { message: 'Invalid credentials' },
         { status: 401 }
