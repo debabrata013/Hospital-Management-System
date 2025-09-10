@@ -757,3 +757,5 @@ export class PharmacyService {
     return results
   }
 }
+
+export const pharmacyService = new PharmacyService()

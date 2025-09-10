@@ -3,54 +3,47 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
-  Calendar as CalendarIcon, 
+  Calendar as CalendarIcon,
   Clock, 
-  User, 
-  Phone, 
   Search, 
   Plus, 
   Edit, 
   Trash2, 
-  CheckCircle, 
-  XCircle,
+  Eye, 
   ArrowLeft,
+  User,
   Stethoscope,
-  Users,
-  AlertTriangle,
-  Filter,
-  Eye,
-  CalendarDays,
-  Timer
+  Phone,
+  Mail,
+  MapPin,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from "date-fns"
 
 interface Appointment {
   id: string
-  patientId: string
+  appointmentId: string
   patientName: string
-  phone: string
-  doctorId: string
+  patientPhone: string
   doctorName: string
   department: string
   appointmentDate: string
   appointmentTime: string
-  duration: number
-  type: 'consultation' | 'follow-up' | 'emergency' | 'procedure'
-  status: 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show'
-  priority: 'normal' | 'high' | 'urgent'
-  notes: string
-  createdBy: string
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show'
+  type: 'consultation' | 'follow-up' | 'emergency' | 'routine'
+  notes?: string
   createdAt: string
 }
 
@@ -59,107 +52,105 @@ interface Doctor {
   name: string
   department: string
   specialization: string
-  availableSlots: string[]
-  consultationFee: number
-  status: 'available' | 'busy' | 'unavailable'
 }
 
-const mockDoctors: Doctor[] = [
-  {
-    id: "D001",
-    name: "Dr. Anil Kumar",
-    department: "General Medicine",
-    specialization: "General Medicine",
-    availableSlots: ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30"],
-    consultationFee: 500,
-    status: "available"
-  },
-  {
-    id: "D002", 
-    name: "Dr. Priya Singh",
-    department: "Gynecology",
-    specialization: "Gynecology",
-    availableSlots: ["10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00"],
-    consultationFee: 800,
-    status: "available"
-  },
-  {
-    id: "D003",
-    name: "Dr. Rajesh Gupta", 
-    department: "Emergency",
-    specialization: "Emergency Medicine",
-    availableSlots: ["24/7"],
-    consultationFee: 1000,
-    status: "available"
-  }
-]
+interface Patient {
+  id: string
+  name: string
+  phone: string
+  email?: string
+  age: number
+  gender: string
+}
 
-const mockAppointments: Appointment[] = [
-  {
-    id: "A001",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    phone: "+91 98765 43210",
-    doctorId: "D001",
-    doctorName: "Dr. Anil Kumar",
-    department: "General Medicine",
-    appointmentDate: "2024-01-15",
-    appointmentTime: "10:00",
-    duration: 30,
-    type: "consultation",
-    status: "scheduled",
-    priority: "normal",
-    notes: "Regular checkup appointment",
-    createdBy: "Reception-1",
-    createdAt: "2024-01-14T10:30:00Z"
-  },
-  {
-    id: "A002",
-    patientId: "P002", 
-    patientName: "Sunita Devi",
-    phone: "+91 98765 43211",
-    doctorId: "D002",
-    doctorName: "Dr. Priya Singh",
-    department: "Gynecology",
-    appointmentDate: "2024-01-15",
-    appointmentTime: "11:00",
-    duration: 30,
-    type: "follow-up",
-    status: "confirmed",
-    priority: "normal",
-    notes: "Follow-up checkup appointment",
-    createdBy: "Reception-1",
-    createdAt: "2024-01-14T11:00:00Z"
-  }
-]
-
-export default function AppointmentBooking() {
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments)
-  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>(mockAppointments)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [showNewAppointmentDialog, setShowNewAppointmentDialog] = useState(false)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+export default function AppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [doctorFilter, setDoctorFilter] = useState("all")
+  const [dateFilter, setDateFilter] = useState("today")
+  const [showNewAppointmentDialog, setShowNewAppointmentDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [showBillingDialog, setShowBillingDialog] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // New appointment form state
-  const [newAppointment, setNewAppointment] = useState({
-    patientId: "",
-    patientName: "",
-    patientNameHindi: "",
-    phone: "",
-    doctorId: "",
-    appointmentDate: "",
-    appointmentTime: "",
-    type: "consultation" as const,
-    priority: "normal" as const,
-    notes: ""
+  // Billing form
+  const [billingForm, setBillingForm] = useState({
+    consultationFee: '',
+    procedureFee: '',
+    medicationFee: '',
+    testFee: '',
+    otherCharges: '',
+    discount: '',
+    paymentMethod: 'cash',
+    notes: ''
   })
 
-  const [availableSlots, setAvailableSlots] = useState<string[]>([])
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
+  // New appointment form
+  const [newAppointment, setNewAppointment] = useState({
+    patientId: '',
+    doctorId: '',
+    appointmentDate: new Date(),
+    appointmentTime: '',
+    type: 'consultation',
+    notes: ''
+  })
+
+  // Mock data - will be replaced with API calls
+  const mockAppointments: Appointment[] = [
+    {
+      id: '1',
+      appointmentId: 'APT001',
+      patientName: 'John Smith',
+      patientPhone: '+91 98765 43210',
+      doctorName: 'Dr. Sarah Johnson',
+      department: 'Cardiology',
+      appointmentDate: '2024-01-15',
+      appointmentTime: '10:00 AM',
+      status: 'scheduled',
+      type: 'consultation',
+      notes: 'Regular checkup',
+      createdAt: '2024-01-10'
+    },
+    {
+      id: '2',
+      appointmentId: 'APT002',
+      patientName: 'Emily Davis',
+      patientPhone: '+91 98765 43211',
+      doctorName: 'Dr. Michael Brown',
+      department: 'Orthopedics',
+      appointmentDate: '2024-01-15',
+      appointmentTime: '11:30 AM',
+      status: 'confirmed',
+      type: 'follow-up',
+      notes: 'Post-surgery follow-up',
+      createdAt: '2024-01-12'
+    }
+  ]
+
+  const mockDoctors: Doctor[] = [
+    { id: '1', name: 'Dr. Sarah Johnson', department: 'Cardiology', specialization: 'Heart Specialist' },
+    { id: '2', name: 'Dr. Michael Brown', department: 'Orthopedics', specialization: 'Bone Specialist' },
+    { id: '3', name: 'Dr. Lisa Wilson', department: 'Pediatrics', specialization: 'Child Specialist' }
+  ]
+
+  const mockPatients: Patient[] = [
+    { id: '1', name: 'John Smith', phone: '+91 98765 43210', email: 'john@email.com', age: 45, gender: 'Male' },
+    { id: '2', name: 'Emily Davis', phone: '+91 98765 43211', email: 'emily@email.com', age: 32, gender: 'Female' }
+  ]
+
+  useEffect(() => {
+    // Initialize with mock data
+    setAppointments(mockAppointments)
+    setFilteredAppointments(mockAppointments)
+    setDoctors(mockDoctors)
+    setPatients(mockPatients)
+    setIsLoading(false)
+  }, [])
 
   // Filter appointments
   useEffect(() => {
@@ -168,8 +159,9 @@ export default function AppointmentBooking() {
     if (searchQuery) {
       filtered = filtered.filter(apt => 
         apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        apt.phone.includes(searchQuery) ||
-        apt.doctorName.includes(searchQuery)
+        apt.appointmentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        apt.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        apt.patientPhone.includes(searchQuery)
       )
     }
 
@@ -177,43 +169,22 @@ export default function AppointmentBooking() {
       filtered = filtered.filter(apt => apt.status === statusFilter)
     }
 
-    if (doctorFilter !== "all") {
-      filtered = filtered.filter(apt => apt.doctorId === doctorFilter)
+    if (dateFilter === "today") {
+      const today = new Date().toISOString().split('T')[0]
+      filtered = filtered.filter(apt => apt.appointmentDate === today)
+    } else if (dateFilter === "week") {
+      const weekFromNow = new Date()
+      weekFromNow.setDate(weekFromNow.getDate() + 7)
+      filtered = filtered.filter(apt => new Date(apt.appointmentDate) <= weekFromNow)
     }
-
-    // Filter by selected date
-    const dateStr = format(selectedDate, "yyyy-MM-dd")
-    filtered = filtered.filter(apt => apt.appointmentDate === dateStr)
 
     setFilteredAppointments(filtered)
-  }, [appointments, searchQuery, statusFilter, doctorFilter, selectedDate])
-
-  // Update available slots when doctor or date changes
-  useEffect(() => {
-    if (newAppointment.doctorId && newAppointment.appointmentDate) {
-      const doctor = mockDoctors.find(d => d.id === newAppointment.doctorId)
-      if (doctor) {
-        setSelectedDoctor(doctor)
-        // Filter out already booked slots
-        const bookedSlots = appointments
-          .filter(apt => 
-            apt.doctorId === newAppointment.doctorId && 
-            apt.appointmentDate === newAppointment.appointmentDate &&
-            apt.status !== 'cancelled'
-          )
-          .map(apt => apt.appointmentTime)
-        
-        const available = doctor.availableSlots.filter(slot => !bookedSlots.includes(slot))
-        setAvailableSlots(available)
-      }
-    }
-  }, [newAppointment.doctorId, newAppointment.appointmentDate, appointments])
+  }, [appointments, searchQuery, statusFilter, dateFilter])
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-pink-100 text-pink-800 border-pink-200'
+      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'confirmed': return 'bg-green-100 text-green-800 border-green-200'
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'
       case 'no-show': return 'bg-orange-100 text-orange-800 border-orange-200'
@@ -221,115 +192,121 @@ export default function AppointmentBooking() {
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'निर्धारित'
-      case 'confirmed': return 'पुष्ट'
-      case 'in-progress': return 'चल रहा'
-      case 'completed': return 'पूर्ण'
-      case 'cancelled': return 'रद्द'
-      case 'no-show': return 'नहीं आया'
-      default: return status
-    }
-  }
-
-  const getTypeText = (type: string) => {
+  const getTypeColor = (type: string) => {
     switch (type) {
-      case 'consultation': return 'परामर्श'
-      case 'follow-up': return 'फॉलो-अप'
-      case 'emergency': return 'आपातकाल'
-      case 'procedure': return 'प्रक्रिया'
-      default: return type
+      case 'consultation': return 'bg-purple-100 text-purple-800'
+      case 'follow-up': return 'bg-yellow-100 text-yellow-800'
+      case 'emergency': return 'bg-red-100 text-red-800'
+      case 'routine': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const handleNewAppointmentSubmit = () => {
-    if (!newAppointment.patientName || !newAppointment.phone || !newAppointment.doctorId || 
-        !newAppointment.appointmentDate || !newAppointment.appointmentTime) {
-      alert('कृपया सभी आवश्यक फील्ड भरें')
-      return
-    }
-
-    const doctor = mockDoctors.find(d => d.id === newAppointment.doctorId)
-    if (!doctor) return
-
-    const appointment: Appointment = {
-      id: `A${Date.now()}`,
-      patientId: newAppointment.patientId || `P${Date.now()}`,
-      patientName: newAppointment.patientName,
-      phone: newAppointment.phone,
-      doctorId: newAppointment.doctorId,
-      doctorName: doctor.name,
-      department: doctor.department,
-      appointmentDate: newAppointment.appointmentDate,
+  const handleCreateAppointment = () => {
+    const newApt: Appointment = {
+      id: Date.now().toString(),
+      appointmentId: `APT${Date.now().toString().slice(-6)}`,
+      patientName: patients.find(p => p.id === newAppointment.patientId)?.name || '',
+      patientPhone: patients.find(p => p.id === newAppointment.patientId)?.phone || '',
+      doctorName: doctors.find(d => d.id === newAppointment.doctorId)?.name || '',
+      department: doctors.find(d => d.id === newAppointment.doctorId)?.department || '',
+      appointmentDate: format(newAppointment.appointmentDate, 'yyyy-MM-dd'),
       appointmentTime: newAppointment.appointmentTime,
-      duration: 30,
-      type: newAppointment.type,
       status: 'scheduled',
-      priority: newAppointment.priority,
+      type: newAppointment.type as any,
       notes: newAppointment.notes,
-      createdBy: 'Reception-1',
       createdAt: new Date().toISOString()
     }
 
-    setAppointments(prev => [...prev, appointment])
+    setAppointments([...appointments, newApt])
     setShowNewAppointmentDialog(false)
-    
-    // Reset form
     setNewAppointment({
-      patientId: "",
-      patientName: "",
-      patientNameHindi: "",
-      phone: "",
-      doctorId: "",
-      appointmentDate: "",
-      appointmentTime: "",
-      type: "consultation",
-      priority: "normal",
-      notes: ""
+      patientId: '',
+      doctorId: '',
+      appointmentDate: new Date(),
+      appointmentTime: '',
+      type: 'consultation',
+      notes: ''
     })
-
-    alert('अपॉइंटमेंट सफलतापूर्वक बुक हो गया!')
   }
 
-  const updateAppointmentStatus = (appointmentId: string, newStatus: Appointment['status']) => {
-    setAppointments(prev => prev.map(apt => 
-      apt.id === appointmentId ? { ...apt, status: newStatus } : apt
+  const handleUpdateStatus = (appointmentId: string, newStatus: string) => {
+    setAppointments(appointments.map(apt => 
+      apt.id === appointmentId ? { ...apt, status: newStatus as any } : apt
     ))
   }
 
-  const deleteAppointment = (appointmentId: string) => {
-    if (confirm('क्या आप वाकई इस अपॉइंटमेंट को रद्द करना चाहते हैं?')) {
-      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId))
-    }
+  const handleDeleteAppointment = (appointmentId: string) => {
+    setAppointments(appointments.filter(apt => apt.id !== appointmentId))
   }
 
-  const todayStats = {
-    total: filteredAppointments.length,
-    scheduled: filteredAppointments.filter(a => a.status === 'scheduled').length,
-    confirmed: filteredAppointments.filter(a => a.status === 'confirmed').length,
-    completed: filteredAppointments.filter(a => a.status === 'completed').length
+  const handleCreateBill = () => {
+    const total = parseFloat(billingForm.consultationFee || '0') +
+                 parseFloat(billingForm.procedureFee || '0') +
+                 parseFloat(billingForm.medicationFee || '0') +
+                 parseFloat(billingForm.testFee || '0') +
+                 parseFloat(billingForm.otherCharges || '0') -
+                 parseFloat(billingForm.discount || '0')
+
+    // Here you would typically save the bill to the database
+    console.log('Bill created:', {
+      appointmentId: selectedAppointment?.id,
+      total,
+      ...billingForm
+    })
+
+    setShowBillingDialog(false)
+    resetBillingForm()
+  }
+
+  const resetBillingForm = () => {
+    setBillingForm({
+      consultationFee: '',
+      procedureFee: '',
+      medicationFee: '',
+      testFee: '',
+      otherCharges: '',
+      discount: '',
+      paymentMethod: 'cash',
+      notes: ''
+    })
+  }
+
+  const calculateTotal = () => {
+    return parseFloat(billingForm.consultationFee || '0') +
+           parseFloat(billingForm.procedureFee || '0') +
+           parseFloat(billingForm.medicationFee || '0') +
+           parseFloat(billingForm.testFee || '0') +
+           parseFloat(billingForm.otherCharges || '0') -
+           parseFloat(billingForm.discount || '0')
+  }
+
+  const stats = {
+    total: appointments.length,
+    scheduled: appointments.filter(a => a.status === 'scheduled').length,
+    confirmed: appointments.filter(a => a.status === 'confirmed').length,
+    completed: appointments.filter(a => a.status === 'completed').length,
+    cancelled: appointments.filter(a => a.status === 'cancelled').length
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
-      <div className="bg-white border-b border-pink-200 px-6 py-4">
+      <div className="bg-white border-b border-blue-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link href="/receptionist">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                वापस
+                Back to Dashboard
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Appointment Booking</h1>
-              <p className="text-sm text-gray-600">Appointment Booking & Management</p>
+              <h1 className="text-2xl font-bold text-gray-900">Appointments Management</h1>
+              <p className="text-sm text-gray-600">Schedule and manage patient appointments</p>
             </div>
           </div>
-          
-          <Button onClick={() => setShowNewAppointmentDialog(true)} className="bg-pink-600 hover:bg-pink-700">
+          <Button onClick={() => setShowNewAppointmentDialog(true)} className="bg-blue-500 hover:bg-blue-600">
             <Plus className="h-4 w-4 mr-2" />
             New Appointment
           </Button>
@@ -337,16 +314,16 @@ export default function AppointmentBooking() {
       </div>
 
       <div className="p-6">
-        {/* Today's Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
+        {/* Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-pink-100 text-sm">कुल अपॉइंटमेंट</p>
-                  <p className="text-2xl font-bold">{todayStats.total}</p>
+                  <p className="text-blue-100 text-sm">Total</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
-                <CalendarDays className="h-8 w-8 text-pink-200" />
+                <CalendarIcon className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
@@ -355,8 +332,8 @@ export default function AppointmentBooking() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-yellow-100 text-sm">निर्धारित</p>
-                  <p className="text-2xl font-bold">{todayStats.scheduled}</p>
+                  <p className="text-yellow-100 text-sm">Scheduled</p>
+                  <p className="text-2xl font-bold">{stats.scheduled}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-200" />
               </div>
@@ -367,8 +344,8 @@ export default function AppointmentBooking() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm">पुष्ट</p>
-                  <p className="text-2xl font-bold">{todayStats.confirmed}</p>
+                  <p className="text-green-100 text-sm">Confirmed</p>
+                  <p className="text-2xl font-bold">{stats.confirmed}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-200" />
               </div>
@@ -379,103 +356,145 @@ export default function AppointmentBooking() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">पूर्ण</p>
-                  <p className="text-2xl font-bold">{todayStats.completed}</p>
+                  <p className="text-purple-100 text-sm">Completed</p>
+                  <p className="text-2xl font-bold">{stats.completed}</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-200" />
+                <Stethoscope className="h-8 w-8 text-purple-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-100 text-sm">Cancelled</p>
+                  <p className="text-2xl font-bold">{stats.cancelled}</p>
+                </div>
+                <XCircle className="h-8 w-8 text-red-200" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Calendar */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">कैलेंडर</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md border"
-              />
-              <div className="mt-4 text-sm text-gray-600">
-                <p>Selected Date:</p>
-                <p className="font-medium">{format(selectedDate, "dd MMMM yyyy")}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Appointments List */}
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>
-                  Appointments for {format(selectedDate, "dd MMMM yyyy")}
-                </CardTitle>
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="खोजें..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-64"
-                    />
-                  </div>
-                  
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">सभी</SelectItem>
-                      <SelectItem value="scheduled">निर्धारित</SelectItem>
-                      <SelectItem value="confirmed">पुष्ट</SelectItem>
-                      <SelectItem value="completed">पूर्ण</SelectItem>
-                      <SelectItem value="cancelled">रद्द</SelectItem>
-                    </SelectContent>
-                  </Select>
+        {/* Search and Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search by patient name, appointment ID, doctor, or phone..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="no-show">No Show</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Appointments List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Appointments ({filteredAppointments.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">Loading appointments...</div>
+            ) : filteredAppointments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No appointments found</div>
+            ) : (
               <div className="space-y-4">
                 {filteredAppointments.map((appointment) => (
-                  <div key={appointment.id} className="border rounded-lg p-4 bg-white hover:bg-gray-50">
+                  <div key={appointment.id} className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <Badge className={getStatusColor(appointment.status)}>
-                            {getStatusText(appointment.status)}
+                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                           </Badge>
-                          <Badge variant="outline">
-                            {getTypeText(appointment.type)}
+                          <Badge variant="outline" className={getTypeColor(appointment.type)}>
+                            {appointment.type.charAt(0).toUpperCase() + appointment.type.slice(1)}
                           </Badge>
-                          <span className="text-sm text-gray-500">
-                            {appointment.appointmentTime}
-                          </span>
+                          <span className="text-sm text-gray-500">#{appointment.appointmentId}</span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div>
                             <p className="font-semibold text-gray-900">{appointment.patientName}</p>
-                            <p className="text-sm text-gray-600">📞 {appointment.phone}</p>
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Phone className="h-3 w-3 mr-1" />
+                              {appointment.patientPhone}
+                            </p>
                           </div>
                           
                           <div>
-                            <p className="text-sm text-gray-600">Doctor: {appointment.doctorName}</p>
-                            <p className="text-sm text-gray-600">Department: {appointment.department}</p>
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Stethoscope className="h-3 w-3 mr-1" />
+                              {appointment.doctorName}
+                            </p>
+                            <p className="text-sm text-gray-500">{appointment.department}</p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <CalendarIcon className="h-3 w-3 mr-1" />
+                              {format(new Date(appointment.appointmentDate), 'MMM dd, yyyy')}
+                            </p>
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {appointment.appointmentTime}
+                            </p>
+                          </div>
+                          
+                          <div>
                             {appointment.notes && (
-                              <p className="text-sm text-gray-500">Notes: {appointment.notes}</p>
+                              <p className="text-sm text-gray-600 truncate">{appointment.notes}</p>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAppointment(appointment)
+                            setShowViewDialog(true)
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        
                         <Button
                           variant="outline"
                           size="sm"
@@ -490,18 +509,40 @@ export default function AppointmentBooking() {
                         {appointment.status === 'scheduled' && (
                           <Button
                             size="sm"
-                            onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
-                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleUpdateStatus(appointment.id, 'confirmed')}
+                            className="bg-green-500 hover:bg-green-600"
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            पुष्ट करें
+                            Confirm
+                          </Button>
+                        )}
+                        
+                        {appointment.status === 'confirmed' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateStatus(appointment.id, 'completed')}
+                            className="bg-blue-500 hover:bg-blue-600"
+                          >
+                            Complete
+                          </Button>
+                        )}
+                        
+                        {(appointment.status === 'completed' || appointment.status === 'confirmed') && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAppointment(appointment)
+                              setShowBillingDialog(true)
+                            }}
+                            className="bg-green-500 hover:bg-green-600"
+                          >
+                            Create Bill
                           </Button>
                         )}
                         
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => deleteAppointment(appointment.id)}
+                          onClick={() => handleDeleteAppointment(appointment.id)}
                           className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -510,173 +551,293 @@ export default function AppointmentBooking() {
                     </div>
                   </div>
                 ))}
-
-                {filteredAppointments.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>इस दिन कोई अपॉइंटमेंट नहीं है</p>
-                  </div>
-                )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* New Appointment Dialog */}
       <Dialog open={showNewAppointmentDialog} onOpenChange={setShowNewAppointmentDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>नया अपॉइंटमेंट बुक करें</DialogTitle>
+            <DialogTitle>Schedule New Appointment</DialogTitle>
             <DialogDescription>
-              मरीज़ की जानकारी और अपॉइंटमेंट विवरण भरें
+              Create a new appointment for a patient
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="patientName">मरीज़ का नाम (अंग्रेजी) *</Label>
-                <Input
-                  id="patientName"
-                  value={newAppointment.patientName}
-                  onChange={(e) => setNewAppointment(prev => ({ ...prev, patientName: e.target.value }))}
-                  placeholder="Patient Name"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="patientNameHindi">मरीज़ का नाम (हिंदी)</Label>
-                <Input
-                  id="patientNameHindi"
-                  value={newAppointment.patientNameHindi}
-                  onChange={(e) => setNewAppointment(prev => ({ ...prev, patientNameHindi: e.target.value }))}
-                  placeholder="मरीज़ का नाम"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">फोन नंबर *</Label>
-                <Input
-                  id="phone"
-                  value={newAppointment.phone}
-                  onChange={(e) => setNewAppointment(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+91 98765 43210"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="doctor">डॉक्टर चुनें *</Label>
-                <Select 
-                  value={newAppointment.doctorId} 
-                  onValueChange={(value) => setNewAppointment(prev => ({ ...prev, doctorId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="डॉक्टर चुनें" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockDoctors.map((doctor) => (
-                      <SelectItem key={doctor.id} value={doctor.id}>
-                        {doctor.name} - {doctor.department}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="appointmentDate">तिथि *</Label>
-                <Input
-                  id="appointmentDate"
-                  type="date"
-                  value={newAppointment.appointmentDate}
-                  onChange={(e) => setNewAppointment(prev => ({ ...prev, appointmentDate: e.target.value }))}
-                  min={format(new Date(), "yyyy-MM-dd")}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="appointmentTime">समय *</Label>
-                <Select 
-                  value={newAppointment.appointmentTime} 
-                  onValueChange={(value) => setNewAppointment(prev => ({ ...prev, appointmentTime: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="समय चुनें" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSlots.map((slot) => (
-                      <SelectItem key={slot} value={slot}>
-                        {slot}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="type">अपॉइंटमेंट प्रकार</Label>
-                <Select 
-                  value={newAppointment.type} 
-                  onValueChange={(value: any) => setNewAppointment(prev => ({ ...prev, type: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="consultation">परामर्श</SelectItem>
-                    <SelectItem value="follow-up">फॉलो-अप</SelectItem>
-                    <SelectItem value="emergency">आपातकाल</SelectItem>
-                    <SelectItem value="procedure">प्रक्रिया</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="priority">प्राथमिकता</Label>
-                <Select 
-                  value={newAppointment.priority} 
-                  onValueChange={(value: any) => setNewAppointment(prev => ({ ...prev, priority: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">सामान्य</SelectItem>
-                    <SelectItem value="high">उच्च</SelectItem>
-                    <SelectItem value="urgent">तत्काल</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div>
+              <Label htmlFor="patient">Patient</Label>
+              <Select value={newAppointment.patientId} onValueChange={(value) => 
+                setNewAppointment({...newAppointment, patientId: value})
+              }>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select patient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patients.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>
+                      {patient.name} - {patient.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div>
-              <Label htmlFor="notes">टिप्पणी</Label>
-              <Textarea
-                id="notes"
-                value={newAppointment.notes}
-                onChange={(e) => setNewAppointment(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="अतिरिक्त जानकारी या विशेष निर्देश..."
-                rows={3}
+              <Label htmlFor="doctor">Doctor</Label>
+              <Select value={newAppointment.doctorId} onValueChange={(value) => 
+                setNewAppointment({...newAppointment, doctorId: value})
+              }>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id}>
+                      {doctor.name} - {doctor.department}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="date">Appointment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(newAppointment.appointmentDate, "PPP")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={newAppointment.appointmentDate}
+                    onSelect={(date) => date && setNewAppointment({...newAppointment, appointmentDate: date})}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div>
+              <Label htmlFor="time">Appointment Time</Label>
+              <Input
+                type="time"
+                value={newAppointment.appointmentTime}
+                onChange={(e) => setNewAppointment({...newAppointment, appointmentTime: e.target.value})}
               />
             </div>
             
-            {selectedDoctor && (
-              <Alert>
-                <Stethoscope className="h-4 w-4" />
-                <AlertDescription>
-                  परामर्श शुल्क: ₹{selectedDoctor.consultationFee}
-                </AlertDescription>
-              </Alert>
-            )}
+            <div>
+              <Label htmlFor="type">Appointment Type</Label>
+              <Select value={newAppointment.type} onValueChange={(value) => 
+                setNewAppointment({...newAppointment, type: value})
+              }>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="follow-up">Follow-up</SelectItem>
+                  <SelectItem value="emergency">Emergency</SelectItem>
+                  <SelectItem value="routine">Routine</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                placeholder="Additional notes or instructions..."
+                value={newAppointment.notes}
+                onChange={(e) => setNewAppointment({...newAppointment, notes: e.target.value})}
+              />
+            </div>
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewAppointmentDialog(false)}>
-              रद्द करें
+              Cancel
             </Button>
-            <Button onClick={handleNewAppointmentSubmit}>
-              अपॉइंटमेंट बुक करें
+            <Button onClick={handleCreateAppointment} className="bg-blue-500 hover:bg-blue-600">
+              Schedule Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Appointment Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+            <DialogDescription>
+              Complete information for appointment #{selectedAppointment?.appointmentId}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAppointment && (
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div>
+                <h4 className="font-semibold mb-2">Patient Information</h4>
+                <p><strong>Name:</strong> {selectedAppointment.patientName}</p>
+                <p><strong>Phone:</strong> {selectedAppointment.patientPhone}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Doctor Information</h4>
+                <p><strong>Doctor:</strong> {selectedAppointment.doctorName}</p>
+                <p><strong>Department:</strong> {selectedAppointment.department}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Appointment Details</h4>
+                <p><strong>Date:</strong> {format(new Date(selectedAppointment.appointmentDate), 'PPP')}</p>
+                <p><strong>Time:</strong> {selectedAppointment.appointmentTime}</p>
+                <p><strong>Type:</strong> {selectedAppointment.type}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Status</h4>
+                <Badge className={getStatusColor(selectedAppointment.status)}>
+                  {selectedAppointment.status.charAt(0).toUpperCase() + selectedAppointment.status.slice(1)}
+                </Badge>
+              </div>
+              
+              {selectedAppointment.notes && (
+                <div className="col-span-2">
+                  <h4 className="font-semibold mb-2">Notes</h4>
+                  <p className="text-sm text-gray-600">{selectedAppointment.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowViewDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Billing Dialog */}
+      <Dialog open={showBillingDialog} onOpenChange={setShowBillingDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Bill</DialogTitle>
+            <DialogDescription>
+              Generate bill for {selectedAppointment?.patientName}'s appointment
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div>
+              <Label htmlFor="consultationFee">Consultation Fee (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={billingForm.consultationFee}
+                onChange={(e) => setBillingForm({...billingForm, consultationFee: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="procedureFee">Procedure Fee (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={billingForm.procedureFee}
+                onChange={(e) => setBillingForm({...billingForm, procedureFee: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="medicationFee">Medication Fee (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={billingForm.medicationFee}
+                onChange={(e) => setBillingForm({...billingForm, medicationFee: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="testFee">Test/Lab Fee (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={billingForm.testFee}
+                onChange={(e) => setBillingForm({...billingForm, testFee: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="otherCharges">Other Charges (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={billingForm.otherCharges}
+                onChange={(e) => setBillingForm({...billingForm, otherCharges: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="discount">Discount (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={billingForm.discount}
+                onChange={(e) => setBillingForm({...billingForm, discount: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select value={billingForm.paymentMethod} onValueChange={(value) => 
+                setBillingForm({...billingForm, paymentMethod: value})
+              }>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="insurance">Insurance</SelectItem>
+                  <SelectItem value="credit">Credit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-lg font-semibold">Total Amount</Label>
+              <div className="text-2xl font-bold text-green-600">
+                ₹{calculateTotal().toFixed(2)}
+              </div>
+            </div>
+            
+            <div className="col-span-2">
+              <Label htmlFor="notes">Billing Notes</Label>
+              <Textarea
+                placeholder="Additional billing notes..."
+                value={billingForm.notes}
+                onChange={(e) => setBillingForm({...billingForm, notes: e.target.value})}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBillingDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateBill} className="bg-green-500 hover:bg-green-600">
+              Generate Bill
             </Button>
           </DialogFooter>
         </DialogContent>

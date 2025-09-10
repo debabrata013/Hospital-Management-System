@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useOffline } from "@/hooks/use-offline"
 import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
@@ -63,124 +63,9 @@ import {
   UserCog,
   Shield,
   Stethoscope,
-  Sync,
+  RefreshCw,
   AlertCircle
 } from 'lucide-react'
-
-// Mock data for receptionist dashboard
-const receptionistStats = {
-  todayRegistrations: 23,
-  pendingAppointments: 15,
-  waitingPatients: 8,
-  totalBills: 45,
-  emergencyContacts: 3
-}
-
-const patientQueue = [
-  {
-    id: "P001",
-    name: "Ram Sharma",
-    tokenNumber: "T001",
-    appointmentTime: "09:30 AM",
-    doctor: "Dr. Anil Kumar",
-    department: "General Medicine",
-    status: "waiting",
-    priority: "normal",
-    phone: "+91 98765 43210"
-  },
-  {
-    id: "P002", 
-    name: "Sunita Devi",
-    tokenNumber: "T002",
-    appointmentTime: "10:00 AM",
-    doctor: "Dr. Priya Singh",
-    department: "Gynecology",
-    status: "in-consultation",
-    priority: "normal",
-    phone: "+91 98765 43211"
-  },
-  {
-    id: "P003",
-    name: "Ajay Kumar",
-    tokenNumber: "E001",
-    appointmentTime: "Emergency",
-    doctor: "Dr. Rajesh Gupta",
-    department: "Emergency",
-    status: "emergency",
-    priority: "high",
-    phone: "+91 98765 43212"
-  }
-]
-
-const recentRegistrations = [
-  {
-    id: "P024",
-    name: "Mohan Lal",
-    age: 45,
-    gender: "Male",
-    phone: "+91 98765 43213",
-    registeredAt: "2 hours ago",
-    status: "registered"
-  },
-  {
-    id: "P025",
-    name: "Kavita Singh",
-    age: 32,
-    gender: "Female",
-    phone: "+91 98765 43214",
-    registeredAt: "3 hours ago",
-    status: "registered"
-  },
-  {
-    id: "P026",
-    name: "Ravi Kumar",
-    age: 28,
-    gender: "Male",
-    phone: "+91 98765 43215",
-    registeredAt: "4 hours ago",
-    status: "registered"
-  }
-]
-
-const emergencyContacts = [
-  {
-    id: 1,
-    patientName: "Ajay Kumar",
-    contactName: "Sita Kumar",
-    relationship: "Wife",
-    phone: "+91 98765 43216",
-    priority: "high",
-    status: "active"
-  },
-  {
-    id: 2,
-    patientName: "Elderly Patient",
-    contactName: "Dr. Emergency",
-    relationship: "Doctor",
-    phone: "+91 98765 43217",
-    priority: "critical",
-    status: "contacted"
-  }
-]
-
-const pendingBills = [
-  {
-    id: "B001",
-    patientName: "Ram Sharma",
-    amount: 2500,
-    services: ["Consultation", "Lab Tests"],
-    status: "pending",
-    dueDate: "Today"
-  },
-  {
-    id: "B002",
-    patientName: "Sunita Devi",
-    amount: 1800,
-    services: ["Consultation", "Medicines"],
-    status: "partial",
-    dueDate: "Tomorrow"
-  }
-]
 
 // Navigation items for receptionist
 const navigationItems = [
@@ -194,7 +79,7 @@ const navigationItems = [
   {
     title: "Patient Management",
     items: [
-      { title: "Register Patient", icon: UserPlus, url: "/receptionist/register-patient" },
+     
       { title: "Appointments", icon: Calendar, url: "/receptionist/appointments" },
       { title: "Admissions", icon: Bed, url: "/receptionist/admissions" },
     ]
@@ -202,8 +87,7 @@ const navigationItems = [
   {
     title: "Operations",
     items: [
-      { title: "Billing & Payments", icon: CreditCard, url: "/receptionist/billing" },
-      { title: "Emergency Contacts", icon: Phone, url: "/receptionist/emergency" },
+      { title: "Billing & Payments", icon: CreditCard, url: "/receptionist/billing" }
     ]
   }
 ]
@@ -214,8 +98,67 @@ export default function ReceptionistDashboard() {
   const [emergencyDialog, setEmergencyDialog] = useState(false)
   const { logout, authState } = useAuth()
   
+  // Real data states
+  const [dashboardData, setDashboardData] = useState({
+    todayRegistrations: 0,
+    pendingAppointments: 0,
+    waitingPatients: 0,
+    totalBills: 0,
+    emergencyContacts: 0
+  })
+  const [patientQueue, setPatientQueue] = useState([])
+  const [recentRegistrations, setRecentRegistrations] = useState([])
+  const [emergencyContacts, setEmergencyContacts] = useState([])
+  const [pendingBills, setPendingBills] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  
   const handleLogout = () => {
     logout()
+  }
+
+  // Fetch dashboard data
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true)
+      
+      // Fetch patients
+      const patientsResponse = await fetch('/api/receptionist/patients')
+      const patientsData = await patientsResponse.json()
+      
+      // Fetch queue
+      const queueResponse = await fetch('/api/receptionist/queue')
+      const queueData = await queueResponse.json()
+      
+      // Fetch appointments
+      const appointmentsResponse = await fetch('/api/receptionist/appointments')
+      const appointmentsData = await appointmentsResponse.json()
+
+      // Process data
+      const today = new Date().toDateString()
+      const todayRegistrations = patientsData.patients?.filter(p => 
+        new Date(p.registration_date).toDateString() === today
+      ).length || 0
+
+      setDashboardData({
+        todayRegistrations,
+        pendingAppointments: appointmentsData.appointments?.length || 0,
+        waitingPatients: queueData.queue?.filter(q => q.status === 'scheduled').length || 0,
+        totalBills: 0, // Will implement billing later
+        emergencyContacts: 0 // Will implement emergency contacts later
+      })
+
+      setPatientQueue(queueData.queue || [])
+      setRecentRegistrations(patientsData.patients?.slice(0, 5) || [])
+      
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
   
   const [registrationForm, setRegistrationForm] = useState({
@@ -260,11 +203,15 @@ export default function ReceptionistDashboard() {
       });
       setNewPatientDialog(false);
       
-      // Show success message (you can replace this with a toast notification)
-      alert(isOnline ? 'Patient registered successfully!' : 'Patient registration saved offline. Will sync when connection is restored.');
+      // Show success message
+      alert('Patient registered successfully!');
+      
+      // Refresh dashboard data
+      fetchDashboardData();
+      
     } catch (error) {
       console.error('Registration failed:', error);
-      alert('Registration failed. Please try again.');
+      alert('Failed to register patient. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -412,7 +359,7 @@ export default function ReceptionistDashboard() {
                   {pendingSyncCount > 0 && (
                     <div className="flex items-center space-x-2">
                       <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs">
-                        <Sync className="h-3 w-3" />
+                        <RefreshCw className="h-3 w-3" />
                         <span>{pendingSyncCount} pending</span>
                       </div>
                       {isOnline && (
@@ -422,7 +369,7 @@ export default function ReceptionistDashboard() {
                           onClick={forceSync}
                           className="text-xs px-2 py-1 h-6"
                         >
-                          <Sync className="h-3 w-3 mr-1" />
+                          <RefreshCw className="h-3 w-3 mr-1" />
                           Sync
                         </Button>
                       )}
@@ -493,7 +440,9 @@ export default function ReceptionistDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Today's Registrations</p>
-                      <p className="text-3xl font-bold text-gray-900">{receptionistStats.todayRegistrations}</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {isLoading ? '...' : dashboardData.todayRegistrations}
+                      </p>
                       <p className="text-sm text-green-600 flex items-center mt-1">
                         <TrendingUp className="h-4 w-4 mr-1" />
                         +15% from yesterday
@@ -511,7 +460,9 @@ export default function ReceptionistDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Pending Appointments</p>
-                      <p className="text-3xl font-bold text-gray-900">{receptionistStats.pendingAppointments}</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {isLoading ? '...' : dashboardData.pendingAppointments}
+                      </p>
                       <p className="text-sm text-pink-600 flex items-center mt-1">
                         <Calendar className="h-4 w-4 mr-1" />
                         Next at 10:30 AM
@@ -529,7 +480,9 @@ export default function ReceptionistDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Waiting Patients</p>
-                      <p className="text-3xl font-bold text-gray-900">{receptionistStats.waitingPatients}</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {isLoading ? '...' : dashboardData.waitingPatients}
+                      </p>
                       <p className="text-sm text-yellow-600 flex items-center mt-1">
                         <Clock className="h-4 w-4 mr-1" />
                         Avg wait: 15 min
@@ -547,7 +500,9 @@ export default function ReceptionistDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Pending Bills</p>
-                      <p className="text-3xl font-bold text-gray-900">{receptionistStats.totalBills}</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {isLoading ? '...' : dashboardData.totalBills}
+                      </p>
                       <p className="text-sm text-purple-600 flex items-center mt-1">
                         <DollarSign className="h-4 w-4 mr-1" />
                         ₹1,25,000 total
@@ -565,7 +520,9 @@ export default function ReceptionistDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Emergency Contacts</p>
-                      <p className="text-3xl font-bold text-gray-900">{receptionistStats.emergencyContacts}</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {isLoading ? '...' : dashboardData.emergencyContacts}
+                      </p>
                       <p className="text-sm text-red-600 flex items-center mt-1">
                         <AlertTriangle className="h-4 w-4 mr-1" />
                         2 critical
@@ -596,26 +553,35 @@ export default function ReceptionistDashboard() {
                   <CardDescription>Current patients waiting for consultation</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {patientQueue.map((patient) => (
-                    <div key={patient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
+                  {isLoading ? (
+                    <div className="text-center py-4">Loading queue...</div>
+                  ) : patientQueue.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">No patients in queue today</div>
+                  ) : (
+                    patientQueue.slice(0, 5).map((patient) => (
+                      <div key={patient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-sm">#{patient.id}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {patient.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {patient.doctor_name || 'No doctor'} • {patient.appointment_time || 'No time'}
+                            </p>
+                          </div>
+                        </div>
                         <div className="flex items-center space-x-2">
-                          {getPriorityIcon(patient.priority)}
-                          <span className="font-medium text-sm">{patient.tokenNumber}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{patient.name}</p>
-                          <p className="text-xs text-gray-500">{patient.doctor} • {patient.appointmentTime}</p>
+                          {getStatusBadge(patient.status)}
+                          <Button variant="ghost" size="sm">
+                            <Phone className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {getStatusBadge(patient.status)}
-                        <Button variant="ghost" size="sm">
-                          <Phone className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -632,29 +598,39 @@ export default function ReceptionistDashboard() {
                   <CardDescription>Newly registered patients today</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {recentRegistrations.map((patient) => (
-                    <div key={patient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-green-100 text-green-700">
-                            {patient.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">{patient.name}</p>
-                          <p className="text-xs text-gray-500">{patient.age}Y • {patient.gender} • {patient.registeredAt}</p>
+                  {isLoading ? (
+                    <div className="text-center py-4">Loading registrations...</div>
+                  ) : recentRegistrations.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">No recent registrations</div>
+                  ) : (
+                    recentRegistrations.map((patient) => (
+                      <div key={patient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-green-100 text-green-700">
+                              {patient.name?.charAt(0) || 'P'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {patient.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {patient.age}Y • {patient.gender} • {patient.contact_number}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -713,29 +689,35 @@ export default function ReceptionistDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {pendingBills.map((bill) => (
-                      <div key={bill.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-purple-100 p-2 rounded-lg">
-                            <FileText className="h-5 w-5 text-purple-600" />
+                    {isLoading ? (
+                      <div className="text-center py-4">Loading bills...</div>
+                    ) : pendingBills.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">No pending bills</div>
+                    ) : (
+                      pendingBills.map((bill) => (
+                        <div key={bill.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-purple-100 p-2 rounded-lg">
+                              <FileText className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{bill.patientName}</p>
+                              <p className="text-sm text-gray-600">{bill.services?.join(', ')}</p>
+                              <p className="text-xs text-gray-500">Due: {bill.dueDate}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{bill.patientName}</p>
-                            <p className="text-sm text-gray-600">{bill.services.join(', ')}</p>
-                            <p className="text-xs text-gray-500">Due: {bill.dueDate}</p>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="font-bold text-lg">₹{bill.amount?.toLocaleString()}</p>
+                              {getStatusBadge(bill.status)}
+                            </div>
+                            <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
+                              Process Payment
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
-                            <p className="font-bold text-lg">₹{bill.amount.toLocaleString()}</p>
-                            {getStatusBadge(bill.status)}
-                          </div>
-                          <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
-                            Process Payment
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -863,7 +845,7 @@ export default function ReceptionistDashboard() {
             >
               {isSubmitting ? (
                 <>
-                  <Sync className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   {isOnline ? 'Registering...' : 'Saving Offline...'}
                 </>
               ) : (
