@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
+import bcrypt from 'bcryptjs'
 
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -192,13 +193,16 @@ export async function POST(request: NextRequest) {
       userId = `${prefix}${nextNumber.toString().padStart(3, '0')}`
       email = `${userId.toLowerCase()}@hospital.com`
       
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10)
+      
       // Insert into users table
       const [userResult] = await connection.execute(`
         INSERT INTO users (
           user_id, name, email, contact_number, password_hash, role, 
           department, specialization, shift_preference, is_active, is_verified, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, NOW())
-      `, [userId, name, email, mobile, password, role, 
+      `, [userId, name, email, mobile, hashedPassword, role, 
           department || (role === 'pharmacy' ? 'Pharmacy' : role === 'receptionist' ? 'Reception' : 'Nursing'),
           specialization || '', shift || 'flexible'])
       
@@ -332,7 +336,7 @@ export async function PUT(request: NextRequest) {
       }
       if (password) {
         updateFields.push('password_hash = ?')
-        updateValues.push(password)
+        updateValues.push(await bcrypt.hash(password, 10))
       }
       if (department) {
         updateFields.push('department = ?')
