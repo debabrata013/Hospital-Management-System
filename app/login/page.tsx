@@ -139,7 +139,8 @@ function LoginForm() {
       'doctor': '/doctor',
       'staff': '/staff',
       'receptionist': '/receptionist',
-      'patient': '/patient'
+      'patient': '/patient',
+      'pharmacy': '/pharmacy'
     }
 
     return roleRedirects[role] || '/'
