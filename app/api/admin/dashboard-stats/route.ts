@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     )
     const todayAppointments = (todayAppointmentsResult as any)[0].total
     
-    // Get total appointments
+    // Get total appointments (overall)
     const [totalAppointmentsResult] = await connection.execute(
       'SELECT COUNT(*) as total FROM appointments'
     )
@@ -99,6 +99,40 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       admittedPatients = 0
     }
+
+    // Calculate available beds from rooms table (sum of free capacity)
+    let availableBeds = 0
+    try {
+      const [bedsResult] = await connection.execute(
+        'SELECT COALESCE(SUM(GREATEST(capacity - current_occupancy, 0)), 0) as free_beds FROM rooms'
+      )
+      availableBeds = (bedsResult as any)[0].free_beds || 0
+    } catch (error) {
+      availableBeds = Math.max(0, 50 - admittedPatients)
+    }
+
+    // Discharges today
+    let dischargesToday = 0
+    try {
+      const [dischargesResult] = await connection.execute(
+        'SELECT COUNT(*) as total FROM room_assignments WHERE status = "Discharged" AND DATE(actual_discharge_date) = ?',
+        [today]
+      )
+      dischargesToday = (dischargesResult as any)[0].total || 0
+    } catch (error) {
+      dischargesToday = 0
+    }
+
+    // Critical patients (best-effort: diagnosis contains "critical" among active admissions)
+    let criticalPatients = 0
+    try {
+      const [criticalResult] = await connection.execute(
+        'SELECT COUNT(*) as total FROM room_assignments WHERE status = "Active" AND (LOWER(diagnosis) LIKE "%critical%")'
+      )
+      criticalPatients = (criticalResult as any)[0].total || 0
+    } catch (error) {
+      criticalPatients = 0
+    }
     
     await connection.end()
     
@@ -107,7 +141,9 @@ export async function GET(request: NextRequest) {
       totalAppointments: todayAppointments,
       completedAppointments,
       admittedPatients,
-      availableBeds: Math.max(0, 50 - admittedPatients), // Assuming 50 total beds
+      availableBeds,
+      dischargesToday,
+      criticalPatients,
       criticalAlerts,
       todayRevenue: totalRevenue || 0,
       recentAppointments: recentAppointments || []

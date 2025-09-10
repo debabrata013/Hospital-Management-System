@@ -50,8 +50,14 @@ export async function GET(request: NextRequest) {
       const params: any[] = []
 
       if (status && status !== 'all') {
-        query += ' AND status = ?'
-        params.push(status)
+        if (status === 'Available') {
+          // Treat a room as available if explicitly marked Available OR has free capacity
+          query += ' AND (status = ? OR current_occupancy < capacity)'
+          params.push('Available')
+        } else {
+          query += ' AND status = ?'
+          params.push(status)
+        }
       }
 
       if (type && type !== 'all') {
@@ -144,9 +150,9 @@ export async function POST(request: NextRequest) {
         // Admit patient to room
         const { patientData, roomId } = data
 
-        // Check if room exists and is available
+        // Check if room exists (availability will be validated via capacity)
         const [roomRows] = await connection.execute(`
-          SELECT * FROM rooms WHERE id = ? AND status = 'Available'
+          SELECT * FROM rooms WHERE id = ?
         `, [roomId])
 
         if (!Array.isArray(roomRows) || roomRows.length === 0) {
@@ -166,12 +172,20 @@ export async function POST(request: NextRequest) {
           SELECT COLUMN_NAME 
           FROM INFORMATION_SCHEMA.COLUMNS 
           WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'patients'
-        `, [process.env.DB_NAME || 'hospital_management'])
+        `, [dbConfig.database])
 
         const availableColumns = new Set((patientColumnsRows as any[]).map(c => c.COLUMN_NAME))
 
+        // Generate a unique patient identifier if the schema requires a patient_id
+        if (availableColumns.has('patient_id')) {
+          // Common schemas use VARCHAR for patient_id business key; generate a prefixed unique value
+          const uniqueBusinessId = `P${Date.now()}${Math.floor(Math.random() * 1000)}`
+          ;(patientData as any).generatedPatientId = uniqueBusinessId
+        }
+
         // Map incoming fields to possible column names
         const insertData: Record<string, any> = {}
+        if (availableColumns.has('patient_id') && (patientData as any).generatedPatientId) insertData['patient_id'] = (patientData as any).generatedPatientId
         if (availableColumns.has('name')) insertData['name'] = patientData.name
         if (availableColumns.has('contact_number')) insertData['contact_number'] = patientData.contactNumber || ''
         if (availableColumns.has('phone') && !availableColumns.has('contact_number')) insertData['phone'] = patientData.contactNumber || ''
