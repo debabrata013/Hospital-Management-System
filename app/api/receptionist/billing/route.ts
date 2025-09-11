@@ -228,13 +228,48 @@ export async function PUT(request: NextRequest) {
 
     connection = await getConnection();
     
-    await connection.execute(
-      `UPDATE bills 
-       SET payment_status = ?, payment_method = ?, razorpay_order_id = ?, 
-           razorpay_payment_id = ?, notes = ?, updated_at = NOW()
-       WHERE bill_id = ?`,
-      [paymentStatus, paymentMethod, razorpayOrderId, razorpayPaymentId, notes, billId]
-    );
+    // Build dynamic update query
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (paymentStatus) {
+      updateFields.push('payment_status = ?');
+      updateValues.push(paymentStatus);
+    }
+    
+    if (paymentMethod) {
+      updateFields.push('payment_method = ?');
+      updateValues.push(paymentMethod);
+    }
+    
+    if (razorpayOrderId) {
+      updateFields.push('razorpay_order_id = ?');
+      updateValues.push(razorpayOrderId);
+    }
+    
+    if (razorpayPaymentId) {
+      updateFields.push('razorpay_payment_id = ?');
+      updateValues.push(razorpayPaymentId);
+    }
+    
+    if (notes !== undefined) {
+      updateFields.push('notes = ?');
+      updateValues.push(notes || '');
+    }
+    
+    updateFields.push('updated_at = NOW()');
+    updateValues.push(billId);
+    
+    if (updateFields.length === 1) { // Only updated_at
+      return NextResponse.json(
+        { message: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+    
+    const query = `UPDATE bills SET ${updateFields.join(', ')} WHERE bill_id = ?`;
+    
+    await connection.execute(query, updateValues);
 
     return NextResponse.json({
       message: 'Bill updated successfully'
