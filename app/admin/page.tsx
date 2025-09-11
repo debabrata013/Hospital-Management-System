@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard, Bell, LogOut, Plus, FileText, AlertTriangle, Clock, Bed, Stethoscope, Pill, DollarSign, TrendingUp, Eye, MoreHorizontal, MapPin, MessageSquare } from 'lucide-react'
+import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard, Bell, LogOut, Plus, FileText, AlertTriangle, Clock, Bed, Stethoscope, Pill, DollarSign, TrendingUp, Eye, MoreHorizontal, MapPin, MessageSquare, CalendarCheck } from 'lucide-react'
 
 // Mock data for the dashboard (some parts are still mock)
 const branchInfo = {
@@ -90,7 +90,8 @@ interface Appointment {
 
 export default function AdminDashboard() {
   const router = useRouter();   // ✅ correctly initialized router
-  const { user, logout } = useAuth();
+  const { authState, logout } = useAuth();
+  const user = authState.user;
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -360,6 +361,17 @@ export default function AdminDashboard() {
                         asChild 
                         className="w-full justify-start hover:bg-pink-50"
                       >
+                        <Link href="/admin/leave-management" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <CalendarCheck className="h-5 w-5" />
+                          <span>Leave Management</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
                         <Link href="/admin/inventory" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
                           <Package className="h-5 w-5" />
                           <span>Inventory/Pharmacy</span>
@@ -422,7 +434,7 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-3">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-pink-100 text-pink-700">
-                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                    {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'AD'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">

@@ -780,10 +780,6 @@ export default function LandingPage() {
                             <span className="text-xs font-medium text-green-700">Morning:</span>
                             <span className="text-xs text-green-600">{doctor.availabilityTimes.morning}</span>
                           </div>
-                          <div className="flex items-center justify-between bg-orange-50 px-3 py-1 rounded">
-                            <span className="text-xs font-medium text-orange-700">Break:</span>
-                            <span className="text-xs text-orange-600">{doctor.availabilityTimes.break}</span>
-                          </div>
                           <div className="flex items-center justify-between bg-blue-50 px-3 py-1 rounded">
                             <span className="text-xs font-medium text-blue-700">Evening:</span>
                             <span className="text-xs text-blue-600">{doctor.availabilityTimes.evening}</span>
@@ -977,8 +973,8 @@ export default function LandingPage() {
                         <Image 
                           src="/images/dr-gk-nayak.jpg" 
                           alt="Dr G K Nayak - Founder" 
-                          layout="fill" 
-                          objectFit="contain"
+                          fill 
+                          style={{ objectFit: 'contain' }}
                         />
                       </div>
                     </div>
@@ -1573,22 +1569,6 @@ export default function LandingPage() {
                     </div>
                     <p className="text-sm font-medium text-gray-700">Easy Parking</p>
                     <p className="text-xs text-gray-600">200+ Slots</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center">
-                    <div className="bg-blue-500 p-2 rounded-lg w-10 h-10 mx-auto mb-2">
-                      <Navigation className="h-6 w-6 text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">Metro Access</p>
-                    <p className="text-xs text-gray-600">2 Min Walk</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center">
-                    <div className="bg-purple-500 p-2 rounded-lg w-10 h-10 mx-auto mb-2">
-                      <Truck className="h-6 w-6 text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">Ambulance</p>
-                    <p className="text-xs text-gray-600">24/7 Ready</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl text-center">
