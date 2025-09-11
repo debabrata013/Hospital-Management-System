@@ -162,9 +162,19 @@ export async function POST(request: NextRequest) {
         payment_method, is_offline, notes, created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        billId, patientId, appointmentId, billType, totalAmount,
-        discountAmount, taxAmount, finalAmount, 'pending',
-        paymentMethod, isOffline, notes, createdBy
+        billId, 
+        patientId, 
+        appointmentId || null, 
+        billType || 'consultation', 
+        totalAmount,
+        discountAmount, 
+        taxAmount, 
+        finalAmount, 
+        'pending',
+        paymentMethod || null, 
+        isOffline || true, 
+        notes || null, 
+        createdBy || 1
       ]
     );
     
@@ -181,8 +191,15 @@ export async function POST(request: NextRequest) {
           unit_price, total_price, discount_percent, discount_amount
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          billDbId, item.itemType, item.itemName, item.description || '',
-          item.quantity, item.unitPrice, itemTotal, item.discountPercent || 0, itemDiscount
+          billDbId, 
+          item.itemType || 'other', 
+          item.itemName || 'Item', 
+          item.description || null,
+          item.quantity || 1, 
+          item.unitPrice || 0, 
+          itemTotal, 
+          item.discountPercent || 0, 
+          itemDiscount
         ]
       );
     }
