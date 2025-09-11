@@ -474,7 +474,7 @@ export default function PatientInfoPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
-                            {aiContent.filter(content => content.type === 'summary').slice(0, 2).map((content) => (
+                            {aiContent.filter(content => content.type === 'patient_summary').slice(0, 2).map((content) => (
                               <div key={content.id} className="flex justify-between items-center">
                                 <div>
                                   <p className="font-medium text-sm">Patient Summary</p>
@@ -567,7 +567,7 @@ export default function PatientInfoPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {aiContent.filter(content => content.type === 'summary').map((content) => (
+                          {aiContent.filter(content => content.type === 'patient_summary').map((content) => (
                             <Card key={content.id} className="border-l-4 border-l-purple-500">
                               <CardContent className="pt-4">
                                 <div className="flex justify-between items-start mb-3">
@@ -596,7 +596,7 @@ export default function PatientInfoPage() {
                               </CardContent>
                             </Card>
                           ))}
-                          {aiContent.filter(content => content.type === 'summary').length === 0 && (
+                          {aiContent.filter(content => content.type === 'patient_summary').length === 0 && (
                             <div className="text-center py-8">
                               <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                               <p className="text-gray-500">No AI-generated summaries found for this patient</p>

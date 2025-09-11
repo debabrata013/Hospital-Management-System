@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle, Edit, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, FileText, CheckCircle, AlertCircle, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PatientSummaryGeneratorProps {
   onApproval?: () => void;
 }
 
 const PatientSummaryGenerator = ({ onApproval }: PatientSummaryGeneratorProps) => {
+  const { authState } = useAuth();
   const [notes, setNotes] = useState('');
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,8 +106,8 @@ const PatientSummaryGenerator = ({ onApproval }: PatientSummaryGeneratorProps) =
           patientId: patient.id,
           patientName: patient.name,
           content: summary,
-          doctorId: 'D001', // This should come from current user session
-          doctorName: 'Dr. Current User', // This should come from current user session
+          doctorId: authState.user?.id || 'D001',
+          doctorName: authState.user?.name || 'Dr. Current User',
           originalNotes: notes
         }),
       });

@@ -56,48 +56,43 @@ export async function GET(request: NextRequest) {
     const connection = await mysql.createConnection(dbConfig)
 
     try {
-      // First check if ai_content table exists
-      const [tables] = await connection.execute(`
-        SELECT TABLE_NAME 
-        FROM INFORMATION_SCHEMA.TABLES 
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_content'
-      `) as any[]
-
-      if (tables.length === 0) {
-        console.log('ai_content table does not exist, creating it...')
-        
-        // Create ai_content table
-        await connection.execute(`
-          CREATE TABLE ai_content (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            patient_id VARCHAR(50) NOT NULL,
-            doctor_id INT NOT NULL,
-            type ENUM('summary', 'diet_plan') NOT NULL,
-            content TEXT NOT NULL,
-            doctor_notes TEXT,
-            status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_patient_id (patient_id),
-            INDEX idx_doctor_id (doctor_id),
-            INDEX idx_type (type),
-            INDEX idx_status (status)
-          )
-        `)
-        
-        console.log('ai_content table created successfully')
-      }
-
-      // Query AI-generated content for the specific patient - simplified without user join for now
+      // Query AI-generated content from ai_approvals table
+      // Search by both patient_id and patient_name to handle different ID formats
       const query = `
         SELECT 
-          ac.*
-        FROM ai_content ac
-        WHERE ac.patient_id = ?
-        ORDER BY ac.created_at DESC
+          id,
+          patient_id,
+          doctor_id,
+          type,
+          ai_generated_content as content,
+          status,
+          created_at,
+          approved_at as updated_at
+        FROM ai_approvals
+        WHERE (patient_id = ? OR patient_name = ?) AND status = 'approved'
+        ORDER BY created_at DESC
       `
 
-      const [aiContent] = await connection.execute(query, [patientId]) as any[]
+      console.log('Fetching AI content for patient:', patientId)
+      
+      // First, try to find the patient name from the patient ID
+      // Check if we can find a patient with this ID to get their name
+      let patientName = patientId;
+      try {
+        const [patientRows] = await connection.execute(
+          'SELECT name FROM patients WHERE patient_id = ? OR id = ?', 
+          [patientId, patientId]
+        ) as any[]
+        if (patientRows.length > 0) {
+          patientName = patientRows[0].name;
+          console.log('Found patient name:', patientName);
+        }
+      } catch (e) {
+        console.log('Could not find patient name, using ID as fallback');
+      }
+      
+      const [aiContent] = await connection.execute(query, [patientId, patientName]) as any[]
+      console.log('Found AI content:', aiContent)
 
       return NextResponse.json({
         success: true,

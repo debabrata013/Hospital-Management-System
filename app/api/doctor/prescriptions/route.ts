@@ -66,16 +66,33 @@ export async function GET(request: NextRequest) {
 
       console.log('Available columns in users table:', userColumns)
 
-      // Query prescriptions for the specific patient - simplified without user join for now
+      // First, try to find the patient name from the patient ID and get the actual patient ID
+      let actualPatientId = patientId;
+      try {
+        const [patientRows] = await connection.execute(
+          'SELECT id, name FROM patients WHERE patient_id = ? OR id = ?', 
+          [patientId, patientId]
+        ) as any[]
+        if (patientRows.length > 0) {
+          actualPatientId = patientRows[0].id;
+          console.log('Found patient ID:', actualPatientId, 'for patient:', patientRows[0].name);
+        }
+      } catch (e) {
+        console.log('Could not find patient, using provided ID as fallback');
+      }
+
+      // Query prescriptions for the specific patient
       const query = `
         SELECT 
           p.*
         FROM prescriptions p
         WHERE p.patient_id = ?
-        ORDER BY p.created_at DESC
+        ORDER BY p.prescription_date DESC, p.created_at DESC
       `
 
-      const [prescriptions] = await connection.execute(query, [patientId]) as any[]
+      console.log('Fetching prescriptions for patient ID:', actualPatientId)
+      const [prescriptions] = await connection.execute(query, [actualPatientId]) as any[]
+      console.log('Found prescriptions:', prescriptions)
 
       return NextResponse.json({
         success: true,
