@@ -66,6 +66,122 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react'
+import { LogoutButton } from "@/components/auth/LogoutButton"
+
+// Mock data for receptionist dashboard
+const receptionistStats = {
+  todayRegistrations: 23,
+  pendingAppointments: 15,
+  waitingPatients: 8,
+  totalBills: 45,
+  emergencyContacts: 3
+}
+
+const patientQueue = [
+  {
+    id: "P001",
+    name: "Ram Sharma",
+    tokenNumber: "T001",
+    appointmentTime: "09:30 AM",
+    doctor: "Dr. Anil Kumar",
+    department: "General Medicine",
+    status: "waiting",
+    priority: "normal",
+    phone: "+91 98765 43210"
+  },
+  {
+    id: "P002", 
+    name: "Sunita Devi",
+    tokenNumber: "T002",
+    appointmentTime: "10:00 AM",
+    doctor: "Dr. Priya Singh",
+    department: "Gynecology",
+    status: "in-consultation",
+    priority: "normal",
+    phone: "+91 98765 43211"
+  },
+  {
+    id: "P003",
+    name: "Ajay Kumar",
+    tokenNumber: "E001",
+    appointmentTime: "Emergency",
+    doctor: "Dr. Rajesh Gupta",
+    department: "Emergency",
+    status: "emergency",
+    priority: "high",
+    phone: "+91 98765 43212"
+  }
+]
+
+const recentRegistrations = [
+  {
+    id: "P024",
+    name: "Mohan Lal",
+    age: 45,
+    gender: "Male",
+    phone: "+91 98765 43213",
+    registeredAt: "2 hours ago",
+    status: "registered"
+  },
+  {
+    id: "P025",
+    name: "Kavita Singh",
+    age: 32,
+    gender: "Female",
+    phone: "+91 98765 43214",
+    registeredAt: "3 hours ago",
+    status: "registered"
+  },
+  {
+    id: "P026",
+    name: "Ravi Kumar",
+    age: 28,
+    gender: "Male",
+    phone: "+91 98765 43215",
+    registeredAt: "4 hours ago",
+    status: "registered"
+  }
+]
+
+const emergencyContacts = [
+  {
+    id: 1,
+    patientName: "Ajay Kumar",
+    contactName: "Sita Kumar",
+    relationship: "Wife",
+    phone: "+91 98765 43216",
+    priority: "high",
+    status: "active"
+  },
+  {
+    id: 2,
+    patientName: "Elderly Patient",
+    contactName: "Dr. Emergency",
+    relationship: "Doctor",
+    phone: "+91 98765 43217",
+    priority: "critical",
+    status: "contacted"
+  }
+]
+
+const pendingBills = [
+  {
+    id: "B001",
+    patientName: "Ram Sharma",
+    amount: 2500,
+    services: ["Consultation", "Lab Tests"],
+    status: "pending",
+    dueDate: "Today"
+  },
+  {
+    id: "B002",
+    patientName: "Sunita Devi",
+    amount: 1800,
+    services: ["Consultation", "Medicines"],
+    status: "partial",
+    dueDate: "Tomorrow"
+  }
+]
 
 // Navigation items for receptionist
 const navigationItems = [
@@ -421,10 +537,7 @@ export default function ReceptionistDashboard() {
                       Preferences
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
+                    <LogoutButton />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

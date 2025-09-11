@@ -32,18 +32,48 @@ interface Doctor {
 }
 
 const departments = [
-  "General Medicine",
-  "Cardiology", 
-  "Neurology",
-  "Orthopedics",
-  "Pediatrics",
-  "Gynecology",
-  "Dermatology",
-  "Psychiatry",
-  "Radiology",
-  "Anesthesiology",
-  "Emergency Medicine",
-  "Surgery"
+  "ACL reconstruction", 
+  "Anterior cruciate ligament Reconstruction",
+  "Arthrodesis", 
+  "Arthroplasty", 
+  "Arthroscopic ", 
+  "Bone grafting", 
+  "Carpal tunnel release", 
+  "Cesarean section", 
+  "Cervical cerclage", 
+  "Colporrhaphy", 
+  "Debridement", 
+  "Endometrial biopsy", 
+  "External fixation", 
+  "Foot and ankle surgery", 
+  "Fracture repair", 
+  "Gyenecological surgery",
+  "Hand surgery", 
+  "Hip replacement", 
+  "Hydrocelectomy", 
+  "Joint fusion", 
+  "Joint replacement", 
+  "Knee replacement", 
+  "Labiaplasty", 
+  "Laminectomy", 
+  "Laparoscopic endometriosis surgery", 
+  "Osteotomy", 
+  "Orchidectomy", 
+  "Orchiopexy, inguinal hernia repair", 
+  "Ovarian cystectomy", 
+  "Pelvic organ prolapse repair", 
+  "Pelvic ultrasound", 
+  "Robotic surgery", 
+  "Rotator cuff repair", 
+  "Shoulder arthroscopy", 
+  "Shoulder replacement", 
+  "Spinal fusion", 
+  "Tendon repair", 
+  "Testicular biopsy", 
+  "Trigger finger release", 
+  "Uterine artery embolization", 
+  "Varicocelectomy", 
+  "Vasectomy",
 ]
 
 export default function DoctorsPage() {
@@ -302,7 +332,7 @@ export default function DoctorsPage() {
               Add Doctor
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Doctor</DialogTitle>
               <DialogDescription>
