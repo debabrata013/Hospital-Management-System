@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ChevronDown, User, Settings } from "lucide-react"
+import { ChevronDown, User, Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { LogoutButton } from "./auth/LogoutButton"
 
 interface DashboardHeaderProps {
   onSectionChange?: (section: string) => void
@@ -83,6 +84,8 @@ export function DashboardHeader({ onSectionChange }: DashboardHeaderProps) {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <LogoutButton />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

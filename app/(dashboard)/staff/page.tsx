@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { 
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -33,15 +33,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { 
-  Heart, 
-  LayoutDashboard, 
-  Users, 
-  Activity, 
-  UserPlus, 
-  ClipboardList, 
-  Clock, 
-  AlertTriangle, 
+import {
+  Heart,
+  LayoutDashboard,
+  Users,
+  Activity,
+  UserPlus,
+  ClipboardList,
+  Clock,
+  AlertTriangle,
   Pill,
   CheckCircle,
   Plus,
@@ -50,7 +50,6 @@ import {
   Bell,
   FileText,
   Stethoscope,
-  LogOut,
   Settings,
   UserCog,
   Shield,
@@ -60,8 +59,10 @@ import {
   HeartPulse,
   Clipboard,
   UserCheck,
-  Package
+  Package,
+  Coffee
 } from 'lucide-react'
+import { LogoutButton } from "@/components/auth/LogoutButton"
 
 // Mock data for staff dashboard
 const staffStats = {
@@ -206,8 +207,8 @@ const navigationItems = [
   {
     title: "Communication",
     items: [
-      { title: "Shift Assignments", icon: Calendar, url: "/staff/shifts" },
-      { title: "Handover Notes", icon: FileText, url: "/staff/handover" },
+      { title: "Leave", icon: Calendar, url: "/staff/leave" },
+      { title: "Break", icon: Coffee, url: "/staff/break" },
     ]
   }
 ]
@@ -272,7 +273,7 @@ export default function StaffDashboard() {
               </div>
             </div>
           </SidebarHeader>
-          
+
           <SidebarContent className="px-4 py-6">
             {navigationItems.map((section) => (
               <SidebarGroup key={section.title}>
@@ -283,8 +284,8 @@ export default function StaffDashboard() {
                   <SidebarMenu>
                     {section.items.map((item) => (
                       <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton 
-                          asChild 
+                        <SidebarMenuButton
+                          asChild
                           isActive={item.isActive}
                           className="w-full justify-start hover:bg-green-50 data-[active=true]:bg-green-100 data-[active=true]:text-green-700"
                         >
@@ -300,7 +301,7 @@ export default function StaffDashboard() {
               </SidebarGroup>
             ))}
           </SidebarContent>
-          
+
           <SidebarFooter className="border-t border-green-100 p-4">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
@@ -313,7 +314,7 @@ export default function StaffDashboard() {
               </div>
             </div>
           </SidebarFooter>
-          
+
           <SidebarRail />
         </Sidebar>
 
@@ -329,11 +330,11 @@ export default function StaffDashboard() {
                   <p className="text-sm text-gray-500">Patient care and nursing management</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-4">
                 {/* Quick Actions */}
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="bg-green-500 hover:bg-green-600"
                   onClick={() => setVitalsDialog(true)}
                 >
@@ -352,7 +353,7 @@ export default function StaffDashboard() {
                     )}
                   </Button>
                 </div>
-                
+
                 {/* Profile Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -375,10 +376,7 @@ export default function StaffDashboard() {
                       Preferences
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
+                    <LogoutButton />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -511,8 +509,8 @@ export default function StaffDashboard() {
                       </div>
                       <div className="flex items-center space-x-2">
                         {getConditionBadge(patient.condition)}
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => {
                             setSelectedPatient(patient)
@@ -632,7 +630,7 @@ export default function StaffDashboard() {
                 <Input id="time" type="time" defaultValue={new Date().toTimeString().slice(0, 5)} />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label htmlFor="bp" className="text-sm font-medium">Blood Pressure</label>
@@ -661,8 +659,8 @@ export default function StaffDashboard() {
 
             <div className="space-y-2">
               <label htmlFor="notes" className="text-sm font-medium">Notes</label>
-              <textarea 
-                id="notes" 
+              <textarea
+                id="notes"
                 placeholder="Additional observations or notes"
                 className="w-full p-2 border rounded-md"
                 rows={3}
