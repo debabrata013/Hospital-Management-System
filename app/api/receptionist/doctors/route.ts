@@ -22,10 +22,11 @@ export async function GET(request: NextRequest) {
   try {
     connection = await getConnection();
     
-    // Get all doctors with their current status
+    // Get all doctors with their current status and details
     const [doctors] = await connection.execute(
       `SELECT 
-        u.id, u.name, u.email, u.contact_number,
+        u.id, u.name, u.email, u.contact_number, u.department, 
+        u.specialization, u.qualification, u.experience_years,
         COUNT(CASE WHEN a.status = 'in-progress' AND DATE(a.appointment_date) = CURDATE() THEN 1 END) as active_consultations,
         COUNT(CASE WHEN a.status = 'scheduled' AND DATE(a.appointment_date) = CURDATE() THEN 1 END) as pending_appointments,
         CASE 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       FROM users u
       LEFT JOIN appointments a ON u.id = a.doctor_id
       WHERE u.role = 'doctor' AND u.is_active = 1
-      GROUP BY u.id, u.name, u.email, u.contact_number
+      GROUP BY u.id, u.name, u.email, u.contact_number, u.department, u.specialization, u.qualification, u.experience_years
       ORDER BY u.name`
     );
 
