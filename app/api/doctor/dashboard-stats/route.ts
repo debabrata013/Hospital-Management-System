@@ -9,11 +9,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get today's appointments count
+    // Get today's appointments count (active appointments only)
     const todayAppointmentsQuery = `
       SELECT COUNT(*) as count 
       FROM appointments 
-      WHERE doctor_id = ? AND DATE(appointment_date) = CURDATE()
+      WHERE doctor_id = ? AND DATE(appointment_date) = CURDATE() 
+        AND status NOT IN ('cancelled', 'completed')
     `;
 
     // Get total patients under this doctor's care
@@ -23,13 +24,14 @@ export async function GET(req: NextRequest) {
       WHERE doctor_id = ?
     `;
 
-    // Get emergency calls (appointments with high priority or emergency status)
+    // Get emergency calls (appointments with emergency type or urgent priority)
     const emergencyCallsQuery = `
       SELECT COUNT(*) as count 
       FROM appointments 
       WHERE doctor_id = ? 
         AND DATE(appointment_date) = CURDATE()
-        AND (status = 'emergency' OR chief_complaint LIKE '%emergency%' OR chief_complaint LIKE '%urgent%')
+        AND (appointment_type = 'emergency' OR notes LIKE '%emergency%' OR notes LIKE '%urgent%')
+        AND status NOT IN ('cancelled', 'completed')
     `;
 
     // Get surgeries today (if you have a surgeries table, otherwise use appointments)
