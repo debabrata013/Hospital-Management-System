@@ -87,6 +87,13 @@ export default function DoctorDashboard() {
   const [pendingTasksLoading, setPendingTasksLoading] = useState(true);
 
   useEffect(() => {
+    if (user) {
+      console.log('Auth User Object:', user);
+    }
+  }, [user]);
+
+
+  useEffect(() => {
     const fetchStats = async () => {
       try {
         setStatsLoading(true);
@@ -172,9 +179,9 @@ export default function DoctorDashboard() {
 
   // Use logged-in user data, with placeholders for details not in the auth state
   const doctorInfo = {
-    name: `${user.firstName} ${user.lastName}`,
-    specialization: "Cardiologist", // Placeholder - to be fetched from a doctor profile API
-    department: "Cardiology Department", // Placeholder
+    name: user.name || 'Doctor',
+    specialization: user.department || "Cardiologist", // Use department from auth or placeholder
+    department: user.department || "Cardiology Department", // Use department from auth or placeholder
     employeeId: user.id,
     experience: "12 years" // Placeholder
   };
@@ -286,13 +293,12 @@ export default function DoctorDashboard() {
           
           <SidebarFooter className="border-t border-pink-100 p-4">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
-                <AvatarFallback className="bg-pink-100 text-pink-700">{user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'DR'}</AvatarFallback>
-              </Avatar>
+              <div className="h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center">
+                <span className="text-sm font-semibold text-pink-700">DR</span>
+              </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user ? `${user.firstName} ${user.lastName}` : 'Doctor'}</p>
-                <p className="text-xs text-gray-500 truncate">Cardiologist</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user ? user.name : 'Doctor'}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.department || 'Cardiologist'}</p>
               </div>
             </div>
           </SidebarFooter>
@@ -308,10 +314,10 @@ export default function DoctorDashboard() {
               <div className="flex items-center space-x-4">
                 <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">{user ? `${user.firstName} ${user.lastName}` : 'Doctor'}</h1>
+                  <h1 className="text-xl font-bold text-gray-900">{user ? user.name : 'Doctor'}</h1>
                   <p className="text-sm text-gray-500 flex items-center">
                     <Stethoscope className="h-4 w-4 mr-1" />
-                    Cardiologist
+                    {user?.department || 'Cardiologist'}
                   </p>
                 </div>
               </div>
@@ -333,10 +339,9 @@ export default function DoctorDashboard() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={"/placeholder.svg?height=40&width=40"} />
-                        <AvatarFallback className="bg-pink-100 text-pink-700">{user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'DR'}</AvatarFallback>
-                      </Avatar>
+                      <div className="h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-pink-700">DR</span>
+                      </div>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end">
