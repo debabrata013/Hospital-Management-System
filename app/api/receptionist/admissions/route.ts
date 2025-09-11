@@ -38,27 +38,18 @@ export async function GET(request: NextRequest) {
     connection = await getConnection();
     
     if (action === 'rooms') {
-      // Get available rooms
+      // Get available rooms from admin rooms table
       const [rooms] = await connection.execute(`
         SELECT 
-          r.id, r.room_number, r.floor_number, r.capacity, r.status,
-          rt.type_name, rt.base_rate, rt.description
-        FROM rooms r
-        JOIN room_types rt ON r.room_type_id = rt.id
-        WHERE r.status = 'available'
-        ORDER BY r.floor_number, r.room_number
+          id, room_number, room_name, room_type, floor, capacity, 
+          current_occupancy, status, daily_rate, description
+        FROM rooms
+        WHERE status IN ('Available', 'Cleaning Required') 
+          OR (status = 'Occupied' AND current_occupancy < capacity)
+        ORDER BY floor, room_number
       `);
       
       return NextResponse.json({ rooms });
-    }
-    
-    if (action === 'room-types') {
-      // Get room types
-      const [roomTypes] = await connection.execute(`
-        SELECT * FROM room_types ORDER BY base_rate
-      `);
-      
-      return NextResponse.json({ roomTypes });
     }
     
     // Build dynamic query for admissions
@@ -69,14 +60,13 @@ export async function GET(request: NextRequest) {
         a.diagnosis, a.chief_complaint, a.estimated_stay_days, a.total_charges,
         a.emergency_contact_name, a.emergency_contact_phone, a.emergency_contact_relation,
         p.name as patient_name, p.age, p.gender, p.contact_number as patient_phone,
-        r.room_number, rt.type_name as room_type,
+        r.room_number, r.room_type,
         d.name as doctor_name,
         ab.name as admitted_by_name,
         a.created_at
       FROM admissions a
       LEFT JOIN patients p ON a.patient_id = p.id
       LEFT JOIN rooms r ON a.room_id = r.id
-      LEFT JOIN room_types rt ON r.room_type_id = rt.id
       LEFT JOIN users d ON a.doctor_id = d.id
       LEFT JOIN users ab ON a.admitted_by = ab.id
       WHERE 1=1
@@ -95,7 +85,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (roomType && roomType !== 'all') {
-      query += ` AND rt.type_name = ?`;
+      query += ` AND r.room_type = ?`;
       params.push(roomType);
     }
     
@@ -147,11 +137,20 @@ export async function POST(request: NextRequest) {
     
     // Check if room is available
     const [roomCheck] = await connection.execute(
-      `SELECT status FROM rooms WHERE id = ?`,
+      `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
       [roomId]
     );
     
-    if (roomCheck.length === 0 || roomCheck[0].status !== 'available') {
+    if (roomCheck.length === 0) {
+      await connection.rollback();
+      return NextResponse.json(
+        { message: 'Room not found' },
+        { status: 400 }
+      );
+    }
+    
+    const room = roomCheck[0];
+    if (room.status === 'Maintenance' || room.current_occupancy >= room.capacity) {
       await connection.rollback();
       return NextResponse.json(
         { message: 'Room is not available' },
@@ -181,10 +180,13 @@ export async function POST(request: NextRequest) {
     
     const admissionDbId = admissionResult.insertId;
     
-    // Update room status to occupied
+    // Update room status and occupancy
+    const newOccupancy = room.current_occupancy + 1;
+    const newStatus = newOccupancy >= room.capacity ? 'Occupied' : 'Available';
+    
     await connection.execute(
-      `UPDATE rooms SET status = 'occupied', updated_at = NOW() WHERE id = ?`,
-      [roomId]
+      `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
+      [newStatus, newOccupancy, roomId]
     );
     
     // Create bed assignment record
@@ -242,47 +244,124 @@ export async function PUT(request: NextRequest) {
     if (action === 'discharge') {
       const dischargeDate = new Date();
       
-      // Update admission status
+      // Get admission details for billing
+      const [admissionDetails] = await connection.execute(
+        `SELECT a.*, r.room_type, r.daily_rate, p.name as patient_name
+         FROM admissions a
+         JOIN rooms r ON a.room_id = r.id
+         JOIN patients p ON a.patient_id = p.id
+         WHERE a.admission_id = ?`,
+        [admissionId]
+      );
+      
+      if (admissionDetails.length === 0) {
+        await connection.rollback();
+        return NextResponse.json(
+          { message: 'Admission not found' },
+          { status: 404 }
+        );
+      }
+      
+      const admission = admissionDetails[0];
+      
+      // Calculate stay duration and bill amount
+      const admissionDate = new Date(admission.admission_date);
+      const stayDays = Math.ceil((dischargeDate - admissionDate) / (1000 * 60 * 60 * 24));
+      const roomCharges = stayDays * admission.daily_rate;
+      const consultationFee = 500; // Base consultation fee
+      const totalAmount = roomCharges + consultationFee;
+      
+      // Generate bill ID
+      const billId = `BILL${Date.now()}`;
+      
+      // Create bill record
+      await connection.execute(
+        `INSERT INTO bills (
+          bill_id, patient_id, patient_name, total_amount, status, 
+          bill_type, created_by, created_at
+        ) VALUES (?, ?, ?, ?, 'pending', 'discharge', ?, NOW())`,
+        [billId, admission.patient_id, admission.patient_name, totalAmount, dischargedBy || 1]
+      );
+      
+      const [billResult] = await connection.execute('SELECT LAST_INSERT_ID() as bill_db_id');
+      const billDbId = billResult[0].bill_db_id;
+      
+      // Add bill items
+      await connection.execute(
+        `INSERT INTO bill_items (
+          bill_id, item_name, quantity, unit_price, total_price, item_type
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [billDbId, `${admission.room_type} Room (${stayDays} days)`, stayDays, admission.daily_rate, roomCharges, 'room']
+      );
+      
+      await connection.execute(
+        `INSERT INTO bill_items (
+          bill_id, item_name, quantity, unit_price, total_price, item_type
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [billDbId, 'Consultation Fee', 1, consultationFee, consultationFee, 'consultation']
+      );
+      
+      // Update admission status and total charges
       await connection.execute(
         `UPDATE admissions 
          SET status = 'discharged', discharge_date = ?, discharge_notes = ?,
              discharge_summary = ?, discharge_instructions = ?, discharged_by = ?,
-             updated_at = NOW()
+             total_charges = ?, updated_at = NOW()
          WHERE admission_id = ?`,
         [dischargeDate, dischargeNotes || null, dischargeSummary || null,
-         dischargeInstructions || null, dischargedBy || 1, admissionId]
+         dischargeInstructions || null, dischargedBy || 1, totalAmount, admissionId]
       );
       
       // Get room ID and update room status
-      const [admission] = await connection.execute(
-        `SELECT room_id FROM admissions WHERE admission_id = ?`,
-        [admissionId]
+      const [roomInfo] = await connection.execute(
+        `SELECT current_occupancy, capacity FROM rooms WHERE id = ?`,
+        [admission.room_id]
       );
       
-      if (admission.length > 0) {
-        await connection.execute(
-          `UPDATE rooms SET status = 'cleaning', updated_at = NOW() WHERE id = ?`,
-          [admission[0].room_id]
-        );
+      if (roomInfo.length > 0) {
+        const newOccupancy = Math.max(0, roomInfo[0].current_occupancy - 1);
+        const newStatus = newOccupancy === 0 ? 'Cleaning Required' : 'Available';
         
-        // Update bed assignment
         await connection.execute(
-          `UPDATE bed_assignments 
-           SET released_date = ?, reason = 'discharge'
-           WHERE admission_id = (SELECT id FROM admissions WHERE admission_id = ?)
-           AND released_date IS NULL`,
-          [dischargeDate, admissionId]
+          `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
+          [newStatus, newOccupancy, admission.room_id]
         );
       }
+      
+      // Update bed assignment
+      await connection.execute(
+        `UPDATE bed_assignments 
+         SET released_date = ?, reason = 'discharge'
+         WHERE admission_id = ? AND released_date IS NULL`,
+        [dischargeDate, admission.id]
+      );
+      
+      await connection.commit();
+      
+      return NextResponse.json({
+        message: 'Patient discharged successfully',
+        billId: billId,
+        totalAmount: totalAmount,
+        stayDays: stayDays
+      });
       
     } else if (action === 'transfer' && newRoomId) {
       // Check if new room is available
       const [roomCheck] = await connection.execute(
-        `SELECT status FROM rooms WHERE id = ?`,
+        `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
         [newRoomId]
       );
       
-      if (roomCheck.length === 0 || roomCheck[0].status !== 'available') {
+      if (roomCheck.length === 0) {
+        await connection.rollback();
+        return NextResponse.json(
+          { message: 'New room not found' },
+          { status: 400 }
+        );
+      }
+      
+      const newRoom = roomCheck[0];
+      if (newRoom.status === 'Maintenance' || newRoom.current_occupancy >= newRoom.capacity) {
         await connection.rollback();
         return NextResponse.json(
           { message: 'New room is not available' },
@@ -313,16 +392,29 @@ export async function PUT(request: NextRequest) {
         [newRoomId, admissionId]
       );
       
-      // Update old room status
-      await connection.execute(
-        `UPDATE rooms SET status = 'cleaning', updated_at = NOW() WHERE id = ?`,
+      // Get old room info and update occupancy
+      const [oldRoomInfo] = await connection.execute(
+        `SELECT current_occupancy FROM rooms WHERE id = ?`,
         [oldRoomId]
       );
       
-      // Update new room status
+      if (oldRoomInfo.length > 0) {
+        const oldNewOccupancy = Math.max(0, oldRoomInfo[0].current_occupancy - 1);
+        const oldNewStatus = oldNewOccupancy === 0 ? 'Cleaning Required' : 'Available';
+        
+        await connection.execute(
+          `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
+          [oldNewStatus, oldNewOccupancy, oldRoomId]
+        );
+      }
+      
+      // Update new room occupancy
+      const newRoomOccupancy = newRoom.current_occupancy + 1;
+      const newRoomStatus = newRoomOccupancy >= newRoom.capacity ? 'Occupied' : 'Available';
+      
       await connection.execute(
-        `UPDATE rooms SET status = 'occupied', updated_at = NOW() WHERE id = ?`,
-        [newRoomId]
+        `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
+        [newRoomStatus, newRoomOccupancy, newRoomId]
       );
       
       // Close old bed assignment

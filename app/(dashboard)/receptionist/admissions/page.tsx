@@ -56,11 +56,14 @@ interface Admission {
 interface Room {
   id: number
   room_number: string
-  type_name: string
-  base_rate: number
-  floor_number: number
+  room_name: string
+  room_type: string
+  floor: number
   capacity: number
+  current_occupancy: number
   status: string
+  daily_rate: number
+  description: string
 }
 
 interface Patient {
@@ -153,9 +156,11 @@ export default function AdmissionsPage() {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch('/api/receptionist/admissions?action=rooms')
+      const response = await fetch('/api/receptionist/rooms')
       const data = await response.json()
-      setRooms(data.rooms || [])
+      if (data.success) {
+        setRooms(data.rooms || [])
+      }
     } catch (error) {
       console.error('Failed to fetch rooms:', error)
     }
@@ -238,11 +243,17 @@ export default function AdmissionsPage() {
       })
 
       if (response.ok) {
-        alert('Patient discharged successfully!')
+        const result = await response.json()
+        const confirmBilling = confirm(`Patient discharged successfully!\n\nBill Generated:\nBill ID: ${result.billId}\nTotal Amount: ₹${result.totalAmount.toLocaleString()}\nStay Duration: ${result.stayDays} days\n\nBill has been added to the billing system.\n\nWould you like to go to the billing section to process payment?`)
+        
         setShowDischargeDialog(false)
         setDischargeForm({ dischargeNotes: '', dischargeSummary: '', dischargeInstructions: '' })
         fetchAdmissions()
         fetchRooms()
+        
+        if (confirmBilling) {
+          window.open('/receptionist/billing', '_blank')
+        }
       } else {
         const error = await response.json()
         alert(error.message || 'Failed to discharge patient')
@@ -674,7 +685,7 @@ export default function AdmissionsPage() {
                   <SelectContent>
                     {rooms.map(room => (
                       <SelectItem key={room.id} value={room.id.toString()}>
-                        {room.room_number} - {room.type_name} (₹{room.base_rate}/day)
+                        {room.room_number} - {room.room_type} (₹{room.daily_rate}/day) - Floor {room.floor}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -903,7 +914,7 @@ export default function AdmissionsPage() {
                 <SelectContent>
                   {rooms.map(room => (
                     <SelectItem key={room.id} value={room.id.toString()}>
-                      {room.room_number} - {room.type_name} (₹{room.base_rate}/day)
+                      {room.room_number} - {room.room_type} (₹{room.daily_rate}/day) - Floor {room.floor}
                     </SelectItem>
                   ))}
                 </SelectContent>
