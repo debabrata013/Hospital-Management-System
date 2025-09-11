@@ -137,10 +137,10 @@ const content = {
       title: "हमारे",
       titleHighlight: "संस्थापक",
       titleEnd: "से मिलें",
-      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 40 से अधिक वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
+      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 45 वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
       qualifications: {
         title: "विशेषज्ञ योग्यताएं",
-        description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 40+ वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
+        description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 45 वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
       },
       vision: {
         title: "रोगी-केंद्रित दृष्टि",
@@ -348,10 +348,10 @@ const content = {
       title: "Meet Our",
       titleHighlight: "Founder",
       titleEnd: "",
-      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated 45 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
       qualifications: {
         title: "Expert Qualifications",
-        description: "MS (Orthopedics) with 40+ years of specialized experience in joint replacement and trauma surgery"
+        description: "MS (Orthopedics) with 45 years of specialized experience in joint replacement and trauma surgery"
       },
       vision: {
         title: "Patient-Centric Vision",
