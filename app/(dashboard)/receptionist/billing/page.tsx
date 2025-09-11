@@ -493,7 +493,7 @@ export default function BillingPage() {
                     </div>
                     <div className="flex items-center space-x-3">
                       <div className="text-right">
-                        <p className="font-bold text-lg">₹{bill.final_amount.toLocaleString()}</p>
+                        <p className="font-bold text-lg">₹{Number(bill.final_amount).toLocaleString()}</p>
                         <p className="text-sm text-gray-500">{bill.bill_type}</p>
                       </div>
                       <Button
@@ -577,7 +577,7 @@ export default function BillingPage() {
                       <div className="text-right text-sm">
                         <div className="text-gray-600">Bills: {patient.total_bills}</div>
                         {patient.pending_amount > 0 && (
-                          <div className="text-red-600">Pending: ₹{patient.pending_amount}</div>
+                          <div className="text-red-600">Pending: ₹{Number(patient.pending_amount).toLocaleString()}</div>
                         )}
                       </div>
                     </div>
@@ -894,19 +894,19 @@ export default function BillingPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Total Amount:</span>
-                    <span>₹{selectedBill.total_amount.toFixed(2)}</span>
+                    <span>₹{Number(selectedBill.total_amount).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Discount:</span>
-                    <span>-₹{selectedBill.discount_amount.toFixed(2)}</span>
+                    <span>-₹{Number(selectedBill.discount_amount).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tax:</span>
-                    <span>+₹{selectedBill.tax_amount.toFixed(2)}</span>
+                    <span>+₹{Number(selectedBill.tax_amount).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span>Final Amount:</span>
-                    <span>₹{selectedBill.final_amount.toFixed(2)}</span>
+                    <span>₹{Number(selectedBill.final_amount).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -949,7 +949,7 @@ export default function BillingPage() {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Amount to Pay</p>
-                  <p className="text-2xl font-bold">₹{selectedBill.final_amount.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">₹{Number(selectedBill.final_amount).toFixed(2)}</p>
                 </div>
               </div>
               
@@ -966,7 +966,7 @@ export default function BillingPage() {
                 </Button>
                 <Button 
                   onClick={() => {
-                    initiateRazorpayPayment(selectedBill.bill_id, selectedBill.final_amount)
+                    initiateRazorpayPayment(selectedBill.bill_id, Number(selectedBill.final_amount))
                     setShowPaymentDialog(false)
                   }}
                   className="bg-blue-500 hover:bg-blue-600"
