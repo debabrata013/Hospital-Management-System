@@ -50,29 +50,50 @@ function extractToken(request: NextRequest): string | null {
 // Main authentication function
 export async function authenticateUser(request: NextRequest): Promise<AuthResult | NextResponse> {
   try {
-    const { User } = models;
+    // Use direct database connection instead of Sequelize models
+    const { getConnection } = require('@/lib/db/connection');
 
     const token = extractToken(request);
     if (!token) {
+      console.log('No token found in request');
       return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
     }
 
+    console.log('Token found, verifying...');
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    console.log('Decoded token:', decoded);
+    
     if (!decoded || !decoded.userId) {
+      console.log('Invalid token structure');
       return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
     }
 
-    const user = await User.findByPk(decoded.userId, {
-      attributes: { exclude: ['password'] },
-    });
-
+    console.log('Looking up user with ID:', decoded.userId);
+    const connection = await getConnection();
+    
+    // Try to find user by ID first
+    const [users] = await connection.execute(
+      'SELECT id, email, name, role FROM users WHERE id = ?',
+      [decoded.userId]
+    );
+    
+    let user = (users as any[])[0];
+    console.log('User lookup result:', user ? 'Found' : 'Not found');
+    
+    if (!user && (decoded.email || decoded.user?.email)) {
+      // Try alternative lookup by email
+      console.log('Trying alternative user lookup by email...');
+      const [usersByEmail] = await connection.execute(
+        'SELECT id, email, name, role FROM users WHERE email = ?',
+        [decoded.email || decoded.user?.email]
+      );
+      user = (usersByEmail as any[])[0];
+    }
+    
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 401 });
     }
 
-    if (!user.isActive) {
-      return NextResponse.json({ error: 'Account is deactivated' }, { status: 401 });
-    }
 
     // Note: lockUntil and lastLogin fields don't exist in current database schema
     // Remove these checks until database is updated
@@ -80,9 +101,8 @@ export async function authenticateUser(request: NextRequest): Promise<AuthResult
     const authenticatedUser: AuthenticatedUser = {
       id: user.id.toString(),
       email: user.email,
-      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+      name: user.name || user.email,
       role: user.role,
-      employeeId: user.employeeId,
     };
 
     return { user: authenticatedUser };

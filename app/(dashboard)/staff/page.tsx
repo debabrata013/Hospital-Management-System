@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -63,6 +63,7 @@ import {
   Coffee
 } from 'lucide-react'
 import { LogoutButton } from "@/components/auth/LogoutButton"
+import { useAuth } from "@/hooks/useAuth"
 
 // Mock data for staff dashboard
 const staffStats = {
@@ -197,11 +198,9 @@ const navigationItems = [
     ]
   },
   {
-    title: "Patient Care",
-    items: [
-      { title: "Vitals & Status", icon: Activity, url: "/staff/vitals" },
-      { title: "Medicine Delivery", icon: Pill, url: "/staff/medicines" },
-      { title: "Task Management", icon: ClipboardList, url: "/staff/tasks" },
+    "title": "Patient Care",
+    "items": [
+      // Removed Medicine Delivery and Task Management as requested
     ]
   },
   {
@@ -217,6 +216,52 @@ export default function StaffDashboard() {
   const [vitalsDialog, setVitalsDialog] = useState(false)
   const [taskDialog, setTaskDialog] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<any>(null)
+  const [staffProfile, setStaffProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [patients, setPatients] = useState<any[]>([])
+  const [vitalsForm, setVitalsForm] = useState({
+    bloodPressure: '',
+    heartRate: '',
+    temperature: '',
+    weight: '',
+    height: '',
+    oxygenSaturation: '',
+    respiratoryRate: '',
+    notes: ''
+  })
+  const { authState } = useAuth()
+  const user = authState?.user
+
+  // Fetch staff profile data and patients
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch staff profile
+        const profileResponse = await fetch('/api/staff/profile')
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          setStaffProfile(profileData.staff)
+        }
+
+        // Fetch patients
+        const patientsResponse = await fetch('/api/staff/patients')
+        console.log('Patients API response status:', patientsResponse.status)
+        if (patientsResponse.ok) {
+          const patientsData = await patientsResponse.json()
+          console.log('Patients API response:', patientsData)
+          setPatients(patientsData.patients || [])
+        } else {
+          console.error('Failed to fetch patients:', patientsResponse.status, await patientsResponse.text())
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const getConditionBadge = (condition: string) => {
     switch (condition) {
@@ -259,17 +304,17 @@ export default function StaffDashboard() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex">
+        <div className="h-screen w-full bg-gradient-to-br from-pink-50 to-white flex overflow-hidden">
         {/* Sidebar */}
-        <Sidebar className="border-green-100">
-          <SidebarHeader className="border-b border-green-100 p-6">
+        <Sidebar className="border-pink-100">
+          <SidebarHeader className="border-b border-pink-100 p-6">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-green-400 to-green-500 p-2 rounded-xl">
+              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
                 <Heart className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Arogya Hospital</h2>
-                <p className="text-sm text-gray-500">Staff Nurse</p>
+                <p className="text-sm text-gray-500">{loading ? 'Loading...' : (staffProfile?.name || user?.name || 'Staff Member')}</p>
               </div>
             </div>
           </SidebarHeader>
@@ -287,7 +332,7 @@ export default function StaffDashboard() {
                         <SidebarMenuButton
                           asChild
                           isActive={item.isActive}
-                          className="w-full justify-start hover:bg-green-50 data-[active=true]:bg-green-100 data-[active=true]:text-green-700"
+                          className="w-full justify-start hover:bg-pink-50 data-[active=true]:bg-pink-100 data-[active=true]:text-pink-700"
                         >
                           <Link href={item.url} className="flex items-center space-x-3 px-3 py-2 rounded-lg">
                             <item.icon className="h-5 w-5" />
@@ -302,15 +347,17 @@ export default function StaffDashboard() {
             ))}
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-green-100 p-4">
+          <SidebarFooter className="border-t border-pink-100 p-4">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback className="bg-green-100 text-green-700">SN</AvatarFallback>
+                <AvatarFallback className="bg-pink-100 text-pink-700">
+                  {loading ? 'SN' : (staffProfile?.name?.split(' ').map((n: string) => n[0]).join('') || user?.name?.split(' ').map((n: string) => n[0]).join('') || 'SN')}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">Staff Nurse</p>
-                <p className="text-xs text-gray-500 truncate">nurse@hospital.com</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{loading ? 'Loading...' : (staffProfile?.name || user?.name || 'Staff Member')}</p>
+                <p className="text-xs text-gray-500 truncate">{loading ? 'Loading...' : (staffProfile?.email || user?.email || 'staff@hospital.com')}</p>
               </div>
             </div>
           </SidebarFooter>
@@ -319,12 +366,12 @@ export default function StaffDashboard() {
         </Sidebar>
 
         {/* Main Content */}
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 h-full overflow-hidden">
           {/* Top Navigation */}
-          <header className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-            <div className="flex items-center justify-between h-16 px-6">
+          <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50 w-full">
+            <div className="flex items-center justify-between h-16 px-6 w-full">
               <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-green-500" />
+                <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Staff Dashboard</h1>
                   <p className="text-sm text-gray-500">Patient care and nursing management</p>
@@ -332,19 +379,11 @@ export default function StaffDashboard() {
               </div>
 
               <div className="flex items-center space-x-4">
-                {/* Quick Actions */}
-                <Button
-                  size="sm"
-                  className="bg-green-500 hover:bg-green-600"
-                  onClick={() => setVitalsDialog(true)}
-                >
-                  <Activity className="h-4 w-4 mr-2" />
-                  Record Vitals
-                </Button>
+                {/* Quick Actions removed */}
 
                 {/* Notifications */}
                 <div className="relative">
-                  <Button variant="ghost" size="sm" className="relative hover:bg-green-50">
+                  <Button variant="ghost" size="sm" className="relative hover:bg-pink-50">
                     <Bell className="h-5 w-5 text-gray-600" />
                     {notifications > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -357,24 +396,51 @@ export default function StaffDashboard() {
                 {/* Profile Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-green-50">
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-pink-50">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                        <AvatarFallback className="bg-green-100 text-green-700">SN</AvatarFallback>
+                        <AvatarFallback className="bg-pink-100 text-pink-700">
+                          {loading ? 'SN' : (staffProfile?.name?.split(' ').map((n: string) => n[0]).join('') || user?.name?.split(' ').map((n: string) => n[0]).join('') || 'SN')}
+                        </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end">
-                    <DropdownMenuLabel>Staff Account</DropdownMenuLabel>
+                  <DropdownMenuContent className="w-80" align="end">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{loading ? 'Loading...' : (staffProfile?.name || user?.name || 'Staff Member')}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{loading ? 'Loading...' : (staffProfile?.email || user?.email || 'staff@hospital.com')}</p>
+                      </div>
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <UserCog className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Preferences
-                    </DropdownMenuItem>
+                    {staffProfile && (
+                      <div className="px-2 py-1.5 text-sm">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">Role:</span>
+                            <p className="font-medium capitalize">{staffProfile.role}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Department:</span>
+                            <p className="font-medium">{staffProfile.department}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">ID:</span>
+                            <p className="font-medium">{staffProfile.user_id}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Shift:</span>
+                            <p className="font-medium capitalize">{staffProfile.shift || 'Flexible'}</p>
+                          </div>
+                        </div>
+                        {staffProfile.specialization && (
+                          <div className="mt-2">
+                            <span className="text-muted-foreground text-xs">Specialization:</span>
+                            <p className="font-medium text-xs">{staffProfile.specialization}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <DropdownMenuSeparator />
                     <LogoutButton />
                   </DropdownMenuContent>
@@ -383,295 +449,255 @@ export default function StaffDashboard() {
             </div>
           </header>
           {/* Dashboard Content */}
-          <main className="flex-1 p-6 space-y-8">
-            {/* Key Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-              <Card className="border-green-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Assigned Patients</p>
-                      <p className="text-3xl font-bold text-gray-900">{staffStats.assignedPatients}</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        3 new today
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
-                      <Users className="h-8 w-8 text-white" />
-                    </div>
+          <main className="flex-1 p-6 space-y-8 h-full overflow-y-auto">
+            {/* My Patients Section */}
+            <Card className="border-pink-100 h-full">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold flex items-center">
+                  <Users className="h-6 w-6 mr-2 text-pink-500" />
+                  My Patients
+                </CardTitle>
+                <CardDescription>Select a patient to record vitals</CardDescription>
+              </CardHeader>
+              <CardContent className="h-full">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+                    <p className="mt-2 text-gray-500">Loading patients...</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-blue-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Completed Tasks</p>
-                      <p className="text-3xl font-bold text-gray-900">{staffStats.completedTasks}</p>
-                      <p className="text-sm text-blue-600 flex items-center mt-1">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        {pendingTasks.length} pending
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
-                      <ClipboardList className="h-8 w-8 text-white" />
-                    </div>
+                ) : patients.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500">No patients found</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-yellow-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Pending Vitals</p>
-                      <p className="text-3xl font-bold text-gray-900">{staffStats.pendingVitals}</p>
-                      <p className="text-sm text-yellow-600 flex items-center mt-1">
-                        <Clock className="h-4 w-4 mr-1" />
-                        Due soon
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-3 rounded-xl">
-                      <Activity className="h-8 w-8 text-white" />
-                    </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 h-full overflow-y-auto">
+                    {patients.map((patient) => (
+                      <Card 
+                        key={patient.id} 
+                        className={`cursor-pointer transition-all duration-200 hover:shadow-md border ${
+                          selectedPatient?.id === patient.id 
+                            ? 'border-pink-300 bg-pink-50' 
+                            : 'border-gray-200 hover:border-pink-200'
+                        }`}
+                        onClick={() => {
+                          setSelectedPatient(patient)
+                          setVitalsDialog(true)
+                        }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarFallback className="bg-pink-100 text-pink-700">
+                                {patient.name?.split(' ').map((n: string) => n[0]).join('') || 'P'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900 truncate">{patient.name}</h3>
+                              <p className="text-sm text-gray-500">ID: {patient.patient_id}</p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                  {patient.age} yrs
+                                </span>
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                  {patient.gender}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex justify-end">
+                            <Button size="sm" className="bg-pink-500 hover:bg-pink-600">
+                              <Activity className="h-4 w-4 mr-1" />
+                              Record Vitals
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-purple-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Medicine Deliveries</p>
-                      <p className="text-3xl font-bold text-gray-900">{staffStats.medicineDeliveries}</p>
-                      <p className="text-sm text-purple-600 flex items-center mt-1">
-                        <Pill className="h-4 w-4 mr-1" />
-                        Next at 14:30
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-3 rounded-xl">
-                      <Package className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-indigo-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Shift Hours</p>
-                      <p className="text-3xl font-bold text-gray-900">{staffStats.shiftHours}</p>
-                      <p className="text-sm text-indigo-600 flex items-center mt-1">
-                        <Clock className="h-4 w-4 mr-1" />
-                        6 PM - 6 AM
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-indigo-400 to-indigo-500 p-3 rounded-xl">
-                      <Calendar className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Main Dashboard Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {/* Assigned Patients */}
-              <Card className="border-green-100">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold">My Patients</CardTitle>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/staff/patients">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View All
-                      </Link>
-                    </Button>
-                  </div>
-                  <CardDescription>Patients assigned to your care</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {assignedPatients.slice(0, 3).map((patient) => (
-                    <div key={patient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-green-100 text-green-700">
-                            {patient.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">{patient.name}</p>
-                          <p className="text-xs text-gray-500">Room {patient.roomNumber} • {patient.diagnosis}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {getConditionBadge(patient.condition)}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedPatient(patient)
-                            setVitalsDialog(true)
-                          }}
-                        >
-                          <Activity className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Pending Tasks */}
-              <Card className="border-blue-100">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold">Pending Tasks</CardTitle>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/staff/tasks">
-                        <ClipboardList className="h-4 w-4 mr-2" />
-                        View All
-                      </Link>
-                    </Button>
-                  </div>
-                  <CardDescription>Tasks requiring your attention</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {pendingTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                          <ClipboardList className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{task.task}</p>
-                          <p className="text-xs text-gray-500">{task.patientName} • Due: {task.dueTime}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {getPriorityBadge(task.priority)}
-                        <Button variant="ghost" size="sm">
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Medicine Schedule */}
-              <Card className="border-purple-100">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold">Medicine Schedule</CardTitle>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/staff/medicines">
-                        <Pill className="h-4 w-4 mr-2" />
-                        View All
-                      </Link>
-                    </Button>
-                  </div>
-                  <CardDescription>Upcoming medicine deliveries</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {medicineSchedule.map((med) => (
-                    <div key={med.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-purple-100 p-2 rounded-lg">
-                          <Pill className="h-4 w-4 text-purple-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{med.medicine}</p>
-                          <p className="text-xs text-gray-500">{med.patientName} • {med.time}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className="bg-yellow-100 text-yellow-700">{med.status}</Badge>
-                        <Button variant="ghost" size="sm">
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </CardContent>
+            </Card>
           </main>
         </SidebarInset>
       </div>
 
-      {/* Record Vitals Dialog */}
+      {/* Patient Vitals Dialog */}
       <Dialog open={vitalsDialog} onOpenChange={setVitalsDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="w-[95vw] max-w-[1200px] h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Patient Vitals</DialogTitle>
             <DialogDescription>
-              Enter vital signs and status updates for the patient
+              Select a patient and enter their vital signs
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="patient" className="text-sm font-medium">Patient</label>
-                <select className="w-full p-2 border rounded-md">
-                  <option value="">Select patient</option>
-                  {assignedPatients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.name} - Room {patient.roomNumber}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="time" className="text-sm font-medium">Time</label>
-                <Input id="time" type="time" defaultValue={new Date().toTimeString().slice(0, 5)} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="bp" className="text-sm font-medium">Blood Pressure</label>
-                <Input id="bp" placeholder="120/80" />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="pulse" className="text-sm font-medium">Pulse Rate</label>
-                <Input id="pulse" placeholder="72 bpm" />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="temp" className="text-sm font-medium">Temperature</label>
-                <Input id="temp" placeholder="98.6°F" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="oxygen" className="text-sm font-medium">Oxygen Saturation</label>
-                <Input id="oxygen" placeholder="98%" />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="respiratory" className="text-sm font-medium">Respiratory Rate</label>
-                <Input id="respiratory" placeholder="16/min" />
-              </div>
-            </div>
-
+          
+          <div className="space-y-6">
+            {/* Patient Selection */}
             <div className="space-y-2">
-              <label htmlFor="notes" className="text-sm font-medium">Notes</label>
-              <textarea
-                id="notes"
-                placeholder="Additional observations or notes"
+              <label htmlFor="patient" className="text-sm font-medium">Patient</label>
+              <select 
                 className="w-full p-2 border rounded-md"
-                rows={3}
-              />
+                value={selectedPatient?.id || ''}
+                onChange={(e) => {
+                  const patient = patients.find(p => p.id === e.target.value)
+                  setSelectedPatient(patient || null)
+                }}
+              >
+                <option value="">Select patient</option>
+                {patients.map((patient) => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.name} - {patient.patient_id}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {selectedPatient && (
+              <>
+                {/* Patient Info */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-900">{selectedPatient.name}</h4>
+                  <p className="text-sm text-gray-600">ID: {selectedPatient.patient_id} • Age: {selectedPatient.age} • Gender: {selectedPatient.gender}</p>
+                </div>
+
+                {/* Vitals Section - Matching Doctor Dashboard */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Vitals</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Blood Pressure</label>
+                      <Input
+                        placeholder="120/80"
+                        value={vitalsForm.bloodPressure}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, bloodPressure: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Heart Rate (bpm)</label>
+                      <Input
+                        placeholder="72"
+                        value={vitalsForm.heartRate}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, heartRate: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Temperature (°F)</label>
+                      <Input
+                        placeholder="98.6"
+                        value={vitalsForm.temperature}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, temperature: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Weight (kg)</label>
+                      <Input
+                        placeholder="70"
+                        value={vitalsForm.weight}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, weight: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Height (cm)</label>
+                      <Input
+                        placeholder="170"
+                        value={vitalsForm.height}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, height: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Oxygen Saturation (%)</label>
+                      <Input
+                        placeholder="98"
+                        value={vitalsForm.oxygenSaturation}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, oxygenSaturation: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Respiratory Rate (/min)</label>
+                      <Input
+                        placeholder="16"
+                        value={vitalsForm.respiratoryRate}
+                        onChange={(e) => setVitalsForm(prev => ({ ...prev, respiratoryRate: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes Section */}
+                <div>
+                  <label className="text-sm font-medium">Notes</label>
+                  <textarea
+                    placeholder="Additional observations or notes"
+                    className="w-full p-2 border rounded-md mt-1"
+                    rows={3}
+                    value={vitalsForm.notes}
+                    onChange={(e) => setVitalsForm(prev => ({ ...prev, notes: e.target.value }))}
+                  />
+                </div>
+              </>
+            )}
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setVitalsDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setVitalsDialog(false)
+              setSelectedPatient(null)
+              setVitalsForm({
+                bloodPressure: '',
+                heartRate: '',
+                temperature: '',
+                weight: '',
+                height: '',
+                oxygenSaturation: '',
+                respiratoryRate: '',
+                notes: ''
+              })
+            }}>
               Cancel
             </Button>
-            <Button className="bg-green-500 hover:bg-green-600">
+            <Button 
+              className="bg-pink-500 hover:bg-pink-600"
+              disabled={!selectedPatient}
+              onClick={async () => {
+                if (!selectedPatient) return
+                
+                try {
+                  const response = await fetch('/api/staff/vitals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      patientId: selectedPatient.id,
+                      vitals: vitalsForm,
+                      notes: vitalsForm.notes
+                    })
+                  })
+
+                  if (response.ok) {
+                    setVitalsDialog(false)
+                    setSelectedPatient(null)
+                    setVitalsForm({
+                      bloodPressure: '',
+                      heartRate: '',
+                      temperature: '',
+                      weight: '',
+                      height: '',
+                      oxygenSaturation: '',
+                      respiratoryRate: '',
+                      notes: ''
+                    })
+                    alert('Vitals recorded successfully!')
+                  } else {
+                    const error = await response.json()
+                    alert(error.error || 'Failed to record vitals')
+                  }
+                } catch (error) {
+                  console.error('Error recording vitals:', error)
+                  alert('Failed to record vitals')
+                }
+              }}
+            >
+              <Activity className="h-4 w-4 mr-1" />
               Save Vitals
             </Button>
           </DialogFooter>

@@ -279,13 +279,16 @@ export default function AddNewStaff() {
   }
 
   const handleNestedChange = (parent: string, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent as keyof StaffFormData],
-        [field]: value
+    setFormData(prev => {
+      const parentData = prev[parent as keyof StaffFormData]
+      return {
+        ...prev,
+        [parent]: {
+          ...(typeof parentData === 'object' && parentData !== null ? parentData : {}),
+          [field]: value
+        }
       }
-    }))
+    })
   }
 
   const addSkill = () => {
@@ -475,12 +478,23 @@ export default function AddNewStaff() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/staff/create', {
+      // Transform formData to match the super-admin staff API format
+      const staffData = {
+        name: formData.name,
+        mobile: formData.contactNumber,
+        password: formData.password,
+        role: formData.role,
+        department: formData.department,
+        shift: formData.workSchedule?.shift ? `${formData.workSchedule.shift.start}-${formData.workSchedule.shift.end}` : 'flexible',
+        specialization: formData.specialization
+      }
+
+      const response = await fetch('/api/super-admin/staff', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(staffData),
       })
 
       if (response.ok) {
