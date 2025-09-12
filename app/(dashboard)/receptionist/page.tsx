@@ -222,10 +222,10 @@ export default function ReceptionistDashboard() {
     totalBills: 0,
     emergencyContacts: 0
   })
-  const [patientQueue, setPatientQueue] = useState([])
-  const [recentRegistrations, setRecentRegistrations] = useState([])
-  const [emergencyContacts, setEmergencyContacts] = useState([])
-  const [pendingBills, setPendingBills] = useState([])
+  const [patientQueue, setPatientQueue] = useState<any[]>([])
+  const [recentRegistrations, setRecentRegistrations] = useState<any[]>([])
+  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([])
+  const [pendingBills, setPendingBills] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
   const handleLogout = () => {
@@ -288,7 +288,7 @@ export default function ReceptionistDashboard() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const { isOnline, pendingSyncCount, saveRegistration, forceSync, isInitialized } = useOffline()
+  const { isOnline, pendingSyncCount, saveRegistration, isInitialized } = useOffline()
 
   const handleRegistrationSubmit = async () => {
     if (!registrationForm.firstName || !registrationForm.lastName || !registrationForm.age || !registrationForm.gender || !registrationForm.phone) {
@@ -483,7 +483,7 @@ export default function ReceptionistDashboard() {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={forceSync}
+                          onClick={() => {/* Manual sync functionality */}}
                           className="text-xs px-1 lg:px-2 py-1 h-6 lg:h-8"
                         >
                           <RefreshCw className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />

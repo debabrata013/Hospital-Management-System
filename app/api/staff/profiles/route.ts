@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         { 
           success: false, 
           error: 'Invalid query parameters',
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         { 
           success: false, 
           error: 'Invalid staff profile data',
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );
@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest) {
         { 
           success: false, 
           error: 'Invalid update data',
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );

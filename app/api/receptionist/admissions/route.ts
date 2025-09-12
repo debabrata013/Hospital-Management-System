@@ -6,7 +6,7 @@ const dbConfig = {
   user: process.env.DB_USER || 'u153229971_admin',
   password: process.env.DB_PASSWORD || 'Admin!2025',
   database: process.env.DB_NAME || 'u153229971_Hospital',
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT || '3306'),
   charset: 'utf8mb4',
   timezone: '+05:30',
   connectTimeout: 20000
@@ -139,9 +139,9 @@ export async function POST(request: NextRequest) {
     const [roomCheck] = await connection.execute(
       `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
       [roomId]
-    );
+    ) as [any[], any];
     
-    if (roomCheck.length === 0) {
+    if (!Array.isArray(roomCheck) || roomCheck.length === 0) {
       await connection.rollback();
       return NextResponse.json(
         { message: 'Room not found' },
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       ]
     );
     
-    const admissionDbId = admissionResult.insertId;
+    const admissionDbId = (admissionResult as any).insertId;
     
     // Update room status and occupancy
     const newOccupancy = room.current_occupancy + 1;

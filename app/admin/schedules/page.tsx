@@ -18,8 +18,10 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  XCircle
+  XCircle,
+  RefreshCw
 } from 'lucide-react'
+import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard'
 
 // Mock schedule data
 const mockSchedules = [
@@ -119,6 +121,8 @@ const mockStaffSchedules = [
 ]
 
 export default function AdminSchedulesPage() {
+  const { stats, loading, error, refresh } = useRealtimeDashboard(30000) // Refresh every 30 seconds
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'available': return <Badge className="bg-green-100 text-green-700">Available</Badge>
@@ -168,11 +172,40 @@ export default function AdminSchedulesPage() {
           <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
             Manage doctor schedules, staff shifts, and room allocations
           </p>
+          {error && (
+            <p className="text-red-500 text-sm mt-1">
+              Error loading data: {error}
+            </p>
+          )}
         </div>
-        <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto flex items-center justify-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Schedule
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={refresh}
+            variant="outline" 
+            className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full sm:w-auto flex items-center justify-center gap-2"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto flex items-center justify-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Schedule
+          </Button>
+        </div>
+      </div>
+
+      {/* Real-time Status Indicator */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+          <span className="text-sm text-gray-600">
+            {loading ? 'Updating...' : `Last updated: ${new Date(stats.lastUpdated).toLocaleTimeString()}`}
+          </span>
+        </div>
+        <div className="text-xs text-gray-500">
+          Auto-refresh every 30 seconds
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -182,7 +215,12 @@ export default function AdminSchedulesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Doctors on Duty</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">12</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {loading ? '...' : stats.doctorsOnDuty}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {loading ? 'Loading...' : 'Currently active'}
+                </p>
               </div>
               <Stethoscope className="h-6 sm:h-8 w-6 sm:w-8 text-pink-500" />
             </div>
@@ -193,7 +231,12 @@ export default function AdminSchedulesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Staff on Duty</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">45</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">
+                  {loading ? '...' : stats.staffOnDuty}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {loading ? 'Loading...' : 'Currently active'}
+                </p>
               </div>
               <Users className="h-6 sm:h-8 w-6 sm:w-8 text-green-500" />
             </div>
@@ -204,7 +247,12 @@ export default function AdminSchedulesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Available Rooms</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600">8</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                  {loading ? '...' : stats.availableRooms}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {loading ? 'Loading...' : 'Ready for patients'}
+                </p>
               </div>
               <MapPin className="h-6 sm:h-8 w-6 sm:w-8 text-blue-500" />
             </div>
@@ -215,7 +263,12 @@ export default function AdminSchedulesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Shift Changes</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-600">6</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
+                  {loading ? '...' : stats.shiftChanges}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {loading ? 'Loading...' : 'Today\'s changes'}
+                </p>
               </div>
               <Clock className="h-6 sm:h-8 w-6 sm:w-8 text-purple-500" />
             </div>

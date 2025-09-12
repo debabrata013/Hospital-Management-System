@@ -218,7 +218,7 @@ export default function AppointmentsPage() {
       'no-show': { color: 'bg-gray-100 text-gray-700', icon: AlertCircle }
     }
     
-    const config = statusConfig[status] || statusConfig['scheduled']
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['scheduled']
     const Icon = config.icon
     
     return (
