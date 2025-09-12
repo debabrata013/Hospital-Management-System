@@ -66,7 +66,6 @@ const navigationItems = [
     title: "उपकरण (Tools)",
     items: [
       { title: "AI Assistant", icon: Brain, url: "/doctor/ai-tools" },
-      { title: "Lab Results", icon: FlaskConical, url: "/doctor/lab-results" },
     ]
   }
 ]
@@ -466,12 +465,6 @@ export default function DoctorDashboard() {
                     </Button>
                   </Link>
                   
-                  <Link href="/doctor/lab-results">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <FlaskConical className="h-5 w-5" />
-                      <span className="text-sm">Lab Results</span>
-                    </Button>
-                  </Link>
                 </div>
               </CardContent>
             </Card>

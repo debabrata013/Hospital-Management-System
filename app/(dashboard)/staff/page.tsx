@@ -198,16 +198,9 @@ const navigationItems = [
     ]
   },
   {
-    "title": "Patient Care",
-    "items": [
-      // Removed Medicine Delivery and Task Management as requested
-    ]
-  },
-  {
     title: "Communication",
     items: [
       { title: "Leave", icon: Calendar, url: "/staff/leave" },
-      { title: "Break", icon: Coffee, url: "/staff/break" },
     ]
   }
 ]
