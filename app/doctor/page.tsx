@@ -5,6 +5,10 @@ import Link from "next/link"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
@@ -32,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays } from 'lucide-react'
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit } from 'lucide-react'
 
 
 // Mock data removed - using real API data from /api/doctor/appointments
@@ -55,7 +59,6 @@ const navigationItems = [
     items: [
       { title: "Patient Records", icon: Users, url: "/doctor/patients" },
       { title: "Patient Information Center", icon: FileText, url: "/doctor/patient-info" },
-      { title: "Consultations", icon: Stethoscope, url: "/doctor/consultations" },
       { title: "Medical History", icon: FileText, url: "/doctor/history" },
     ]
   },
@@ -85,6 +88,19 @@ export default function DoctorDashboard() {
   const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [pendingTasksLoading, setPendingTasksLoading] = useState(true);
+  
+  // Prescription modal states
+  const [prescriptionDialog, setPrescriptionDialog] = useState(false);
+  const [selectedAppointmentForPrescription, setSelectedAppointmentForPrescription] = useState<any>(null);
+  const [prescriptionForm, setPrescriptionForm] = useState({
+    bloodPressure: '',
+    heartRate: '',
+    temperature: '',
+    weight: '',
+    height: '',
+    medicines: [{ name: '', dosage: '', frequency: '', duration: '' }],
+    remarks: ''
+  });
 
   useEffect(() => {
     if (user) {
@@ -373,7 +389,7 @@ export default function DoctorDashboard() {
           {/* Dashboard Content */}
           <main className="flex-1 p-6 space-y-8">
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -426,22 +442,6 @@ export default function DoctorDashboard() {
               </Card>
 
 
-              <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Experience</p>
-                      <p className="text-3xl font-bold text-green-600">12</p>
-                      <p className="text-sm text-green-600 mt-1">
-                        Years of practice
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
-                      <User className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Quick Actions */}
@@ -451,14 +451,7 @@ export default function DoctorDashboard() {
                 <CardDescription>Common daily operations</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Link href="/doctor/consultations/new">
-                    <Button className="w-full h-16 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Plus className="h-5 w-5" />
-                      <span className="text-sm">New Consultation</span>
-                    </Button>
-                  </Link>
-                  
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Link href="/doctor/patients">
                     <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
                       <Users className="h-5 w-5" />
@@ -485,12 +478,12 @@ export default function DoctorDashboard() {
 
             {/* Main Dashboard Widgets */}
             <div className="grid lg:grid-cols-2 gap-6">
-              {/* Today's Appointments */}
+              {/* Appointments */}
               <Card className="border-pink-100">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-gray-900">Today's Appointments</CardTitle>
-                    <CardDescription>Your scheduled patients for today</CardDescription>
+                    <CardTitle className="text-gray-900">Appointments</CardTitle>
+                    <CardDescription>Your scheduled appointments</CardDescription>
                   </div>
                   <Link href="/doctor/schedule">
                     <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
@@ -499,35 +492,80 @@ export default function DoctorDashboard() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {appointmentsLoading ? (
-                      <p>Loading appointments...</p>
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-gray-500">Loading appointments...</div>
+                      </div>
                     ) : appointments.length > 0 ? (
                       appointments.map((appointment: any) => (
-                        <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-pink-100 p-2 rounded-lg">
-                              <Clock className="h-5 w-5 text-pink-600" />
+                        <div key={appointment.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start space-x-3 flex-1 min-w-0">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-blue-600 font-semibold text-sm">
+                                  {appointment.name ? appointment.name.charAt(0).toUpperCase() : 'P'}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <h4 className="font-semibold text-gray-900 truncate">
+                                    {appointment.Patient?.firstName && appointment.Patient?.lastName 
+                                      ? `${appointment.Patient.firstName} ${appointment.Patient.lastName}`
+                                      : appointment.name || 'Unknown Patient'
+                                    }
+                                  </h4>
+                                  {getStatusBadge(appointment.status)}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-2">{appointment.reason || 'General Consultation'}</p>
+                                <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                  <div className="flex items-center space-x-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{appointment.appointmentTime ? new Date(`2000-01-01T${appointment.appointmentTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00'}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{new Date(appointment.appointmentDate).toLocaleDateString()}</span>
+                                  </div>
+                                  {appointment.appointmentType && (
+                                    <div className="flex items-center space-x-1">
+                                      <span className="capitalize">{appointment.appointmentType.replace('-', ' ')}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {(appointment.createdBy?.name || appointment.createdByName) && (
+                                  <div className="mt-1 text-xs text-blue-600">
+                                    Scheduled by {appointment.createdBy?.name || appointment.createdByName}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">{appointment.Patient.firstName} {appointment.Patient.lastName}</p>
-                              <p className="text-sm text-gray-600">{appointment.reason}</p>
-                              <p className="text-sm text-gray-500">{new Date(appointment.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            {getStatusBadge(appointment.status)}
-                            <Link href={`/doctor/patients/${appointment.Patient.id}?appointmentId=${appointment.id}`} passHref>
-                              <Button variant="outline" size="sm" className="h-8 mt-1">
-                                <Eye className="h-4 w-4 mr-1" />
+                            <div className="flex flex-col space-y-2 flex-shrink-0 w-24">
+                              <Button variant="outline" size="sm" className="h-8 w-full text-xs">
+                                <Eye className="h-3 w-3 mr-1" />
                                 View
                               </Button>
-                            </Link>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 w-full text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                                onClick={() => {
+                                  setSelectedAppointmentForPrescription(appointment);
+                                  setPrescriptionDialog(true);
+                                }}
+                              >
+                                <FileEdit className="h-3 w-3 mr-1" />
+                                Prescription
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p>No appointments scheduled for today.</p>
+                      <div className="text-center py-8 text-gray-500">
+                        <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p>No appointments scheduled</p>
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -633,6 +671,223 @@ export default function DoctorDashboard() {
           </main>
         </SidebarInset>
       </div>
+
+      {/* Prescription Dialog */}
+      <Dialog open={prescriptionDialog} onOpenChange={setPrescriptionDialog}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Prescription</DialogTitle>
+            <DialogDescription>
+              Create prescription for {selectedAppointmentForPrescription?.Patient?.firstName} {selectedAppointmentForPrescription?.Patient?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Vitals Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Vitals</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Blood Pressure</Label>
+                  <Input
+                    placeholder="120/80"
+                    value={prescriptionForm.bloodPressure}
+                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, bloodPressure: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Heart Rate (bpm)</Label>
+                  <Input
+                    placeholder="72"
+                    value={prescriptionForm.heartRate}
+                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, heartRate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Temperature (°F)</Label>
+                  <Input
+                    placeholder="98.6"
+                    value={prescriptionForm.temperature}
+                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, temperature: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Weight (kg)</Label>
+                  <Input
+                    placeholder="70"
+                    value={prescriptionForm.weight}
+                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, weight: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Height (cm)</Label>
+                  <Input
+                    placeholder="170"
+                    value={prescriptionForm.height}
+                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, height: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Medicines Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Medicines</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPrescriptionForm(prev => ({
+                      ...prev,
+                      medicines: [...prev.medicines, { name: '', dosage: '', frequency: '', duration: '' }]
+                    }));
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Medicine
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                {prescriptionForm.medicines.map((medicine, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                    <div>
+                      <Label>Medicine Name</Label>
+                      <Input
+                        placeholder="Medicine name"
+                        value={medicine.name}
+                        onChange={(e) => {
+                          const newMedicines = [...prescriptionForm.medicines];
+                          newMedicines[index].name = e.target.value;
+                          setPrescriptionForm(prev => ({ ...prev, medicines: newMedicines }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Dosage</Label>
+                      <Input
+                        placeholder="500mg"
+                        value={medicine.dosage}
+                        onChange={(e) => {
+                          const newMedicines = [...prescriptionForm.medicines];
+                          newMedicines[index].dosage = e.target.value;
+                          setPrescriptionForm(prev => ({ ...prev, medicines: newMedicines }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Frequency</Label>
+                      <Input
+                        placeholder="2 times daily"
+                        value={medicine.frequency}
+                        onChange={(e) => {
+                          const newMedicines = [...prescriptionForm.medicines];
+                          newMedicines[index].frequency = e.target.value;
+                          setPrescriptionForm(prev => ({ ...prev, medicines: newMedicines }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Duration</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          placeholder="7 days"
+                          value={medicine.duration}
+                          onChange={(e) => {
+                            const newMedicines = [...prescriptionForm.medicines];
+                            newMedicines[index].duration = e.target.value;
+                            setPrescriptionForm(prev => ({ ...prev, medicines: newMedicines }));
+                          }}
+                        />
+                        {prescriptionForm.medicines.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => {
+                              const newMedicines = prescriptionForm.medicines.filter((_, i) => i !== index);
+                              setPrescriptionForm(prev => ({ ...prev, medicines: newMedicines }));
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Remarks Section */}
+            <div>
+              <Label>Remarks & Instructions</Label>
+              <Textarea
+                placeholder="Additional remarks, instructions for patient..."
+                rows={4}
+                value={prescriptionForm.remarks}
+                onChange={(e) => setPrescriptionForm(prev => ({ ...prev, remarks: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrescriptionDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/doctor/prescriptions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      appointmentId: selectedAppointmentForPrescription?.id,
+                      patientId: selectedAppointmentForPrescription?.Patient?.id,
+                      vitals: {
+                        bloodPressure: prescriptionForm.bloodPressure,
+                        heartRate: prescriptionForm.heartRate,
+                        temperature: prescriptionForm.temperature,
+                        weight: prescriptionForm.weight,
+                        height: prescriptionForm.height
+                      },
+                      medicines: prescriptionForm.medicines.filter(med => med.name.trim() !== ''),
+                      remarks: prescriptionForm.remarks
+                    })
+                  });
+
+                  if (response.ok) {
+                    setPrescriptionDialog(false);
+                    setPrescriptionForm({
+                      bloodPressure: '',
+                      heartRate: '',
+                      temperature: '',
+                      weight: '',
+                      height: '',
+                      medicines: [{ name: '', dosage: '', frequency: '', duration: '' }],
+                      remarks: ''
+                    });
+                    alert('Prescription created successfully!');
+                  } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to create prescription');
+                  }
+                } catch (error) {
+                  console.error('Error creating prescription:', error);
+                  alert('Failed to create prescription');
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <FileEdit className="h-4 w-4 mr-1" />
+              Create Prescription
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   )
 }

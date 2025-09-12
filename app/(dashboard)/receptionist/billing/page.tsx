@@ -351,7 +351,7 @@ export default function BillingPage() {
       'refunded': { color: 'bg-gray-100 text-gray-700', icon: RefreshCw }
     }
     
-    const config = statusConfig[status] || statusConfig['pending']
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['pending']
     const Icon = config.icon
     
     return (

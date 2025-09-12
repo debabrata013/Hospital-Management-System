@@ -6,7 +6,7 @@ const dbConfig = {
   user: process.env.DB_USER || 'u153229971_admin',
   password: process.env.DB_PASSWORD || 'Admin!2025',
   database: process.env.DB_NAME || 'u153229971_Hospital',
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT || '3306'),
   charset: 'utf8mb4',
   timezone: '+05:30',
   connectTimeout: 20000
@@ -162,9 +162,19 @@ export async function POST(request: NextRequest) {
         payment_method, is_offline, notes, created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        billId, patientId, appointmentId, billType, totalAmount,
-        discountAmount, taxAmount, finalAmount, 'pending',
-        paymentMethod, isOffline, notes, createdBy
+        billId, 
+        patientId, 
+        appointmentId || null, 
+        billType || 'consultation', 
+        totalAmount,
+        discountAmount, 
+        taxAmount, 
+        finalAmount, 
+        'pending',
+        paymentMethod || null, 
+        isOffline || true, 
+        notes || null, 
+        createdBy || 1
       ]
     );
     
@@ -181,8 +191,15 @@ export async function POST(request: NextRequest) {
           unit_price, total_price, discount_percent, discount_amount
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          billDbId, item.itemType, item.itemName, item.description || '',
-          item.quantity, item.unitPrice, itemTotal, item.discountPercent || 0, itemDiscount
+          billDbId, 
+          item.itemType || 'other', 
+          item.itemName || 'Item', 
+          item.description || null,
+          item.quantity || 1, 
+          item.unitPrice || 0, 
+          itemTotal, 
+          item.discountPercent || 0, 
+          itemDiscount
         ]
       );
     }

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const validation = verifyOtpSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ message: validation.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ message: validation.error.issues[0].message }, { status: 400 });
     }
 
     const { phoneNumber, otp } = validation.data;

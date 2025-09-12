@@ -119,11 +119,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { patient_id, medications, dosage, instructions, duration } = body
+    const { appointmentId, patientId, vitals, medicines, remarks } = body
 
-    if (!patient_id || !medications || !dosage || !instructions) {
+    if (!patientId || !medicines || medicines.length === 0) {
       return NextResponse.json(
-        { error: 'Patient ID, medications, dosage, and instructions are required' },
+        { error: 'Patient ID and medicines are required' },
         { status: 400 }
       )
     }
@@ -131,26 +131,37 @@ export async function POST(request: NextRequest) {
     const connection = await mysql.createConnection(dbConfig)
 
     try {
+      // Generate prescription ID
+      const prescriptionId = `PRESC-${Date.now().toString(36)}${Math.random().toString(36).substr(2, 4)}`.toUpperCase();
+
       // Insert new prescription
       const insertQuery = `
         INSERT INTO prescriptions (
-          patient_id, doctor_id, medications, dosage, instructions, duration, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+          prescription_id, patient_id, doctor_id, appointment_id,
+          blood_pressure, heart_rate, temperature, weight, height,
+          medicines, remarks, prescription_date, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), NOW(), NOW())
       `
 
       const [result] = await connection.execute(insertQuery, [
-        patient_id,
+        prescriptionId,
+        patientId,
         tokenResult.userId,
-        medications,
-        dosage,
-        instructions,
-        duration || null
+        appointmentId || null,
+        vitals?.bloodPressure || null,
+        vitals?.heartRate || null,
+        vitals?.temperature || null,
+        vitals?.weight || null,
+        vitals?.height || null,
+        JSON.stringify(medicines),
+        remarks || null
       ]) as any[]
 
       return NextResponse.json({
         success: true,
         message: 'Prescription created successfully',
-        prescriptionId: result.insertId
+        prescriptionId: prescriptionId,
+        id: result.insertId
       })
 
     } finally {
