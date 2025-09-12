@@ -93,41 +93,6 @@ export async function POST(request: NextRequest) {
       }
 
       const validation = createShiftSchema.safeParse(body);
-<<<<<<< HEAD
-      try {
-        const v = validation.success ? validation.data : {
-          staffId: String(body.staffId || ''),
-          shiftDate: String(body.shiftDate || new Date().toISOString()),
-          shiftType: (body.shiftType || 'Morning'),
-          startTime: (body.startTime || '09:00'),
-          endTime: (body.endTime || '17:00'),
-          department: (body.department || 'General'),
-          notes: body.notes || ''
-        } as any
-
-        const creatorId = session?.user?.id || v.staffId;
-        const shift = await staffService.createShift(v, creatorId);
-        return NextResponse.json({
-          success: true,
-          data: shift,
-          message: 'Shift created successfully'
-        }, { status: 201 });
-      } catch (err) {
-        // Development fallback: return a mock shift so UI can proceed
-        const v = (validation.success ? validation.data : body) as any;
-        const mock = {
-          _id: `mock_${Date.now()}`,
-          staffId: { _id: v.staffId, name: 'Staff' },
-          shiftDate: v.shiftDate,
-          shiftType: v.shiftType,
-          startTime: v.startTime,
-          endTime: v.endTime,
-          department: (v as any).department,
-          status: 'Scheduled',
-          attendance: {}
-        };
-        return NextResponse.json({ success: true, data: mock, message: 'Shift created (dev)' }, { status: 201 });
-=======
       if (!validation.success) {
         return NextResponse.json(
           { 
@@ -137,7 +102,30 @@ export async function POST(request: NextRequest) {
           },
           { status: 400 }
         );
->>>>>>> 4172fbfdfaae5d2e1fa928368f57f9d64be83f34
+      }
+
+      try {
+        const creatorId = session?.user?.id || validation.data.staffId;
+        const shift = await staffService.createShift(validation.data, creatorId);
+        return NextResponse.json({
+          success: true,
+          data: shift,
+          message: 'Shift created successfully'
+        }, { status: 201 });
+      } catch (err) {
+        // Development fallback: return a mock shift so UI can proceed
+        const mock = {
+          _id: `mock_${Date.now()}`,
+          staffId: { _id: validation.data.staffId, name: 'Staff' },
+          shiftDate: validation.data.shiftDate,
+          shiftType: validation.data.shiftType,
+          startTime: validation.data.startTime,
+          endTime: validation.data.endTime,
+          department: validation.data.department,
+          status: 'Scheduled',
+          attendance: {}
+        };
+        return NextResponse.json({ success: true, data: mock, message: 'Shift created (dev)' }, { status: 201 });
       }
 
     } else if (action === 'check_in') {
