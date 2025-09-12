@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono'
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import './globals.css'
+import ExtensionErrorShield from './ExtensionErrorShield'
 
 export const metadata: Metadata = {
   title: ' Hospital Management System',
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
         <AuthProvider>
+          <ExtensionErrorShield />
           {children}
           <Toaster />
         </AuthProvider>
