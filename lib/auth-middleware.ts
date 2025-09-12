@@ -74,16 +74,13 @@ export async function authenticateUser(request: NextRequest): Promise<AuthResult
       return NextResponse.json({ error: 'Account is deactivated' }, { status: 401 });
     }
 
-    if (user.lockUntil && user.lockUntil > new Date()) {
-      return NextResponse.json({ error: 'Account is temporarily locked' }, { status: 401 });
-    }
-
-    await user.update({ lastLogin: new Date() });
+    // Note: lockUntil and lastLogin fields don't exist in current database schema
+    // Remove these checks until database is updated
 
     const authenticatedUser: AuthenticatedUser = {
       id: user.id.toString(),
       email: user.email,
-      name: user.name,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
       role: user.role,
       employeeId: user.employeeId,
     };

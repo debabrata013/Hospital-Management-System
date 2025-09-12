@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Heart, LayoutDashboard, Users, UserCheck, UserCog, Settings, FileText, Bell, LogOut, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, Shield } from 'lucide-react'
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 // Interfaces
 interface DashboardStats {
@@ -50,14 +50,6 @@ interface MonthlyData {
   month: string
   users: number
   doctors: number
-}
-
-interface RecentActivity {
-  action: string
-  table_name: string
-  user_id: number
-  created_at: string
-  details: string
 }
 
 // Navigation items (removed hospital management)
@@ -76,14 +68,6 @@ const navigationItems = [
       { title: "Manage Doctors", icon: UserCheck, url: "/super-admin/doctors" },
       { title: "Manage Staff", icon: Users, url: "/super-admin/staff" },
     ]
-  },
-  {
-    title: "System",
-    items: [
-      { title: "System Settings", icon: Settings, url: "/super-admin/settings" },
-      { title: "Security", icon: Shield, url: "/super-admin/security" },
-      { title: "Logs", icon: FileText, url: "/super-admin/logs" },
-    ]
   }
 ]
 
@@ -91,7 +75,6 @@ export default function SuperAdminDashboard() {
   const [notifications] = useState(5)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -113,20 +96,10 @@ export default function SuperAdminDashboard() {
       const data = await response.json()
       setStats(data.stats)
       setMonthlyData(data.monthlyData || [])
-      setRecentActivities(data.recentActivities || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'user_suspended': return <UserCog className="h-4 w-4 text-yellow-500" />
-      case 'system_update': return <Settings className="h-4 w-4 text-blue-500" />
-      case 'security_alert': return <AlertTriangle className="h-4 w-4 text-red-500" />
-      default: return <Activity className="h-4 w-4 text-gray-500" />
     }
   }
 
@@ -226,15 +199,6 @@ export default function SuperAdminDashboard() {
                       <p className="text-xs leading-none text-muted-foreground">System Administrator</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Shield className="mr-2 h-4 w-4" />
-                    Security
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -377,71 +341,35 @@ export default function SuperAdminDashboard() {
 
                   <Card className="border-pink-100">
                     <CardHeader>
-                      <CardTitle className="text-gray-900">Recent Activities</CardTitle>
-                      <CardDescription>Latest system activities and changes</CardDescription>
+                      <CardTitle className="text-gray-900">User Distribution</CardTitle>
+                      <CardDescription>Distribution of users by role</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {recentActivities.length > 0 ? (
-                          recentActivities.slice(0, 5).map((activity, index) => (
-                            <div key={index} className="flex items-start space-x-3">
-                              {getActivityIcon(activity.action)}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {activity.details || `${activity.action} on ${activity.table_name}`}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(activity.created_at).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500">No recent activities</p>
-                          </div>
-                        )}
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Doctors', value: stats?.totalDoctors || 0, fill: '#10b981' },
+                                { name: 'Admins', value: stats?.totalAdmins || 0, fill: '#ec4899' },
+                                { name: 'Other Staff', value: (stats?.totalUsers || 0) - (stats?.totalDoctors || 0) - (stats?.totalAdmins || 0), fill: '#3b82f6' }
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
-
-                {/* Quick Actions */}
-                <Card className="border-pink-100">
-                  <CardHeader>
-                    <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-                    <CardDescription>Common administrative tasks</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <UserCog className="h-6 w-6" />
-                        <span className="text-sm">Add Admin</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <UserCheck className="h-6 w-6" />
-                        <span className="text-sm">Add Doctor</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <Settings className="h-6 w-6" />
-                        <span className="text-sm">System Config</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <FileText className="h-6 w-6" />
-                        <span className="text-sm">View Logs</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <Shield className="h-6 w-6" />
-                        <span className="text-sm">Security</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
               </>
             )}
           </main>

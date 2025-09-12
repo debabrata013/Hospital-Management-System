@@ -12,16 +12,27 @@ export async function GET(req: NextRequest) {
     const query = `
       SELECT 
         a.id, 
-        a.appointment_date as appointmentDate, 
-        a.chief_complaint as reason, 
+        a.appointment_id,
+        a.appointment_date as appointmentDate,
+        a.appointment_time as appointmentTime,
+        COALESCE(a.notes, a.chief_complaint, a.reason_for_visit, 'General Consultation') as reason, 
         a.status,
+        a.appointment_type,
+        a.consultation_fee,
+        a.created_at,
         p.id as patientId,
-        p.name
+        p.name,
+        p.contact_number,
+        p.age,
+        p.gender,
+        creator.name as createdByName,
+        creator.role as createdByRole
       FROM appointments a
       JOIN patients p ON a.patient_id = p.id
-      WHERE a.doctor_id = ? AND DATE(a.appointment_date) = CURDATE()
-      ORDER BY a.appointment_date ASC
-      LIMIT 10
+      LEFT JOIN users creator ON a.created_by = creator.id
+      WHERE a.doctor_id = ? AND a.status NOT IN ('cancelled', 'completed')
+      ORDER BY a.appointment_date DESC, a.appointment_time ASC
+      LIMIT 50
     `;
 
     const appointmentsData: any = await executeQuery(query, [userId]);
@@ -39,13 +50,25 @@ export async function GET(req: NextRequest) {
       const lastName = lastNameParts.join(' ');
       return {
         id: appt.id,
+        appointmentId: appt.appointment_id,
         appointmentDate: appt.appointmentDate,
+        appointmentTime: appt.appointmentTime,
         reason: appt.reason,
         status: appt.status,
+        appointmentType: appt.appointment_type,
+        consultationFee: appt.consultation_fee,
+        createdAt: appt.created_at,
+        createdBy: {
+          name: appt.createdByName,
+          role: appt.createdByRole
+        },
         Patient: {
           id: appt.patientId,
           firstName: firstName || '',
           lastName: lastName || '',
+          contactNumber: appt.contact_number,
+          age: appt.age,
+          gender: appt.gender
         },
       }
     });

@@ -1,8 +1,11 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { 
   TrendingUp, 
   BarChart3, 
@@ -11,10 +14,83 @@ import {
   Download,
   Calendar,
   Filter,
-  RefreshCw
+  RefreshCw,
+  CreditCard,
+  Banknote,
+  DollarSign,
+  TrendingDown
 } from 'lucide-react'
+import { LineChart as RechartsLineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie } from 'recharts'
+
+interface BillingAnalytics {
+  totalCashCollection: number
+  totalOnlineCollection: number
+  totalCollection: number
+  dailyCollections: Array<{
+    date: string
+    cash: number
+    online: number
+    total: number
+  }>
+  monthlyTrend: Array<{
+    month: string
+    cash: number
+    online: number
+  }>
+  paymentMethodBreakdown: Array<{
+    method: string
+    amount: number
+    percentage: number
+  }>
+}
+
+const COLORS = ['#ec4899', '#10b981', '#3b82f6', '#f59e0b']
 
 export default function AnalyticsPage() {
+  const [analytics, setAnalytics] = useState<BillingAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  })
+
+  useEffect(() => {
+    fetchBillingAnalytics()
+  }, [dateRange])
+
+  const fetchBillingAnalytics = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/super-admin/billing-analytics?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics')
+      }
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
+      setAnalytics(data)
+    } catch (error) {
+      console.error('Failed to fetch billing analytics:', error)
+      // Show error message to user
+      alert('Failed to load billing analytics. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white px-4 sm:px-6 py-6">
       {/* Header */}
@@ -26,19 +102,20 @@ export default function AnalyticsPage() {
               Analytics Dashboard
             </h1>
             <p className="text-gray-600 mt-2 text-sm sm:text-base">
-              Comprehensive system analytics and insights
+              Comprehensive billing analytics and financial insights
             </p>
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full sm:w-auto">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
+            <Button 
+              variant="outline" 
+              className="border-pink-200 text-pink-600 hover:bg-pink-50"
+              onClick={fetchBillingAnalytics}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full sm:w-auto">
-              <Calendar className="h-4 w-4 mr-2" />
-              Date Range
-            </Button>
-            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto">
+            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
@@ -46,177 +123,234 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className="mb-6">
-        <Badge className="bg-green-100 text-green-700 px-3 py-1 sm:px-4 sm:py-2 text-sm sm:text-base">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Last updated: 5 minutes ago
-        </Badge>
-      </div>
-
-      {/* Analytics Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base sm:text-lg">
-              <BarChart3 className="h-5 w-5 mr-2 text-blue-500" />
-              Revenue Analytics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm sm:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Monthly Revenue</span>
-                <span className="font-semibold">₹2,45,000</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Growth Rate</span>
-                <span className="font-semibold text-green-600">+12.5%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Avg. per Patient</span>
-                <span className="font-semibold">₹1,850</span>
-              </div>
+      {/* Date Range Filter */}
+      <Card className="mb-6 border-pink-100">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-40"
+              />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base sm:text-lg">
-              <PieChart className="h-5 w-5 mr-2 text-green-500" />
-              Patient Analytics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm sm:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">New Patients</span>
-                <span className="font-semibold">156</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Return Patients</span>
-                <span className="font-semibold">324</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Satisfaction Rate</span>
-                <span className="font-semibold text-green-600">94.2%</span>
-              </div>
+            <div>
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-40"
+              />
             </div>
-          </CardContent>
-        </Card>
+            <Button 
+              onClick={fetchBillingAnalytics}
+              disabled={loading}
+              className="bg-pink-500 hover:bg-pink-600"
+            >
+              Apply Filter
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base sm:text-lg">
-              <LineChart className="h-5 w-5 mr-2 text-purple-500" />
-              Operational Analytics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm sm:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Avg. Wait Time</span>
-                <span className="font-semibold">18 mins</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Bed Occupancy</span>
-                <span className="font-semibold">78%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Staff Efficiency</span>
-                <span className="font-semibold text-green-600">91.5%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Analytics Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Chart Placeholder 1 */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Revenue Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-56 sm:h-64 bg-gradient-to-br from-pink-50 to-blue-50 rounded-lg flex items-center justify-center">
-              <div className="text-center px-4">
-                <BarChart3 className="h-12 w-12 sm:h-16 sm:w-16 text-pink-300 mx-auto mb-3 sm:mb-4" />
-                <p className="text-gray-500 text-sm sm:text-base">Revenue Chart will be implemented here</p>
-                <p className="text-xs sm:text-sm text-gray-400 mt-1 sm:mt-2">Interactive charts with Recharts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Chart Placeholder 2 */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Patient Demographics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-56 sm:h-64 bg-gradient-to-br from-green-50 to-purple-50 rounded-lg flex items-center justify-center">
-              <div className="text-center px-4">
-                <PieChart className="h-12 w-12 sm:h-16 sm:w-16 text-green-300 mx-auto mb-3 sm:mb-4" />
-                <p className="text-gray-500 text-sm sm:text-base">Demographics Chart will be implemented here</p>
-                <p className="text-xs sm:text-sm text-gray-400 mt-1 sm:mt-2">Age groups, gender distribution, etc.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Chart Placeholder 3 */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Department Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-56 sm:h-64 bg-gradient-to-br from-blue-50 to-pink-50 rounded-lg flex items-center justify-center">
-              <div className="text-center px-4">
-                <LineChart className="h-12 w-12 sm:h-16 sm:w-16 text-blue-300 mx-auto mb-3 sm:mb-4" />
-                <p className="text-gray-500 text-sm sm:text-base">Performance Chart will be implemented here</p>
-                <p className="text-xs sm:text-sm text-gray-400 mt-1 sm:mt-2">Department-wise metrics and KPIs</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Summary Card */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Analytics Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 text-sm sm:text-base">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold text-green-800">Key Insights</h4>
-                <ul className="mt-2 space-y-1 text-green-700">
-                  <li>• Revenue increased by 12.5% this month</li>
-                  <li>• Patient satisfaction at all-time high</li>
-                  <li>• Operational efficiency improved</li>
-                </ul>
-              </div>
-              <div className="p-4 bg-yellow-50 rounded-lg">
-                <h4 className="font-semibold text-yellow-800">Areas for Improvement</h4>
-                <ul className="mt-2 space-y-1 text-yellow-700">
-                  <li>• Reduce average wait time</li>
-                  <li>• Optimize bed utilization</li>
-                  <li>• Enhance staff training programs</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Coming Soon Notice */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex flex-wrap items-center px-4 sm:px-6 py-2 sm:py-3 bg-pink-100 text-pink-700 rounded-full text-sm sm:text-base">
-          <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-          <span className="font-medium">Advanced Analytics Features Coming Soon</span>
+      {loading ? (
+        <div className="text-center py-12">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-pink-500" />
+          <p>Loading analytics...</p>
         </div>
-      </div>
+      ) : analytics && (
+        <>
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Collection</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.totalCollection)}</p>
+                    <p className="text-sm text-green-600 flex items-center mt-1">
+                      <TrendingUp className="h-4 w-4 mr-1" />
+                      +12.5% from last period
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
+                    <DollarSign className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Cash Collection</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.totalCashCollection)}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {((analytics.totalCashCollection / analytics.totalCollection) * 100).toFixed(1)}% of total
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
+                    <Banknote className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Online Collection</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.totalOnlineCollection)}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {((analytics.totalOnlineCollection / analytics.totalCollection) * 100).toFixed(1)}% of total
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                    <CreditCard className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Daily Average</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(analytics.dailyCollections.reduce((sum, day) => sum + day.total, 0) / analytics.dailyCollections.length)}
+                    </p>
+                    <p className="text-sm text-blue-600 flex items-center mt-1">
+                      <BarChart3 className="h-4 w-4 mr-1" />
+                      Last 7 days average
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-3 rounded-xl">
+                    <LineChart className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Daily Collections Trend */}
+            <Card className="border-pink-100">
+              <CardHeader>
+                <CardTitle>Daily Collections Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={analytics.dailyCollections}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Legend />
+                      <Area type="monotone" dataKey="cash" stackId="1" stroke="#10b981" fill="#10b981" name="Cash" />
+                      <Area type="monotone" dataKey="online" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Online" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Method Breakdown */}
+            <Card className="border-pink-100">
+              <CardHeader>
+                <CardTitle>Payment Method Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={analytics.paymentMethodBreakdown}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ method, percentage }) => `${method} (${percentage}%)`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="amount"
+                      >
+                        {analytics.paymentMethodBreakdown.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monthly Trend */}
+          <Card className="border-pink-100 mb-8">
+            <CardHeader>
+              <CardTitle>Monthly Collection Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.monthlyTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Legend />
+                    <Bar dataKey="cash" fill="#10b981" name="Cash Collection" />
+                    <Bar dataKey="online" fill="#3b82f6" name="Online Collection" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Detailed Breakdown Table */}
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Daily Collection Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Date</th>
+                      <th className="text-right p-2">Cash Collection</th>
+                      <th className="text-right p-2">Online Collection</th>
+                      <th className="text-right p-2">Total Collection</th>
+                      <th className="text-right p-2">Cash %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.dailyCollections.map((day, index) => (
+                      <tr key={index} className="border-b hover:bg-gray-50">
+                        <td className="p-2">{new Date(day.date).toLocaleDateString()}</td>
+                        <td className="text-right p-2">{formatCurrency(day.cash)}</td>
+                        <td className="text-right p-2">{formatCurrency(day.online)}</td>
+                        <td className="text-right p-2 font-semibold">{formatCurrency(day.total)}</td>
+                        <td className="text-right p-2">{((day.cash / day.total) * 100).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

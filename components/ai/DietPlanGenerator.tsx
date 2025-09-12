@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle, Edit, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Utensils, CheckCircle, AlertCircle, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DietPlanGeneratorProps {
   onApproval?: () => void;
 }
 
 const DietPlanGenerator = ({ onApproval }: DietPlanGeneratorProps) => {
+  const { authState } = useAuth();
   const [notes, setNotes] = useState('');
   const [dietPlan, setDietPlan] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,8 +106,8 @@ const DietPlanGenerator = ({ onApproval }: DietPlanGeneratorProps) => {
           patientId: patient.id,
           patientName: patient.name,
           content: dietPlan,
-          doctorId: 'D001', // This should come from current user session
-          doctorName: 'Dr. Current User', // This should come from current user session
+          doctorId: authState.user?.id || 'D001',
+          doctorName: authState.user?.name || 'Dr. Current User',
           originalNotes: notes
         }),
       });

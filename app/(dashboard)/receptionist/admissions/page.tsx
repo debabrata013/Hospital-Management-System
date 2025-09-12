@@ -1,700 +1,1031 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { 
+  Search, 
+  Plus, 
+  Edit, 
+  Eye, 
   ArrowLeft,
-  Bed,
-  UserPlus,
-  Search,
-  Filter,
-  Plus,
-  Edit,
-  Eye,
-  Calendar,
-  Clock,
   User,
+  Bed,
   Phone,
-  MapPin,
-  FileText,
-  AlertTriangle,
   CheckCircle,
   XCircle,
-  Stethoscope,
+  AlertCircle,
+  Clock,
+  Users,
   Activity,
-  Heart,
-  Thermometer
+  FileText,
+  DollarSign,
+  RefreshCw,
+  Calendar,
+  Stethoscope
 } from 'lucide-react'
+import Link from 'next/link'
 
-// Mock data for admissions
-const currentAdmissions = [
-  {
-    id: "ADM001",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    age: 45,
-    gender: "Male",
-    roomNumber: "101",
-    bedNumber: "A1",
-    ward: "General Ward",
-    admissionDate: "2024-01-08",
-    admissionTime: "10:30 AM",
-    doctor: "Dr. Anil Kumar",
-    department: "General Medicine",
-    condition: "Stable",
-    status: "admitted",
-    emergencyContact: "+91 98765 43210",
-    diagnosis: "Hypertension monitoring",
-    estimatedDischarge: "2024-01-10"
-  },
-  {
-    id: "ADM002",
-    patientId: "P002",
-    patientName: "Sunita Devi",
-    age: 32,
-    gender: "Female",
-    roomNumber: "205",
-    bedNumber: "B2",
-    ward: "Maternity Ward",
-    admissionDate: "2024-01-07",
-    admissionTime: "08:15 AM",
-    doctor: "Dr. Priya Singh",
-    department: "Gynecology",
-    condition: "Good",
-    status: "admitted",
-    emergencyContact: "+91 98765 43211",
-    diagnosis: "Post-delivery care",
-    estimatedDischarge: "2024-01-09"
-  },
-  {
-    id: "ADM003",
-    patientId: "P003",
-    patientName: "Ajay Kumar",
-    age: 28,
-    gender: "Male",
-    roomNumber: "ICU-1",
-    bedNumber: "I1",
-    ward: "ICU",
-    admissionDate: "2024-01-08",
-    admissionTime: "02:45 PM",
-    doctor: "Dr. Rajesh Gupta",
-    department: "Emergency",
-    condition: "Critical",
-    status: "admitted",
-    emergencyContact: "+91 98765 43212",
-    diagnosis: "Accident trauma",
-    estimatedDischarge: "TBD"
-  }
-]
+interface Admission {
+  id: number
+  admission_id: string
+  patient_name: string
+  patient_phone: string
+  age: number
+  gender: string
+  doctor_name: string
+  room_number: string
+  room_type: string
+  admission_date: string
+  admission_type: string
+  status: 'active' | 'discharged' | 'transferred' | 'cancelled'
+  diagnosis?: string
+  chief_complaint?: string
+  estimated_stay_days?: number
+  total_charges: number
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+}
 
-const availableRooms = [
-  { roomNumber: "102", ward: "General Ward", bedCount: 4, availableBeds: 2, type: "Shared" },
-  { roomNumber: "103", ward: "General Ward", bedCount: 2, availableBeds: 1, type: "Semi-Private" },
-  { roomNumber: "201", ward: "Private Ward", bedCount: 1, availableBeds: 1, type: "Private" },
-  { roomNumber: "301", ward: "ICU", bedCount: 1, availableBeds: 0, type: "ICU" },
-  { roomNumber: "401", ward: "Pediatric Ward", bedCount: 6, availableBeds: 3, type: "Pediatric" }
-]
+interface Room {
+  id: number
+  room_number: string
+  room_name: string
+  room_type: string
+  floor: number
+  capacity: number
+  current_occupancy: number
+  status: string
+  daily_rate: number
+  description: string
+}
 
-const dischargeRequests = [
-  {
-    id: "DIS001",
-    patientName: "Mohan Lal",
-    roomNumber: "104",
-    doctor: "Dr. Anil Kumar",
-    admissionDate: "2024-01-05",
-    requestedBy: "Dr. Anil Kumar",
-    requestTime: "11:30 AM",
-    status: "pending",
-    finalBill: 15000,
-    clearances: {
-      medical: true,
-      billing: false,
-      pharmacy: true,
-      nursing: true
-    }
-  },
-  {
-    id: "DIS002",
-    patientName: "Kavita Singh",
-    roomNumber: "206",
-    doctor: "Dr. Priya Singh",
-    admissionDate: "2024-01-06",
-    requestedBy: "Dr. Priya Singh",
-    requestTime: "09:15 AM",
-    status: "ready",
-    finalBill: 8500,
-    clearances: {
-      medical: true,
-      billing: true,
-      pharmacy: true,
-      nursing: true
-    }
-  }
-]
+interface Patient {
+  id: number
+  name: string
+  age: number
+  gender: string
+  contact_number: string
+}
+
+interface Doctor {
+  id: number
+  name: string
+  specialization?: string
+}
 
 export default function AdmissionsPage() {
-  const [activeTab, setActiveTab] = useState("current")
-  const [newAdmissionDialog, setNewAdmissionDialog] = useState(false)
-  const [dischargeDialog, setDischargeDialog] = useState(false)
-  const [selectedPatient, setSelectedPatient] = useState<any>(null)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [admissions, setAdmissions] = useState<Admission[]>([])
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [roomTypeFilter, setRoomTypeFilter] = useState('all')
+  const [doctorFilter, setDoctorFilter] = useState('all')
+  
+  // Dialog states
+  const [showNewAdmissionDialog, setShowNewAdmissionDialog] = useState(false)
+  const [showAdmissionDetailsDialog, setShowAdmissionDetailsDialog] = useState(false)
+  const [showDischargeDialog, setShowDischargeDialog] = useState(false)
+  const [showTransferDialog, setShowTransferDialog] = useState(false)
+  
+  const [selectedAdmission, setSelectedAdmission] = useState<Admission | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Form states
+  const [admissionForm, setAdmissionForm] = useState({
+    patientId: '',
+    roomId: '',
+    doctorId: '',
+    admissionType: 'planned',
+    diagnosis: '',
+    chiefComplaint: '',
+    admissionNotes: '',
+    estimatedStayDays: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactRelation: ''
+  })
+  
+  const [dischargeForm, setDischargeForm] = useState({
+    dischargeNotes: '',
+    dischargeSummary: '',
+    dischargeInstructions: ''
+  })
+  
+  const [transferForm, setTransferForm] = useState({
+    newRoomId: '',
+    transferReason: ''
+  })
+
+  useEffect(() => {
+    fetchAdmissions()
+    fetchRooms()
+    fetchDoctors()
+  }, [searchQuery, statusFilter, roomTypeFilter, doctorFilter])
+
+  const fetchAdmissions = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        ...(searchQuery && { search: searchQuery }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(roomTypeFilter !== 'all' && { roomType: roomTypeFilter }),
+        ...(doctorFilter !== 'all' && { doctorId: doctorFilter })
+      })
+      
+      const response = await fetch(`/api/receptionist/admissions?${params}`)
+      const data = await response.json()
+      setAdmissions(data.admissions || [])
+    } catch (error) {
+      console.error('Failed to fetch admissions:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchRooms = async () => {
+    try {
+      const response = await fetch('/api/receptionist/rooms')
+      const data = await response.json()
+      if (data.success) {
+        setRooms(data.rooms || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error)
+    }
+  }
+
+  const fetchDoctors = async () => {
+    try {
+      const response = await fetch('/api/receptionist/doctors')
+      const data = await response.json()
+      setDoctors(data.doctors || [])
+    } catch (error) {
+      console.error('Failed to fetch doctors:', error)
+    }
+  }
+
+  const searchPatients = async (query: string) => {
+    if (query.length < 2) {
+      setPatients([])
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/receptionist/patients/search?q=${encodeURIComponent(query)}`)
+      const data = await response.json()
+      setPatients(data.patients || [])
+    } catch (error) {
+      console.error('Failed to search patients:', error)
+    }
+  }
+
+  const createAdmission = async () => {
+    if (!admissionForm.patientId || !admissionForm.roomId || !admissionForm.doctorId) {
+      alert('Please fill in all required fields')
+      return
+    }
+    
+    try {
+      setIsSubmitting(true)
+      const response = await fetch('/api/receptionist/admissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...admissionForm,
+          estimatedStayDays: admissionForm.estimatedStayDays ? parseInt(admissionForm.estimatedStayDays) : null,
+          admittedBy: 1 // Replace with actual user ID
+        })
+      })
+
+      if (response.ok) {
+        alert('Patient admitted successfully!')
+        resetAdmissionForm()
+        fetchAdmissions()
+        fetchRooms() // Refresh available rooms
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Failed to admit patient')
+      }
+    } catch (error) {
+      console.error('Failed to create admission:', error)
+      alert('Failed to admit patient')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const dischargePatient = async () => {
+    if (!selectedAdmission) return
+    
+    try {
+      setIsSubmitting(true)
+      const response = await fetch('/api/receptionist/admissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          admissionId: selectedAdmission.admission_id,
+          action: 'discharge',
+          ...dischargeForm,
+          dischargedBy: 1 // Replace with actual user ID
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const confirmBilling = confirm(`Patient discharged successfully!\n\nBill Generated:\nBill ID: ${result.billId}\nTotal Amount: ₹${result.totalAmount.toLocaleString()}\nStay Duration: ${result.stayDays} days\n\nBill has been added to the billing system.\n\nWould you like to go to the billing section to process payment?`)
+        
+        setShowDischargeDialog(false)
+        setDischargeForm({ dischargeNotes: '', dischargeSummary: '', dischargeInstructions: '' })
+        fetchAdmissions()
+        fetchRooms()
+        
+        if (confirmBilling) {
+          window.open('/receptionist/billing', '_blank')
+        }
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Failed to discharge patient')
+      }
+    } catch (error) {
+      console.error('Failed to discharge patient:', error)
+      alert('Failed to discharge patient')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const transferPatient = async () => {
+    if (!selectedAdmission || !transferForm.newRoomId) return
+    
+    try {
+      setIsSubmitting(true)
+      const response = await fetch('/api/receptionist/admissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          admissionId: selectedAdmission.admission_id,
+          action: 'transfer',
+          ...transferForm,
+          dischargedBy: 1 // Replace with actual user ID
+        })
+      })
+
+      if (response.ok) {
+        alert('Patient transferred successfully!')
+        setShowTransferDialog(false)
+        setTransferForm({ newRoomId: '', transferReason: '' })
+        fetchAdmissions()
+        fetchRooms()
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Failed to transfer patient')
+      }
+    } catch (error) {
+      console.error('Failed to transfer patient:', error)
+      alert('Failed to transfer patient')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const resetAdmissionForm = () => {
+    setAdmissionForm({
+      patientId: '',
+      roomId: '',
+      doctorId: '',
+      admissionType: 'planned',
+      diagnosis: '',
+      chiefComplaint: '',
+      admissionNotes: '',
+      estimatedStayDays: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      emergencyContactRelation: ''
+    })
+    setPatients([])
+    setShowNewAdmissionDialog(false)
+  }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'admitted':
-        return <Badge className="bg-green-100 text-green-700">Admitted</Badge>
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>
-      case 'ready':
-        return <Badge className="bg-blue-100 text-blue-700">Ready for Discharge</Badge>
-      case 'discharged':
-        return <Badge className="bg-gray-100 text-gray-700">Discharged</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
+    const statusConfig = {
+      'active': { color: 'bg-green-100 text-green-700', icon: Activity },
+      'discharged': { color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+      'transferred': { color: 'bg-yellow-100 text-yellow-700', icon: RefreshCw },
+      'cancelled': { color: 'bg-red-100 text-red-700', icon: XCircle }
     }
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['active']
+    const Icon = config.icon
+    
+    return (
+      <Badge className={config.color}>
+        <Icon className="h-3 w-3 mr-1" />
+        {status.toUpperCase()}
+      </Badge>
+    )
   }
 
-  const getConditionBadge = (condition: string) => {
-    switch (condition) {
-      case 'Critical':
-        return <Badge className="bg-red-100 text-red-700">Critical</Badge>
-      case 'Stable':
-        return <Badge className="bg-green-100 text-green-700">Stable</Badge>
-      case 'Good':
-        return <Badge className="bg-blue-100 text-blue-700">Good</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">{condition}</Badge>
+  const getAdmissionTypeBadge = (type: string) => {
+    const typeConfig = {
+      'emergency': { color: 'bg-red-100 text-red-700', icon: AlertCircle },
+      'planned': { color: 'bg-blue-100 text-blue-700', icon: Calendar },
+      'transfer': { color: 'bg-yellow-100 text-yellow-700', icon: RefreshCw },
+      'observation': { color: 'bg-purple-100 text-purple-700', icon: Eye }
     }
-  }
-
-  const getClearanceIcon = (cleared: boolean) => {
-    return cleared ? (
-      <CheckCircle className="h-4 w-4 text-green-500" />
-    ) : (
-      <XCircle className="h-4 w-4 text-red-500" />
+    
+    const config = typeConfig[type as keyof typeof typeConfig] || typeConfig['planned']
+    const Icon = config.icon
+    
+    return (
+      <Badge variant="outline" className={config.color}>
+        <Icon className="h-3 w-3 mr-1" />
+        {type.toUpperCase()}
+      </Badge>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 lg:p-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50">
-        <div className="flex items-center justify-between h-16 px-6">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/receptionist" className="flex items-center space-x-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Dashboard</span>
-              </Link>
-            </Button>
-            <div className="h-6 w-px bg-gray-300" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Patient Admissions</h1>
-              <p className="text-sm text-gray-500">Manage patient admissions and discharges</p>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" asChild>
+            <Link href="/receptionist">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Patient Admissions</h1>
+            <p className="text-gray-600">Manage patient admissions and discharges</p>
+          </div>
+        </div>
+        <Button 
+          className="bg-pink-500 hover:bg-pink-600"
+          onClick={() => setShowNewAdmissionDialog(true)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          New Admission
+        </Button>
+      </div>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Admissions</p>
+                <p className="text-2xl font-bold">{admissions.filter(a => a.status === 'active').length}</p>
+              </div>
+              <Activity className="h-8 w-8 text-green-500" />
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <Button 
-              size="sm" 
-              className="bg-blue-500 hover:bg-blue-600"
-              onClick={() => setNewAdmissionDialog(true)}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              New Admission
-            </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Available Rooms</p>
+                <p className="text-2xl font-bold">{rooms.length}</p>
+              </div>
+              <Bed className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Today's Discharges</p>
+                <p className="text-2xl font-bold">
+                  {admissions.filter(a => 
+                    a.status === 'discharged' && 
+                    new Date(a.admission_date).toDateString() === new Date().toDateString()
+                  ).length}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Emergency Admissions</p>
+                <p className="text-2xl font-bold">
+                  {admissions.filter(a => a.admission_type === 'emergency' && a.status === 'active').length}
+                </p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card className="border-blue-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Current Admissions</p>
-                  <p className="text-3xl font-bold text-gray-900">{currentAdmissions.length}</p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-xl">
-                  <Bed className="h-8 w-8 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Available Beds</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {availableRooms.reduce((sum, room) => sum + room.availableBeds, 0)}
-                  </p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-xl">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-yellow-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Discharges</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {dischargeRequests.filter(d => d.status === 'pending').length}
-                  </p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-xl">
-                  <Clock className="h-8 w-8 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-red-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Critical Patients</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {currentAdmissions.filter(a => a.condition === 'Critical').length}
-                  </p>
-                </div>
-                <div className="bg-red-100 p-3 rounded-xl">
-                  <AlertTriangle className="h-8 w-8 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="current">Current Admissions</TabsTrigger>
-            <TabsTrigger value="rooms">Room Management</TabsTrigger>
-            <TabsTrigger value="discharge">Discharge Requests</TabsTrigger>
-            <TabsTrigger value="history">Admission History</TabsTrigger>
-          </TabsList>
-
-          {/* Current Admissions Tab */}
-          <TabsContent value="current" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Current Patient Admissions</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="Search patients..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 w-64"
-                      />
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filter
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {currentAdmissions.map((admission) => (
-                    <div key={admission.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarFallback className="bg-blue-100 text-blue-700">
-                              {admission.patientName.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-semibold text-lg">{admission.patientName}</h3>
-                            <p className="text-sm text-gray-600">
-                              {admission.age}Y • {admission.gender} • ID: {admission.patientId}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Room {admission.roomNumber} • Bed {admission.bedNumber} • {admission.ward}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-6">
-                          <div className="text-center">
-                            <p className="text-sm font-medium text-gray-600">Doctor</p>
-                            <p className="text-sm">{admission.doctor}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-sm font-medium text-gray-600">Admitted</p>
-                            <p className="text-sm">{admission.admissionDate}</p>
-                            <p className="text-xs text-gray-500">{admission.admissionTime}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-sm font-medium text-gray-600">Condition</p>
-                            {getConditionBadge(admission.condition)}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedPatient(admission)
-                                setDischargeDialog(true)
-                              }}
-                            >
-                              Discharge
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-gray-600">Diagnosis: </span>
-                            <span>{admission.diagnosis}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-600">Emergency Contact: </span>
-                            <span>{admission.emergencyContact}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-600">Est. Discharge: </span>
-                            <span>{admission.estimatedDischarge}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Room Management Tab */}
-          <TabsContent value="rooms" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Room & Bed Availability</CardTitle>
-                <CardDescription>Current room occupancy and availability status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {availableRooms.map((room) => (
-                    <Card key={room.roomNumber} className="border">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold">Room {room.roomNumber}</h3>
-                          <Badge className={room.availableBeds > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                            {room.availableBeds > 0 ? 'Available' : 'Full'}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <p><span className="font-medium">Ward:</span> {room.ward}</p>
-                          <p><span className="font-medium">Type:</span> {room.type}</p>
-                          <p><span className="font-medium">Beds:</span> {room.availableBeds}/{room.bedCount} available</p>
-                        </div>
-                        <div className="mt-3">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-500 h-2 rounded-full" 
-                              style={{ width: `${(room.availableBeds / room.bedCount) * 100}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Discharge Requests Tab */}
-          <TabsContent value="discharge" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Discharge Requests</CardTitle>
-                <CardDescription>Patients ready for discharge processing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {dischargeRequests.map((request) => (
-                    <div key={request.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="font-semibold text-lg">{request.patientName}</h3>
-                          <p className="text-sm text-gray-600">
-                            Room {request.roomNumber} • {request.doctor}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Admitted: {request.admissionDate} • Requested: {request.requestTime}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-lg">₹{request.finalBill.toLocaleString()}</p>
-                          {getStatusBadge(request.status)}
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-4 gap-4 mb-4">
-                        <div className="flex items-center space-x-2">
-                          {getClearanceIcon(request.clearances.medical)}
-                          <span className="text-sm">Medical Clearance</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getClearanceIcon(request.clearances.billing)}
-                          <span className="text-sm">Billing Clearance</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getClearanceIcon(request.clearances.pharmacy)}
-                          <span className="text-sm">Pharmacy Clearance</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getClearanceIcon(request.clearances.nursing)}
-                          <span className="text-sm">Nursing Clearance</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </Button>
-                        {request.status === 'ready' && (
-                          <Button size="sm" className="bg-green-500 hover:bg-green-600">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Process Discharge
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Admission History Tab */}
-          <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Admission History</CardTitle>
-                <CardDescription>Historical admission and discharge records</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Admission history will be displayed here</p>
-                  <p className="text-sm text-gray-500 mt-2">Search and filter past admissions and discharges</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* New Admission Dialog */}
-      <Dialog open={newAdmissionDialog} onOpenChange={setNewAdmissionDialog}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>New Patient Admission</DialogTitle>
-            <DialogDescription>
-              Admit a patient to the hospital and assign room/bed
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="patientSearch">Search Patient</Label>
-                <Input id="patientSearch" placeholder="Search by name or ID" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="admissionType">Admission Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select admission type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="emergency">Emergency</SelectItem>
-                    <SelectItem value="planned">Planned</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-2">
+              <Label>Search Admissions</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by patient name, admission ID, or phone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="doctor">Attending Doctor</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select doctor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dr-anil">Dr. Anil Kumar</SelectItem>
-                    <SelectItem value="dr-priya">Dr. Priya Singh</SelectItem>
-                    <SelectItem value="dr-rajesh">Dr. Rajesh Gupta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General Medicine</SelectItem>
-                    <SelectItem value="emergency">Emergency</SelectItem>
-                    <SelectItem value="gynecology">Gynecology</SelectItem>
-                    <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="discharged">Discharged</SelectItem>
+                  <SelectItem value="transferred">Transferred</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Room Type</Label>
+              <Select value={roomTypeFilter} onValueChange={setRoomTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Room Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Room Types</SelectItem>
+                  <SelectItem value="General Ward">General Ward</SelectItem>
+                  <SelectItem value="Private Room">Private Room</SelectItem>
+                  <SelectItem value="ICU">ICU</SelectItem>
+                  <SelectItem value="Emergency">Emergency</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Doctor</Label>
+              <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Doctors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Doctors</SelectItem>
+                  {doctors.map(doctor => (
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      Dr. {doctor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Admissions List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <span>Admissions ({admissions.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-pink-500" />
+              <p>Loading admissions...</p>
+            </div>
+          ) : admissions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No admissions found matching your criteria</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {admissions.map((admission) => (
+                <div key={admission.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-pink-100 p-2 rounded-lg">
+                        <Bed className="h-5 w-5 text-pink-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold">{admission.admission_id}</h3>
+                          {getStatusBadge(admission.status)}
+                          {getAdmissionTypeBadge(admission.admission_type)}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                          <div>
+                            <p className="flex items-center">
+                              <User className="h-3 w-3 mr-1" />
+                              {admission.patient_name} ({admission.age}Y, {admission.gender})
+                            </p>
+                            <p className="flex items-center">
+                              <Phone className="h-3 w-3 mr-1" />
+                              {admission.patient_phone}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="flex items-center">
+                              <Stethoscope className="h-3 w-3 mr-1" />
+                              Dr. {admission.doctor_name}
+                            </p>
+                            <p className="flex items-center">
+                              <Bed className="h-3 w-3 mr-1" />
+                              {admission.room_number} ({admission.room_type})
+                            </p>
+                          </div>
+                          <div>
+                            <p className="flex items-center">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {new Date(admission.admission_date).toLocaleDateString()}
+                            </p>
+                            <p className="flex items-center">
+                              <DollarSign className="h-3 w-3 mr-1" />
+                              ₹{admission.total_charges.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        {admission.diagnosis && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            <strong>Diagnosis:</strong> {admission.diagnosis}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedAdmission(admission)
+                          setShowAdmissionDetailsDialog(true)
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      
+                      {admission.status === 'active' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAdmission(admission)
+                              setShowTransferDialog(true)
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Transfer
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600"
+                            onClick={() => {
+                              setSelectedAdmission(admission)
+                              setShowDischargeDialog(true)
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Discharge
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* New Admission Dialog */}
+      <Dialog open={showNewAdmissionDialog} onOpenChange={setShowNewAdmissionDialog}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New Patient Admission</DialogTitle>
+            <DialogDescription>
+              Admit a patient to the hospital and assign a room
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Patient Selection */}
+            <div>
+              <Label>Search Patient *</Label>
+              <Input
+                placeholder="Search by name, phone, or patient ID..."
+                onChange={(e) => {
+                  searchPatients(e.target.value)
+                  if (!e.target.value) setAdmissionForm(prev => ({ ...prev, patientId: '' }))
+                }}
+              />
+              {patients.length > 0 && (
+                <div className="mt-2 max-h-40 overflow-y-auto border rounded-lg">
+                  {patients.map(patient => (
+                    <div
+                      key={patient.id}
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                      onClick={() => {
+                        setAdmissionForm(prev => ({ ...prev, patientId: patient.id.toString() }))
+                        setPatients([])
+                      }}
+                    >
+                      <div className="font-medium">{patient.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {patient.contact_number} • {patient.age}Y {patient.gender}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="ward">Ward</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select ward" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General Ward</SelectItem>
-                    <SelectItem value="private">Private Ward</SelectItem>
-                    <SelectItem value="icu">ICU</SelectItem>
-                    <SelectItem value="maternity">Maternity Ward</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="room">Room Number</Label>
-                <Select>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Room Selection */}
+              <div>
+                <Label>Room *</Label>
+                <Select value={admissionForm.roomId} onValueChange={(value) => 
+                  setAdmissionForm(prev => ({ ...prev, roomId: value }))
+                }>
                   <SelectTrigger>
                     <SelectValue placeholder="Select room" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="101">Room 101</SelectItem>
-                    <SelectItem value="102">Room 102</SelectItem>
-                    <SelectItem value="201">Room 201</SelectItem>
+                    {rooms.map(room => (
+                      <SelectItem key={room.id} value={room.id.toString()}>
+                        {room.room_number} - {room.room_type} (₹{room.daily_rate}/day) - Floor {room.floor}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="bed">Bed Number</Label>
-                <Select>
+
+              {/* Doctor Selection */}
+              <div>
+                <Label>Attending Doctor *</Label>
+                <Select value={admissionForm.doctorId} onValueChange={(value) => 
+                  setAdmissionForm(prev => ({ ...prev, doctorId: value }))
+                }>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select bed" />
+                    <SelectValue placeholder="Select doctor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="A1">Bed A1</SelectItem>
-                    <SelectItem value="A2">Bed A2</SelectItem>
-                    <SelectItem value="B1">Bed B1</SelectItem>
+                    {doctors.map(doctor => (
+                      <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                        Dr. {doctor.name} {doctor.specialization && `(${doctor.specialization})`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="diagnosis">Initial Diagnosis</Label>
-              <Textarea id="diagnosis" placeholder="Enter initial diagnosis or reason for admission" />
+            <div className="grid grid-cols-2 gap-4">
+              {/* Admission Type */}
+              <div>
+                <Label>Admission Type</Label>
+                <Select value={admissionForm.admissionType} onValueChange={(value) => 
+                  setAdmissionForm(prev => ({ ...prev, admissionType: value }))
+                }>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planned">Planned</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="observation">Observation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Estimated Stay */}
+              <div>
+                <Label>Estimated Stay (Days)</Label>
+                <Input
+                  type="number"
+                  placeholder="Enter estimated days"
+                  value={admissionForm.estimatedStayDays}
+                  onChange={(e) => setAdmissionForm(prev => ({ ...prev, estimatedStayDays: e.target.value }))}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Admission Notes</Label>
-              <Textarea id="notes" placeholder="Additional notes or special instructions" />
+            {/* Medical Information */}
+            <div>
+              <Label>Chief Complaint</Label>
+              <Textarea
+                placeholder="Enter chief complaint..."
+                value={admissionForm.chiefComplaint}
+                onChange={(e) => setAdmissionForm(prev => ({ ...prev, chiefComplaint: e.target.value }))}
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label>Diagnosis</Label>
+              <Textarea
+                placeholder="Enter diagnosis..."
+                value={admissionForm.diagnosis}
+                onChange={(e) => setAdmissionForm(prev => ({ ...prev, diagnosis: e.target.value }))}
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label>Admission Notes</Label>
+              <Textarea
+                placeholder="Enter admission notes..."
+                value={admissionForm.admissionNotes}
+                onChange={(e) => setAdmissionForm(prev => ({ ...prev, admissionNotes: e.target.value }))}
+                rows={3}
+              />
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="space-y-4">
+              <h4 className="font-semibold">Emergency Contact</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="Contact name"
+                    value={admissionForm.emergencyContactName}
+                    onChange={(e) => setAdmissionForm(prev => ({ ...prev, emergencyContactName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    placeholder="Contact phone"
+                    value={admissionForm.emergencyContactPhone}
+                    onChange={(e) => setAdmissionForm(prev => ({ ...prev, emergencyContactPhone: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Relation</Label>
+                  <Input
+                    placeholder="Relation"
+                    value={admissionForm.emergencyContactRelation}
+                    onChange={(e) => setAdmissionForm(prev => ({ ...prev, emergencyContactRelation: e.target.value }))}
+                  />
+                </div>
+              </div>
             </div>
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewAdmissionDialog(false)}>
+            <Button variant="outline" onClick={resetAdmissionForm}>
               Cancel
             </Button>
-            <Button className="bg-blue-500 hover:bg-blue-600">
-              Admit Patient
+            <Button 
+              onClick={createAdmission}
+              disabled={isSubmitting || !admissionForm.patientId || !admissionForm.roomId || !admissionForm.doctorId}
+              className="bg-pink-500 hover:bg-pink-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Admitting...
+                </>
+              ) : (
+                'Admit Patient'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Discharge Dialog */}
-      <Dialog open={dischargeDialog} onOpenChange={setDischargeDialog}>
+      <Dialog open={showDischargeDialog} onOpenChange={setShowDischargeDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Patient Discharge</DialogTitle>
+            <DialogTitle>Discharge Patient</DialogTitle>
             <DialogDescription>
-              Process patient discharge and complete all clearances
+              Complete the discharge process for {selectedAdmission?.patient_name}
             </DialogDescription>
           </DialogHeader>
-          {selectedPatient && (
-            <div className="space-y-4 py-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold">{selectedPatient.patientName}</h3>
-                <p className="text-sm text-gray-600">
-                  Room {selectedPatient.roomNumber} • {selectedPatient.doctor}
-                </p>
-              </div>
-              
-              <div className="space-y-3">
-                <h4 className="font-medium">Discharge Clearances</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span>Medical Clearance</span>
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Discharge Notes</Label>
+              <Textarea
+                placeholder="Enter discharge notes..."
+                value={dischargeForm.dischargeNotes}
+                onChange={(e) => setDischargeForm(prev => ({ ...prev, dischargeNotes: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            
+            <div>
+              <Label>Discharge Summary</Label>
+              <Textarea
+                placeholder="Enter discharge summary..."
+                value={dischargeForm.dischargeSummary}
+                onChange={(e) => setDischargeForm(prev => ({ ...prev, dischargeSummary: e.target.value }))}
+                rows={4}
+              />
+            </div>
+            
+            <div>
+              <Label>Discharge Instructions</Label>
+              <Textarea
+                placeholder="Enter discharge instructions for patient..."
+                value={dischargeForm.dischargeInstructions}
+                onChange={(e) => setDischargeForm(prev => ({ ...prev, dischargeInstructions: e.target.value }))}
+                rows={4}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDischargeDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={dischargePatient}
+              disabled={isSubmitting}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Discharging...
+                </>
+              ) : (
+                'Discharge Patient'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer Dialog */}
+      <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer Patient</DialogTitle>
+            <DialogDescription>
+              Transfer {selectedAdmission?.patient_name} to a different room
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>New Room *</Label>
+              <Select value={transferForm.newRoomId} onValueChange={(value) => 
+                setTransferForm(prev => ({ ...prev, newRoomId: value }))
+              }>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select new room" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rooms.map(room => (
+                    <SelectItem key={room.id} value={room.id.toString()}>
+                      {room.room_number} - {room.room_type} (₹{room.daily_rate}/day) - Floor {room.floor}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Transfer Reason</Label>
+              <Textarea
+                placeholder="Enter reason for transfer..."
+                value={transferForm.transferReason}
+                onChange={(e) => setTransferForm(prev => ({ ...prev, transferReason: e.target.value }))}
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTransferDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={transferPatient}
+              disabled={isSubmitting || !transferForm.newRoomId}
+              className="bg-yellow-500 hover:bg-yellow-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Transferring...
+                </>
+              ) : (
+                'Transfer Patient'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admission Details Dialog */}
+      <Dialog open={showAdmissionDetailsDialog} onOpenChange={setShowAdmissionDetailsDialog}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Admission Details</DialogTitle>
+            <DialogDescription>
+              Complete information for admission {selectedAdmission?.admission_id}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAdmission && (
+            <div className="space-y-6">
+              {/* Patient Information */}
+              <div>
+                <h4 className="font-semibold mb-3">Patient Information</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Name:</strong> {selectedAdmission.patient_name}</p>
+                    <p><strong>Age:</strong> {selectedAdmission.age} years</p>
+                    <p><strong>Gender:</strong> {selectedAdmission.gender}</p>
                   </div>
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span>Billing Clearance</span>
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span>Pharmacy Clearance</span>
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div className="flex items-center justify-between p-2 border rounded">
-                    <span>Nursing Clearance</span>
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p><strong>Phone:</strong> {selectedAdmission.patient_phone}</p>
+                    <p><strong>Emergency Contact:</strong> {selectedAdmission.emergency_contact_name || 'Not provided'}</p>
+                    <p><strong>Emergency Phone:</strong> {selectedAdmission.emergency_contact_phone || 'Not provided'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dischargeNotes">Discharge Notes</Label>
-                <Textarea id="dischargeNotes" placeholder="Enter discharge summary and instructions" />
+              {/* Admission Information */}
+              <div>
+                <h4 className="font-semibold mb-3">Admission Information</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Admission ID:</strong> {selectedAdmission.admission_id}</p>
+                    <p><strong>Admission Date:</strong> {new Date(selectedAdmission.admission_date).toLocaleString()}</p>
+                    <p><strong>Type:</strong> {getAdmissionTypeBadge(selectedAdmission.admission_type)}</p>
+                    <p><strong>Status:</strong> {getStatusBadge(selectedAdmission.status)}</p>
+                  </div>
+                  <div>
+                    <p><strong>Doctor:</strong> Dr. {selectedAdmission.doctor_name}</p>
+                    <p><strong>Room:</strong> {selectedAdmission.room_number} ({selectedAdmission.room_type})</p>
+                    <p><strong>Estimated Stay:</strong> {selectedAdmission.estimated_stay_days || 'Not specified'} days</p>
+                    <p><strong>Total Charges:</strong> ₹{selectedAdmission.total_charges.toLocaleString()}</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Medical Information */}
+              {(selectedAdmission.diagnosis || selectedAdmission.chief_complaint) && (
+                <div>
+                  <h4 className="font-semibold mb-3">Medical Information</h4>
+                  {selectedAdmission.chief_complaint && (
+                    <div className="mb-2">
+                      <p className="text-sm"><strong>Chief Complaint:</strong></p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{selectedAdmission.chief_complaint}</p>
+                    </div>
+                  )}
+                  {selectedAdmission.diagnosis && (
+                    <div>
+                      <p className="text-sm"><strong>Diagnosis:</strong></p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{selectedAdmission.diagnosis}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDischargeDialog(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-red-500 hover:bg-red-600">
-              Process Discharge
+            <Button variant="outline" onClick={() => setShowAdmissionDetailsDialog(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

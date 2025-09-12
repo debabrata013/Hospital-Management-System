@@ -4,24 +4,52 @@ export interface Medicine {
   id: string
   name: string
   generic_name?: string
+  brand_name?: string
   category: string
   manufacturer?: string
+  composition?: string
+  strength?: string
+  dosage_form?: string
+  pack_size?: string
   unit_price: number
+  mrp?: number
   current_stock: number
   minimum_stock: number
   maximum_stock: number
   unit: string
+  batch_number?: string
+  expiry_date?: string
+  supplier?: string
+  storage_conditions?: string
+  side_effects?: string
+  contraindications?: string
+  drug_interactions?: string
+  pregnancy_category?: string
+  prescription_required?: boolean
   description?: string
 }
 
 export interface Vendor {
   id: string
   name: string
+  vendor_name?: string
   contact_person?: string
   phone?: string
   email?: string
   address?: string
+  city?: string
+  state?: string
+  pincode?: string
+  gst_number?: string
+  pan_number?: string
+  vendor_type?: string
+  payment_terms?: string
+  credit_limit?: number
+  rating?: number
+  notes?: string
   status: 'active' | 'inactive'
+  created_at?: Date
+  updated_at?: Date
 }
 
 export interface Prescription {
@@ -420,18 +448,20 @@ export class PharmacyService {
     let query = `
       SELECT p.*,
              pt.name as patient_name,
+             pt.age as patient_age,
+             pt.gender as patient_gender,
+             pt.contact_number as patient_contact,
              u.name as doctor_name,
-             COALESCE(COUNT(pm.id), 0) as item_count,
-             COALESCE(SUM(pm.total_price), p.total_amount) as calculated_total
+             u.department as doctor_department,
+             'pending' as status
       FROM prescriptions p
       LEFT JOIN patients pt ON p.patient_id = pt.id
       LEFT JOIN users u ON p.doctor_id = u.id
-      LEFT JOIN prescription_medications pm ON p.id = pm.prescription_id
       WHERE 1=1
     `
     const params: any[] = []
 
-    if (filters.status) {
+    if (filters.status && filters.status !== 'pending') {
       query += ` AND p.status = ?`
       params.push(filters.status)
     }
@@ -451,7 +481,7 @@ export class PharmacyService {
       params.push(filters.doctor_id)
     }
 
-    query += ` GROUP BY p.id ORDER BY p.created_at DESC`
+    query += ` ORDER BY p.created_at DESC`
 
     if (filters.limit) {
       query += ` LIMIT ?`
@@ -459,7 +489,35 @@ export class PharmacyService {
     }
 
     try {
-      return await executeQuery(query, params) as Prescription[]
+      const prescriptions = await executeQuery(query, params) as any[]
+      
+      // Parse medicines JSON and calculate totals for each prescription
+      return prescriptions.map(prescription => {
+        let medicines = []
+        let totalAmount = 0
+        
+        try {
+          if (prescription.medicines) {
+            medicines = JSON.parse(prescription.medicines)
+            // Calculate total if medicines have pricing info
+            totalAmount = medicines.reduce((sum: number, med: any) => {
+              const price = parseFloat(med.price || med.unit_price || 0)
+              const qty = parseInt(med.quantity || 1)
+              return sum + (price * qty)
+            }, 0)
+          }
+        } catch (e) {
+          console.error('Error parsing medicines JSON:', e)
+        }
+        
+        return {
+          ...prescription,
+          items: medicines,
+          item_count: medicines.length,
+          total_amount: totalAmount || prescription.total_amount || 0,
+          calculated_total: totalAmount || prescription.total_amount || 0
+        }
+      })
     } catch (error) {
       console.error('Error in getPrescriptions:', error)
       return []
@@ -470,7 +528,11 @@ export class PharmacyService {
     const prescriptionQuery = `
       SELECT p.*,
              pt.name as patient_name,
-             u.name as doctor_name
+             pt.age as patient_age,
+             pt.gender as patient_gender,
+             pt.contact_number as patient_contact,
+             u.name as doctor_name,
+             u.department as doctor_department
       FROM prescriptions p
       LEFT JOIN patients pt ON p.patient_id = pt.id
       LEFT JOIN users u ON p.doctor_id = u.id
@@ -481,16 +543,34 @@ export class PharmacyService {
       const [prescription] = await executeQuery(prescriptionQuery, [id, id]) as any[]
       
       if (prescription) {
-        // Get prescription items
-        const itemsQuery = `
-          SELECT pm.*,
-                 m.name as medicine_name,
-                 m.unit_price as current_unit_price
-          FROM prescription_medications pm
-          LEFT JOIN medicines m ON pm.medicine_id = m.id
-          WHERE pm.prescription_id = ?
-        `
-        prescription.items = await executeQuery(itemsQuery, [prescription.id])
+        // Parse medicines JSON from the new prescription table structure
+        let medicines = []
+        try {
+          if (prescription.medicines) {
+            medicines = JSON.parse(prescription.medicines)
+          }
+        } catch (e) {
+          console.error('Error parsing medicines JSON:', e)
+        }
+        
+        // Add vitals and complete prescription data
+        prescription.items = medicines
+        prescription.vitals = {
+          blood_pressure: prescription.blood_pressure,
+          heart_rate: prescription.heart_rate,
+          temperature: prescription.temperature,
+          weight: prescription.weight,
+          height: prescription.height
+        }
+        
+        // Calculate total amount from medicines
+        const totalAmount = medicines.reduce((sum: number, med: any) => {
+          const price = parseFloat(med.price || med.unit_price || 0)
+          const qty = parseInt(med.quantity || 1)
+          return sum + (price * qty)
+        }, 0)
+        
+        prescription.total_amount = totalAmount || prescription.total_amount || 0
       }
       
       return prescription
@@ -757,3 +837,5 @@ export class PharmacyService {
     return results
   }
 }
+
+export const pharmacyService = new PharmacyService()

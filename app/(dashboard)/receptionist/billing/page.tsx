@@ -1,637 +1,934 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   CreditCard, 
-  DollarSign, 
-  Receipt, 
   Search, 
   Plus, 
   Eye, 
-  Printer,
   ArrowLeft,
+  DollarSign,
+  FileText,
+  Calendar,
+  User,
+  Phone,
+  Trash2,
+  Edit,
+  Download,
+  RefreshCw,
   CheckCircle,
+  XCircle,
   Clock,
-  AlertTriangle,
-  Calculator,
-  Banknote,
-  Smartphone
+  AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
 
-interface BillItem {
-  id: string
-  service: string
-  quantity: number
-  rate: number
-  amount: number
-  discount?: number
+interface Patient {
+  id: number
+  patient_id: string
+  name: string
+  age: number
+  gender: string
+  contact_number: string
+  address?: string
+  total_bills: number
+  pending_amount: number
+  paid_amount: number
+  recentBills?: Bill[]
 }
 
 interface Bill {
-  id: string
-  patientId: string
-  patientName: string
-  phone: string
-  billDate: string
-  items: BillItem[]
-  subtotal: number
-  discount: number
-  tax: number
-  total: number
-  paidAmount: number
-  balance: number
-  status: 'pending' | 'partial' | 'paid' | 'overdue'
-  paymentMethod?: string
-  createdBy: string
+  id: number
+  bill_id: string
+  patient_id: number
+  bill_type: string
+  total_amount: number
+  discount_amount: number
+  tax_amount: number
+  final_amount: number
+  payment_status: 'pending' | 'partial' | 'paid' | 'cancelled' | 'refunded'
+  payment_method?: string
+  is_offline: boolean
+  notes?: string
+  created_at: string
+  patient_name: string
+  patient_phone: string
+  patient_code: string
+  created_by_name: string
 }
 
-const mockBills: Bill[] = [
-  {
-    id: "B001",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    phone: "+91 98765 43210",
-    billDate: "2024-01-15",
-    items: [
-      { id: "I001", service: "Consultation", quantity: 1, rate: 500, amount: 500 },
-      { id: "I002", service: "Blood Test", quantity: 1, rate: 300, amount: 300 }
-    ],
-    subtotal: 800,
-    discount: 50,
-    tax: 54,
-    total: 804,
-    paidAmount: 0,
-    balance: 804,
-    status: 'pending',
-    createdBy: 'Reception-1'
-  },
-  {
-    id: "B002",
-    patientId: "P002", 
-    patientName: "Sunita Devi",
-    phone: "+91 98765 43211",
-    billDate: "2024-01-15",
-    items: [
-      { id: "I003", service: "Consultation", quantity: 1, rate: 800, amount: 800 },
-      { id: "I004", service: "Ultrasound", quantity: 1, rate: 1200, amount: 1200 }
-    ],
-    subtotal: 2000,
-    discount: 100,
-    tax: 133,
-    total: 2033,
-    paidAmount: 1000,
-    balance: 1033,
-    status: 'partial',
-    paymentMethod: 'Cash',
-    createdBy: 'Reception-1'
-  }
-]
+interface BillItem {
+  id?: number
+  itemType: string
+  itemName: string
+  description?: string
+  quantity: number
+  unitPrice: number
+  discountPercent?: number
+}
 
-const servicesList = [
-  { id: "S001", name: "Consultation", rate: 500, category: "consultation" },
-  { id: "S002", name: "Blood Test", rate: 300, category: "lab" },
-  { id: "S003", name: "X-Ray", rate: 400, category: "imaging" },
-  { id: "S004", name: "Ultrasound", rate: 1200, category: "imaging" },
-  { id: "S005", name: "ECG", rate: 200, category: "test" },
-  { id: "S006", name: "Medicine", rate: 0, category: "pharmacy" }
-]
+interface BillTemplate {
+  id: number
+  template_name: string
+  item_type: string
+  item_name: string
+  default_price: number
+  description?: string
+}
 
-export default function BillingManagement() {
-  const [bills, setBills] = useState<Bill[]>(mockBills)
-  const [filteredBills, setFilteredBills] = useState<Bill[]>(mockBills)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+export default function BillingPage() {
+  const [bills, setBills] = useState<Bill[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [templates, setTemplates] = useState<BillTemplate[]>([])
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
-  const [showBillDialog, setShowBillDialog] = useState(false)
+  
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  
+  // Dialog states
   const [showNewBillDialog, setShowNewBillDialog] = useState(false)
+  const [showPatientSearchDialog, setShowPatientSearchDialog] = useState(false)
+  const [showBillDetailsDialog, setShowBillDetailsDialog] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-
-  // New bill state
-  const [newBill, setNewBill] = useState({
-    patientName: "",
-    phone: "",
-    items: [] as BillItem[]
+  
+  // Form states
+  const [patientSearchQuery, setPatientSearchQuery] = useState('')
+  const [billItems, setBillItems] = useState<BillItem[]>([])
+  const [billForm, setBillForm] = useState({
+    billType: 'consultation',
+    discount: 0,
+    tax: 0,
+    notes: ''
   })
+  
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Payment state
-  const [paymentAmount, setPaymentAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState("")
+  useEffect(() => {
+    fetchBills()
+    fetchTemplates()
+  }, [searchQuery, statusFilter, dateFrom, dateTo])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'partial': return 'bg-pink-100 text-pink-800 border-pink-200'
-      case 'paid': return 'bg-green-100 text-green-800 border-green-200'
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+  const fetchBills = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        ...(searchQuery && { search: searchQuery }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(dateFrom && { dateFrom }),
+        ...(dateTo && { dateTo })
+      })
+      
+      const response = await fetch(`/api/receptionist/billing?${params}`)
+      const data = await response.json()
+      setBills(data.bills || [])
+    } catch (error) {
+      console.error('Failed to fetch bills:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Pending'
-      case 'partial': return 'Partial'
-      case 'paid': return 'Paid'
-      case 'overdue': return 'Overdue'
-      default: return status
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch('/api/receptionist/billing?action=templates')
+      const data = await response.json()
+      setTemplates(data.templates || [])
+    } catch (error) {
+      console.error('Failed to fetch templates:', error)
     }
   }
 
-  const addItemToBill = (serviceId: string) => {
-    const service = servicesList.find(s => s.id === serviceId)
-    if (!service) return
+  const searchPatients = async (query: string) => {
+    if (query.length < 2) {
+      setPatients([])
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/receptionist/billing/patients?q=${encodeURIComponent(query)}`)
+      const data = await response.json()
+      setPatients(data.patients || [])
+    } catch (error) {
+      console.error('Failed to search patients:', error)
+    }
+  }
 
+  const addBillItem = (template?: BillTemplate) => {
     const newItem: BillItem = {
-      id: `I${Date.now()}`,
-      service: service.name,
+      itemType: template?.item_type || 'consultation',
+      itemName: template?.item_name || '',
+      description: template?.description || '',
       quantity: 1,
-      rate: service.rate,
-      amount: service.rate
+      unitPrice: template?.default_price || 0,
+      discountPercent: 0
     }
-
-    setNewBill(prev => ({
-      ...prev,
-      items: [...prev.items, newItem]
-    }))
+    setBillItems([...billItems, newItem])
   }
 
-  const updateItemQuantity = (itemId: string, quantity: number) => {
-    setNewBill(prev => ({
-      ...prev,
-      items: prev.items.map(item => 
-        item.id === itemId 
-          ? { ...item, quantity, amount: item.rate * quantity }
-          : item
-      )
-    }))
+  const updateBillItem = (index: number, field: keyof BillItem, value: any) => {
+    const updatedItems = [...billItems]
+    updatedItems[index] = { ...updatedItems[index], [field]: value }
+    setBillItems(updatedItems)
   }
 
-  const removeItem = (itemId: string) => {
-    setNewBill(prev => ({
-      ...prev,
-      items: prev.items.filter(item => item.id !== itemId)
-    }))
+  const removeBillItem = (index: number) => {
+    setBillItems(billItems.filter((_, i) => i !== index))
   }
 
-  const calculateBillTotal = (items: BillItem[], discount = 0) => {
-    const subtotal = items.reduce((sum, item) => sum + item.amount, 0)
-    const discountAmount = discount
-    const taxableAmount = subtotal - discountAmount
-    const tax = Math.round(taxableAmount * 0.07) // 7% tax
-    const total = taxableAmount + tax
+  const calculateTotals = () => {
+    const subtotal = billItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
+    const discountAmount = billForm.discount
+    const taxAmount = billForm.tax
+    const finalAmount = subtotal - discountAmount + taxAmount
     
-    return { subtotal, discount: discountAmount, tax, total }
+    return { subtotal, discountAmount, taxAmount, finalAmount }
   }
 
-  const generateBill = () => {
-    if (!newBill.patientName || newBill.items.length === 0) {
-      alert('कृपया मरीज़ का नाम और सेवाएं जोड़ें')
-      return
+  const createBill = async (paymentMethod: string, isOffline: boolean) => {
+    if (!selectedPatient || billItems.length === 0) return
+    
+    try {
+      setIsSubmitting(true)
+      const { finalAmount } = calculateTotals()
+      
+      const response = await fetch('/api/receptionist/billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: selectedPatient.id,
+          billType: billForm.billType,
+          items: billItems,
+          discount: billForm.discount,
+          tax: billForm.tax,
+          paymentMethod,
+          isOffline,
+          notes: billForm.notes,
+          createdBy: 1 // Replace with actual user ID
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (!isOffline && paymentMethod === 'razorpay') {
+          // Initiate Razorpay payment
+          initiateRazorpayPayment(data.billId, finalAmount)
+        } else {
+          // Mark as paid for offline payments
+          if (paymentMethod !== 'pending') {
+            await updateBillStatus(data.billId, 'paid', paymentMethod)
+          }
+          
+          alert('Bill created successfully!')
+          resetBillForm()
+          fetchBills()
+        }
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Failed to create bill')
+      }
+    } catch (error) {
+      console.error('Failed to create bill:', error)
+      alert('Failed to create bill')
+    } finally {
+      setIsSubmitting(false)
     }
+  }
 
-    const { subtotal, discount, tax, total } = calculateBillTotal(newBill.items)
+  const initiateRazorpayPayment = async (billId: string, amount: number) => {
+    try {
+      const response = await fetch('/api/receptionist/billing/razorpay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billId, amount })
+      })
 
-    const bill: Bill = {
-      id: `B${Date.now()}`,
-      patientId: `P${Date.now()}`,
-      patientName: newBill.patientName,
-      phone: newBill.phone,
-      billDate: new Date().toISOString().split('T')[0],
-      items: newBill.items,
-      subtotal,
-      discount,
-      tax,
-      total,
-      paidAmount: 0,
-      balance: total,
-      status: 'pending',
-      createdBy: 'Reception-1'
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Initialize Razorpay (you'll need to include Razorpay script)
+        const options = {
+          key: data.key,
+          amount: data.order.amount,
+          currency: data.order.currency,
+          name: 'Arogya Hospital',
+          description: `Bill Payment - ${billId}`,
+          order_id: data.order.id,
+          handler: async (response: any) => {
+            // Verify payment
+            await verifyRazorpayPayment(billId, response)
+          },
+          prefill: {
+            name: data.bill.patient_name,
+            contact: data.bill.patient_phone
+          },
+          theme: {
+            color: '#ec4899'
+          }
+        }
+        
+        // @ts-ignore
+        const rzp = new Razorpay(options)
+        rzp.open()
+      }
+    } catch (error) {
+      console.error('Failed to initiate payment:', error)
+      alert('Failed to initiate payment')
     }
+  }
 
-    setBills(prev => [...prev, bill])
-    setFilteredBills(prev => [...prev, bill])
+  const verifyRazorpayPayment = async (billId: string, paymentResponse: any) => {
+    try {
+      const response = await fetch('/api/receptionist/billing/razorpay', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billId,
+          ...paymentResponse
+        })
+      })
+
+      if (response.ok) {
+        alert('Payment successful!')
+        resetBillForm()
+        fetchBills()
+      } else {
+        alert('Payment verification failed')
+      }
+    } catch (error) {
+      console.error('Payment verification failed:', error)
+      alert('Payment verification failed')
+    }
+  }
+
+  const updateBillStatus = async (billId: string, status: string, paymentMethod?: string) => {
+    try {
+      const response = await fetch('/api/receptionist/billing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billId,
+          paymentStatus: status,
+          paymentMethod
+        })
+      })
+
+      if (response.ok) {
+        fetchBills()
+      }
+    } catch (error) {
+      console.error('Failed to update bill status:', error)
+    }
+  }
+
+  const resetBillForm = () => {
+    setSelectedPatient(null)
+    setBillItems([])
+    setBillForm({ billType: 'consultation', discount: 0, tax: 0, notes: '' })
     setShowNewBillDialog(false)
+    setShowPatientSearchDialog(false)
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      'pending': { color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+      'partial': { color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
+      'paid': { color: 'bg-green-100 text-green-700', icon: CheckCircle },
+      'cancelled': { color: 'bg-red-100 text-red-700', icon: XCircle },
+      'refunded': { color: 'bg-gray-100 text-gray-700', icon: RefreshCw }
+    }
     
-    // Reset form
-    setNewBill({
-      patientName: "",
-      phone: "",
-      items: []
-    })
-
-    alert('Bill generated successfully!')
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['pending']
+    const Icon = config.icon
+    
+    return (
+      <Badge className={config.color}>
+        <Icon className="h-3 w-3 mr-1" />
+        {status.toUpperCase()}
+      </Badge>
+    )
   }
 
-  const processPayment = () => {
-    if (!selectedBill || !paymentAmount || !paymentMethod) {
-      alert('Please fill all fields')
-      return
-    }
-
-    const amount = parseFloat(paymentAmount)
-    if (amount <= 0 || amount > selectedBill.balance) {
-      alert('गलत राशि')
-      return
-    }
-
-    const updatedBill = {
-      ...selectedBill,
-      paidAmount: selectedBill.paidAmount + amount,
-      balance: selectedBill.balance - amount,
-      paymentMethod,
-      status: (selectedBill.balance - amount) === 0 ? 'paid' as const : 'partial' as const
-    }
-
-    setBills(prev => prev.map(bill => 
-      bill.id === selectedBill.id ? updatedBill : bill
-    ))
-    setFilteredBills(prev => prev.map(bill => 
-      bill.id === selectedBill.id ? updatedBill : bill
-    ))
-
-    setShowPaymentDialog(false)
-    setPaymentAmount("")
-    setPaymentMethod("")
-    setSelectedBill(null)
-
-    alert('भुगतान सफलतापूर्वक प्रोसेस हो गया!')
-  }
-
-  const billStats = {
-    total: bills.length,
-    pending: bills.filter(b => b.status === 'pending').length,
-    partial: bills.filter(b => b.status === 'partial').length,
-    paid: bills.filter(b => b.status === 'paid').length,
-    totalAmount: bills.reduce((sum, bill) => sum + bill.total, 0),
-    paidAmount: bills.reduce((sum, bill) => sum + bill.paidAmount, 0)
-  }
+  const { subtotal, discountAmount, taxAmount, finalAmount } = calculateTotals()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
-      <div className="bg-white border-b border-pink-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" asChild>
             <Link href="/receptionist">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                वापस
-              </Button>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">बिलिंग प्रबंधन</h1>
-              <p className="text-sm text-gray-600">Billing & Payment Management</p>
-            </div>
-          </div>
-          
-          <Button onClick={() => setShowNewBillDialog(true)} className="bg-pink-600 hover:bg-pink-700">
-            <Plus className="h-4 w-4 mr-2" />
-            नया बिल
           </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Billing & Payment Management</h1>
+            <p className="text-gray-600">Create bills, process payments, and manage billing records</p>
+          </div>
         </div>
+        <Button 
+          className="bg-pink-500 hover:bg-pink-600"
+          onClick={() => setShowPatientSearchDialog(true)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          New Bill
+        </Button>
       </div>
 
-      <div className="p-6">
-        {/* Billing Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-pink-100 text-sm">कुल बिल</p>
-                  <p className="text-2xl font-bold">{billStats.total}</p>
-                </div>
-                <Receipt className="h-8 w-8 text-pink-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-yellow-100 text-sm">लंबित</p>
-                  <p className="text-2xl font-bold">{billStats.pending}</p>
-                </div>
-                <Clock className="h-8 w-8 text-yellow-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-pink-100 text-sm">आंशिक</p>
-                  <p className="text-2xl font-bold">{billStats.partial}</p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-pink-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm">भुगतान</p>
-                  <p className="text-2xl font-bold">{billStats.paid}</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-green-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm">कुल राशि</p>
-                  <p className="text-2xl font-bold">₹{billStats.totalAmount.toLocaleString()}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm">प्राप्त राशि</p>
-                  <p className="text-2xl font-bold">₹{billStats.paidAmount.toLocaleString()}</p>
-                </div>
-                <Banknote className="h-8 w-8 text-green-200" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bills List */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>बिल सूची</CardTitle>
-              <div className="flex items-center space-x-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="मरीज़ का नाम या बिल नंबर..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-                
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">सभी</SelectItem>
-                    <SelectItem value="pending">लंबित</SelectItem>
-                    <SelectItem value="partial">आंशिक</SelectItem>
-                    <SelectItem value="paid">भुगतान</SelectItem>
-                  </SelectContent>
-                </Select>
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-2">
+              <Label>Search Bills</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by patient name, phone, or bill ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+            <div>
+              <Label>Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>From Date</Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>To Date</Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bills List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <CreditCard className="h-5 w-5" />
+            <span>Bills ({bills.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-pink-500" />
+              <p>Loading bills...</p>
+            </div>
+          ) : bills.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No bills found matching your criteria</p>
+            </div>
+          ) : (
             <div className="space-y-4">
-              {filteredBills.map((bill) => (
-                <div key={bill.id} className="border rounded-lg p-4 bg-white hover:bg-gray-50">
+              {bills.map((bill) => (
+                <div key={bill.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <Badge className={getStatusColor(bill.status)}>
-                          {getStatusText(bill.status)}
-                        </Badge>
-                        <span className="text-sm text-gray-500">
-                          बिल #{bill.id}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {bill.billDate}
-                        </span>
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-pink-100 p-2 rounded-lg">
+                        <FileText className="h-5 w-5 text-pink-600" />
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <p className="font-semibold text-gray-900">{bill.patientName}</p>
-                          <p className="text-sm text-gray-600">📞 {bill.phone}</p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-sm text-gray-600">कुल राशि: ₹{bill.total}</p>
-                          <p className="text-sm text-gray-600">भुगतान: ₹{bill.paidAmount}</p>
-                          <p className="text-sm font-medium text-red-600">बकाया: ₹{bill.balance}</p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-sm text-gray-600">सेवाएं: {bill.items.length}</p>
-                          {bill.paymentMethod && (
-                            <p className="text-sm text-gray-600">भुगतान: {bill.paymentMethod}</p>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-semibold">{bill.bill_id}</h3>
+                          {getStatusBadge(bill.payment_status)}
+                          {bill.is_offline && (
+                            <Badge variant="outline" className="text-xs">OFFLINE</Badge>
                           )}
-                          <p className="text-sm text-gray-600">द्वारा: {bill.createdBy}</p>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span className="flex items-center">
+                            <User className="h-3 w-3 mr-1" />
+                            {bill.patient_name}
+                          </span>
+                          <span className="flex items-center">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {bill.patient_phone}
+                          </span>
+                          <span className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {new Date(bill.created_at).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="text-right">
+                        <p className="font-bold text-lg">₹{Number(bill.final_amount).toLocaleString()}</p>
+                        <p className="text-sm text-gray-500">{bill.bill_type}</p>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
                           setSelectedBill(bill)
-                          setShowBillDialog(true)
+                          setShowBillDetailsDialog(true)
                         }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
                       </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => alert('प्रिंट फीचर जल्द आएगा')}
-                      >
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                      
-                      {bill.balance > 0 && (
+                      {bill.payment_status === 'pending' && (
                         <Button
                           size="sm"
+                          className="bg-green-500 hover:bg-green-600"
                           onClick={() => {
                             setSelectedBill(bill)
                             setShowPaymentDialog(true)
                           }}
-                          className="bg-green-600 hover:bg-green-700"
                         >
-                          <CreditCard className="h-4 w-4 mr-1" />
-                          भुगतान
+                          <DollarSign className="h-4 w-4 mr-1" />
+                          Pay
                         </Button>
                       )}
                     </div>
                   </div>
+                  {bill.notes && (
+                    <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                      <strong>Notes:</strong> {bill.notes}
+                    </div>
+                  )}
                 </div>
               ))}
-
-              {filteredBills.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Receipt className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>कोई बिल नहीं मिला</p>
-                </div>
-              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Patient Search Dialog */}
+      <Dialog open={showPatientSearchDialog} onOpenChange={setShowPatientSearchDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Select Patient for Billing</DialogTitle>
+            <DialogDescription>
+              Search and select a patient to create a new bill
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Search Patient</Label>
+              <Input
+                placeholder="Search by name, phone, or patient ID..."
+                value={patientSearchQuery}
+                onChange={(e) => {
+                  setPatientSearchQuery(e.target.value)
+                  searchPatients(e.target.value)
+                }}
+              />
+            </div>
+            {patients.length > 0 && (
+              <div className="max-h-60 overflow-y-auto border rounded-lg">
+                {patients.map(patient => (
+                  <div
+                    key={patient.id}
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                    onClick={() => {
+                      setSelectedPatient(patient)
+                      setShowPatientSearchDialog(false)
+                      setShowNewBillDialog(true)
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{patient.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {patient.contact_number} • {patient.age}Y {patient.gender} • #{patient.patient_id}
+                        </div>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="text-gray-600">Bills: {patient.total_bills}</div>
+                        {patient.pending_amount > 0 && (
+                          <div className="text-red-600">Pending: ₹{Number(patient.pending_amount).toLocaleString()}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPatientSearchDialog(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Bill Dialog */}
       <Dialog open={showNewBillDialog} onOpenChange={setShowNewBillDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>नया बिल जेनरेट करें</DialogTitle>
+            <DialogTitle>Create New Bill</DialogTitle>
             <DialogDescription>
-              मरीज़ की जानकारी और सेवाओं का विवरण जोड़ें
+              Create a new bill for {selectedPatient?.name}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
-            {/* Patient Information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="patientName">मरीज़ का नाम (अंग्रेजी) *</Label>
-                <Input
-                  id="patientName"
-                  value={newBill.patientName}
-                  onChange={(e) => setNewBill(prev => ({ ...prev, patientName: e.target.value }))}
-                  placeholder="Patient Name"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={newBill.phone}
-                  onChange={(e) => setNewBill(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Patient phone number"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">फोन नंबर</Label>
-                <Input
-                  id="phone"
-                  value={newBill.phone}
-                  onChange={(e) => setNewBill(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+91 98765 43210"
-                />
-              </div>
-            </div>
+            {/* Patient Info */}
+            {selectedPatient && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p><strong>Patient:</strong> {selectedPatient.name}</p>
+                      <p><strong>ID:</strong> {selectedPatient.patient_id}</p>
+                      <p><strong>Phone:</strong> {selectedPatient.contact_number}</p>
+                    </div>
+                    <div>
+                      <p><strong>Age:</strong> {selectedPatient.age} years</p>
+                      <p><strong>Gender:</strong> {selectedPatient.gender}</p>
+                      <p><strong>Total Bills:</strong> {selectedPatient.total_bills}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Add Services */}
+            {/* Bill Type */}
             <div>
-              <Label>सेवा जोड़ें</Label>
-              <Select onValueChange={addItemToBill}>
+              <Label>Bill Type</Label>
+              <Select value={billForm.billType} onValueChange={(value) => 
+                setBillForm(prev => ({ ...prev, billType: value }))
+              }>
                 <SelectTrigger>
-                  <SelectValue placeholder="सेवा चुनें" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {servicesList.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.nameHindi} - ₹{service.rate}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                  <SelectItem value="lab">Laboratory</SelectItem>
+                  <SelectItem value="procedure">Procedure</SelectItem>
+                  <SelectItem value="admission">Admission</SelectItem>
+                  <SelectItem value="emergency">Emergency</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Bill Items */}
-            {newBill.items.length > 0 && (
-              <div>
-                <Label>बिल आइटम</Label>
-                <div className="border rounded-lg">
-                  <div className="grid grid-cols-5 gap-4 p-3 bg-gray-50 font-medium text-sm">
-                    <div>सेवा</div>
-                    <div>मात्रा</div>
-                    <div>दर</div>
-                    <div>राशि</div>
-                    <div>कार्य</div>
-                  </div>
-                  {newBill.items.map((item) => (
-                    <div key={item.id} className="grid grid-cols-5 gap-4 p-3 border-t">
-                      <div>
-                        <p className="font-medium">{item.service}</p>
-                      </div>
-                      <div>
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <Label>Bill Items</Label>
+                <div className="space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addBillItem()}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Item
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Templates */}
+              <div className="mb-4">
+                <Label className="text-sm">Quick Add Templates:</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {templates.slice(0, 6).map(template => (
+                    <Button
+                      key={template.id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addBillItem(template)}
+                      className="text-xs"
+                    >
+                      {template.item_name} (₹{template.default_price})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-3">
+                {billItems.map((item, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="grid grid-cols-12 gap-3 items-end">
+                      <div className="col-span-3">
+                        <Label className="text-xs">Item Name</Label>
                         <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
-                          min="1"
-                          className="w-20"
+                          value={item.itemName}
+                          onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
+                          placeholder="Item name"
                         />
                       </div>
-                      <div>₹{item.rate}</div>
-                      <div>₹{item.amount}</div>
-                      <div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Type</Label>
+                        <Select 
+                          value={item.itemType} 
+                          onValueChange={(value) => updateBillItem(index, 'itemType', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="consultation">Consultation</SelectItem>
+                            <SelectItem value="medicine">Medicine</SelectItem>
+                            <SelectItem value="test">Test</SelectItem>
+                            <SelectItem value="procedure">Procedure</SelectItem>
+                            <SelectItem value="room_charge">Room Charge</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-1">
+                        <Label className="text-xs">Qty</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateBillItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Unit Price</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice}
+                          onChange={(e) => updateBillItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Discount %</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={item.discountPercent || 0}
+                          onChange={(e) => updateBillItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Label className="text-xs">Total</Label>
+                        <div className="text-sm font-medium p-2 bg-gray-50 rounded">
+                          ₹{(item.quantity * item.unitPrice).toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="col-span-1">
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => removeItem(item.id)}
-                          className="text-red-600"
+                          onClick={() => removeBillItem(index)}
                         >
-                          हटाएं
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                  ))}
-                  
-                  {/* Bill Summary */}
-                  <div className="border-t bg-gray-50 p-3">
-                    <div className="flex justify-end">
-                      <div className="w-64 space-y-2">
-                        <div className="flex justify-between">
-                          <span>उप-योग:</span>
-                          <span>₹{calculateBillTotal(newBill.items).subtotal}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>छूट:</span>
-                          <span>₹{calculateBillTotal(newBill.items).discount}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>कर (7%):</span>
-                          <span>₹{calculateBillTotal(newBill.items).tax}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-lg border-t pt-2">
-                          <span>कुल:</span>
-                          <span>₹{calculateBillTotal(newBill.items).total}</span>
-                        </div>
+                    {item.description && (
+                      <div className="mt-2">
+                        <Textarea
+                          placeholder="Item description..."
+                          value={item.description}
+                          onChange={(e) => updateBillItem(index, 'description', e.target.value)}
+                          rows={2}
+                        />
                       </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Totals */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Discount Amount</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={billForm.discount}
+                      onChange={(e) => setBillForm(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Tax Amount</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={billForm.tax}
+                      onChange={(e) => setBillForm(prev => ({ ...prev, tax: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Notes</Label>
+                    <Textarea
+                      placeholder="Bill notes..."
+                      value={billForm.notes}
+                      onChange={(e) => setBillForm(prev => ({ ...prev, notes: e.target.value }))}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Discount:</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tax:</span>
+                      <span>+₹{taxAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t pt-2">
+                      <span>Final Amount:</span>
+                      <span>₹{finalAmount.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewBillDialog(false)}>
-              रद्द करें
+            <Button variant="outline" onClick={resetBillForm}>
+              Cancel
             </Button>
-            <Button onClick={generateBill} disabled={newBill.items.length === 0}>
-              <Calculator className="h-4 w-4 mr-2" />
-              बिल जेनरेट करें
+            <Button 
+              onClick={() => createBill('pending', true)}
+              disabled={isSubmitting || billItems.length === 0}
+            >
+              Create Bill (Pending)
+            </Button>
+            <Button 
+              onClick={() => createBill('cash', true)}
+              disabled={isSubmitting || billItems.length === 0}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              Cash Payment
+            </Button>
+            <Button 
+              onClick={() => createBill('razorpay', false)}
+              disabled={isSubmitting || billItems.length === 0}
+              className="bg-blue-500 hover:bg-blue-600"
+            >
+              Online Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bill Details Dialog */}
+      <Dialog open={showBillDetailsDialog} onOpenChange={setShowBillDetailsDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Bill Details</DialogTitle>
+            <DialogDescription>
+              Complete information for bill {selectedBill?.bill_id}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBill && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Bill Information</h4>
+                  <p><strong>Bill ID:</strong> {selectedBill.bill_id}</p>
+                  <p><strong>Type:</strong> {selectedBill.bill_type}</p>
+                  <p><strong>Status:</strong> {getStatusBadge(selectedBill.payment_status)}</p>
+                  <p><strong>Created:</strong> {new Date(selectedBill.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Patient Information</h4>
+                  <p><strong>Name:</strong> {selectedBill.patient_name}</p>
+                  <p><strong>Phone:</strong> {selectedBill.patient_phone}</p>
+                  <p><strong>Patient ID:</strong> {selectedBill.patient_code}</p>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total Amount:</span>
+                    <span>₹{Number(selectedBill.total_amount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Discount:</span>
+                    <span>-₹{Number(selectedBill.discount_amount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tax:</span>
+                    <span>+₹{Number(selectedBill.tax_amount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Final Amount:</span>
+                    <span>₹{Number(selectedBill.final_amount).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedBill.notes && (
+                <div>
+                  <h4 className="font-semibold mb-2">Notes</h4>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                    {selectedBill.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBillDetailsDialog(false)}>
+              Close
+            </Button>
+            <Button variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -643,55 +940,47 @@ export default function BillingManagement() {
           <DialogHeader>
             <DialogTitle>Process Payment</DialogTitle>
             <DialogDescription>
-              Payment details for {selectedBill?.patientName}
+              Process payment for bill {selectedBill?.bill_id}
             </DialogDescription>
           </DialogHeader>
           
           {selectedBill && (
             <div className="space-y-4">
-              <Alert>
-                <DollarSign className="h-4 w-4" />
-                <AlertDescription>
-                  कुल बकाया राशि: ₹{selectedBill.balance}
-                </AlertDescription>
-              </Alert>
-              
-              <div>
-                <Label htmlFor="paymentAmount">भुगतान राशि *</Label>
-                <Input
-                  id="paymentAmount"
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="राशि दर्ज करें"
-                  max={selectedBill.balance}
-                />
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">Amount to Pay</p>
+                  <p className="text-2xl font-bold">₹{Number(selectedBill.final_amount).toFixed(2)}</p>
+                </div>
               </div>
               
-              <div>
-                <Label htmlFor="paymentMethod">भुगतान विधि *</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="भुगतान विधि चुनें" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Cash">नकद</SelectItem>
-                    <SelectItem value="Card">कार्ड</SelectItem>
-                    <SelectItem value="UPI">UPI</SelectItem>
-                    <SelectItem value="Net Banking">नेट बैंकिंग</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  onClick={() => {
+                    updateBillStatus(selectedBill.bill_id, 'paid', 'cash')
+                    setShowPaymentDialog(false)
+                  }}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Cash Payment
+                </Button>
+                <Button 
+                  onClick={() => {
+                    initiateRazorpayPayment(selectedBill.bill_id, Number(selectedBill.final_amount))
+                    setShowPaymentDialog(false)
+                  }}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Online Payment
+                </Button>
               </div>
             </div>
           )}
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
-              रद्द करें
-            </Button>
-            <Button onClick={processPayment}>
-              <CreditCard className="h-4 w-4 mr-2" />
-              भुगतान करें
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

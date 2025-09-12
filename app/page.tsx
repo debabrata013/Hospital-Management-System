@@ -137,10 +137,10 @@ const content = {
       title: "हमारे",
       titleHighlight: "संस्थापक",
       titleEnd: "से मिलें",
-      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 40 से अधिक वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
+      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 45 वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
       qualifications: {
         title: "विशेषज्ञ योग्यताएं",
-        description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 40+ वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
+        description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 45 वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
       },
       vision: {
         title: "रोगी-केंद्रित दृष्टि",
@@ -348,10 +348,10 @@ const content = {
       title: "Meet Our",
       titleHighlight: "Founder",
       titleEnd: "",
-      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated over 40 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated 45 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
       qualifications: {
         title: "Expert Qualifications",
-        description: "MS (Orthopedics) with 40+ years of specialized experience in joint replacement and trauma surgery"
+        description: "MS (Orthopedics) with 45 years of specialized experience in joint replacement and trauma surgery"
       },
       vision: {
         title: "Patient-Centric Vision",
@@ -513,8 +513,7 @@ export default function LandingPage() {
       id: 1,
       name: 'Dr G K Nayak - MBBS D Orth',
       specialization: 'Orthopedics (Founder)',
-      qualification: 'Founder',
-      experience: '40+ Years',
+      experience: '45 Years',
       patients: '700K+',
       rating: 4.9,
       availability: 'Mon-Sat',
@@ -532,7 +531,7 @@ export default function LandingPage() {
       name: 'Dr Vinod Paliwal - MBBS D Orth',
       specialization: 'Orthopedics',
       qualification: '',
-      experience: '15+ Years',
+      experience: '35 Years',
       patients: '5k+',
       rating: 4.8,
       availability: 'Mon-Fri',
@@ -549,7 +548,7 @@ export default function LandingPage() {
       name: 'Dr K D Singh - MBBS DA',
       specialization: 'Anesthetics',
       qualification: '',
-      experience: '12+ Years',
+      experience: '35 Years',
       patients: '8k+',
       rating: 4.8,
       availability: 'Mon-Sat',
@@ -566,7 +565,7 @@ export default function LandingPage() {
       name: 'Dr Ramakant Dewangan - MBBS D Orth',
       specialization: 'Orthopedics',
       qualification: '',
-      experience: '10+ Years',
+      experience: '15 Years',
       patients: '4k+',
       rating: 4.7,
       availability: 'Tue-Sat',
@@ -581,9 +580,9 @@ export default function LandingPage() {
     {
       id: 5,
       name: 'Dr Shreyansh Shukla - MBBS MS Ortho',
-      specialization: 'Orthopedics',
+      specialization: 'Joint',
       qualification: '',
-      experience: '8+ Years',
+      experience: '5 Years',
       patients: '3k+',
       rating: 4.7,
       availability: 'Mon-Fri',
@@ -600,7 +599,7 @@ export default function LandingPage() {
       name: 'Dr Punit Mohanty - MBBS MD Ortho',
       specialization: 'Orthopedics',
       qualification: '',
-      experience: '12+ Years',
+      experience: '2 Years',
       patients: '4.5k+',
       rating: 4.8,
       availability: 'Mon-Sat',
@@ -779,10 +778,6 @@ export default function LandingPage() {
                           <div className="flex items-center justify-between bg-green-50 px-3 py-1 rounded">
                             <span className="text-xs font-medium text-green-700">Morning:</span>
                             <span className="text-xs text-green-600">{doctor.availabilityTimes.morning}</span>
-                          </div>
-                          <div className="flex items-center justify-between bg-orange-50 px-3 py-1 rounded">
-                            <span className="text-xs font-medium text-orange-700">Break:</span>
-                            <span className="text-xs text-orange-600">{doctor.availabilityTimes.break}</span>
                           </div>
                           <div className="flex items-center justify-between bg-blue-50 px-3 py-1 rounded">
                             <span className="text-xs font-medium text-blue-700">Evening:</span>
@@ -977,8 +972,8 @@ export default function LandingPage() {
                         <Image 
                           src="/images/dr-gk-nayak.jpg" 
                           alt="Dr G K Nayak - Founder" 
-                          layout="fill" 
-                          objectFit="contain"
+                          fill 
+                          style={{ objectFit: 'contain' }}
                         />
                       </div>
                     </div>
@@ -1573,22 +1568,6 @@ export default function LandingPage() {
                     </div>
                     <p className="text-sm font-medium text-gray-700">Easy Parking</p>
                     <p className="text-xs text-gray-600">200+ Slots</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center">
-                    <div className="bg-blue-500 p-2 rounded-lg w-10 h-10 mx-auto mb-2">
-                      <Navigation className="h-6 w-6 text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">Metro Access</p>
-                    <p className="text-xs text-gray-600">2 Min Walk</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center">
-                    <div className="bg-purple-500 p-2 rounded-lg w-10 h-10 mx-auto mb-2">
-                      <Truck className="h-6 w-6 text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">Ambulance</p>
-                    <p className="text-xs text-gray-600">24/7 Ready</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl text-center">

@@ -172,3 +172,44 @@ const getRedirectPath = (role: string): string => {
   };
   return roleRedirects[role] || '/';
 };
+
+// --- TOKEN VERIFICATION HOOK ---
+export const useTokenVerification = (token: string | null) => {
+  const [isValid, setIsValid] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    const verifyToken = async () => {
+      try {
+        const response = await fetch('/api/auth/verify-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsValid(true);
+          setUserData(data.user);
+        } else {
+          setIsValid(false);
+        }
+      } catch (error) {
+        console.error('Token verification failed:', error);
+        setIsValid(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyToken();
+  }, [token]);
+
+  return { isValid, isLoading, userData };
+};

@@ -86,7 +86,7 @@ export function useOffline(): UseOfflineReturn {
     try {
       if (isOnlineState) {
         // Try to save online first
-        const response = await fetch('/api/auth/register', {
+        const response = await fetch('/api/receptionist/patients', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
       }
 
       const validation = createShiftSchema.safeParse(body);
+<<<<<<< HEAD
       try {
         const v = validation.success ? validation.data : {
           staffId: String(body.staffId || ''),
@@ -126,6 +127,17 @@ export async function POST(request: NextRequest) {
           attendance: {}
         };
         return NextResponse.json({ success: true, data: mock, message: 'Shift created (dev)' }, { status: 201 });
+=======
+      if (!validation.success) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Invalid shift data',
+            details: validation.error.issues 
+          },
+          { status: 400 }
+        );
+>>>>>>> 4172fbfdfaae5d2e1fa928368f57f9d64be83f34
       }
 
     } else if (action === 'check_in') {

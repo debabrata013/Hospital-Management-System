@@ -12,13 +12,12 @@ const PROTECTED_ROUTES = {
   '/admin': ['super-admin', 'admin'],
   '/doctor': ['super-admin', 'doctor'],
   '/pharmacy': ['super-admin', 'pharmacy'],
-  '/patient': ['super-admin', 'patient'],
   '/staff': ['super-admin', 'staff'],
   '/receptionist': ['super-admin', 'receptionist'],
   '/api/admin': ['super-admin', 'admin'],
   '/api/doctor': ['super-admin', 'doctor'],
   '/api/pharmacy': ['super-admin', 'pharmacy'],
-  '/api/patient': ['super-admin', 'patient'],
+  '/api/patients': ['super-admin', 'admin', 'doctor', 'staff', 'receptionist'],
   '/api/staff': ['super-admin', 'staff'],
   '/api/receptionist': ['super-admin', 'receptionist']
 }
@@ -112,7 +111,6 @@ function getRoleBasedRedirect(role: string): string {
     'admin': '/admin',
     'doctor': '/doctor',
     'pharmacy': '/pharmacy',
-    'patient': '/patient',
     'staff': '/staff',
     'receptionist': '/receptionist'
   }

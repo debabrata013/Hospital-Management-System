@@ -83,7 +83,7 @@ const allTasks = [
     priority: "normal",
     dueTime: "16:00",
     dueDate: "2024-01-15",
-    status: "pending",
+    status: "completed",
     assignedBy: "Physiotherapist",
     assignedAt: "2024-01-15T12:00:00Z",
     category: "therapy",

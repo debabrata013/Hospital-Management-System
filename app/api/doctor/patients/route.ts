@@ -1,174 +1,151 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeQuery } from '../../../../lib/db/connection';
-import { getLoggedInUserId } from '../../../../lib/auth-utils';
+import jwt from 'jsonwebtoken';
+import mysql from 'mysql2/promise';
+
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'hospital_management'
+}
+
+// Simple token extraction and verification
+function extractAndVerifyToken(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    let token = null
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    } else {
+      const tokenCookie = request.cookies.get('auth-token')
+      if (tokenCookie) {
+        token = tokenCookie.value
+      }
+    }
+
+    if (!token) {
+      return { success: false, error: 'No token provided' }
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
+    if (!decoded || !decoded.userId) {
+      return { success: false, error: 'Invalid token' }
+    }
+
+    return { success: true, userId: decoded.userId }
+  } catch (error) {
+    return { success: false, error: 'Token verification failed' }
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getLoggedInUserId(req);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Simple token verification
+    const tokenResult = extractAndVerifyToken(req)
+    if (!tokenResult.success) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get search query parameter if provided
+    // Get search query parameters
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
 
-    let query = `
-      SELECT
-        p.id,
-        p.name,
-        p.date_of_birth as dateOfBirth,
-        p.contact_number as phone,
-        p.email,
-        p.address,
-        p.gender,
-        p.created_at,
-        appt_summary.totalAppointments,
-        appt_summary.lastVisit
-      FROM 
-        patients p
-      LEFT JOIN (
-        SELECT
-          patient_id as patientId,
-          COUNT(id) as totalAppointments,
-          MAX(appointment_date) as lastVisit
-        FROM appointments
-        WHERE doctor_id = ?
-        GROUP BY patient_id
-      ) as appt_summary ON p.id = appt_summary.patientId
-    `;
+    const connection = await mysql.createConnection(dbConfig)
 
-    const queryParams: (string | number)[] = [userId];
+    try {
+      // Build the main query
+      let baseQuery = `
+        SELECT 
+          p.id,
+          p.patient_id,
+          p.name,
+          p.date_of_birth,
+          p.gender,
+          p.contact_number,
+          p.email,
+          p.address,
+          p.city,
+          p.state,
+          p.pincode,
+          p.emergency_contact_name,
+          p.emergency_contact_number,
+          p.blood_group,
+          p.is_active,
+          p.registration_date
+        FROM patients p
+      `
 
-    // Add search functionality
-    if (search) {
-      query += ` WHERE (
-        p.name LIKE ? OR 
-        p.contact_number LIKE ? OR 
-        p.email LIKE ?
-      )`;
-      const searchTerm = `%${search}%`;
-      queryParams.push(searchTerm, searchTerm, searchTerm);
-    }
+      let countQuery = `SELECT COUNT(*) as total FROM patients p`
+      let whereClause = ''
+      const queryParams: any[] = []
 
-    query += `
-      ORDER BY p.name ASC
-      LIMIT ?
-    `;
-    queryParams.push(limit);
+      // Add search functionality
+      if (search) {
+        whereClause = ` WHERE (
+          p.name LIKE ? OR 
+          p.patient_id LIKE ? OR 
+          p.contact_number LIKE ?
+        )`
+        const searchTerm = `%${search}%`
+        queryParams.push(searchTerm, searchTerm, searchTerm)
+      }
 
-    const patientsData: any = await executeQuery(query, queryParams);
+      // Add WHERE clause to both queries
+      baseQuery += whereClause
+      countQuery += whereClause
 
-    const patients = patientsData.map((patient: any) => {
-      const [firstName, ...lastNameParts] = patient.name.split(' ');
-      const lastName = lastNameParts.join(' ');
-      return {
+      // Add pagination to main query
+      baseQuery += ` ORDER BY p.name ASC LIMIT ? OFFSET ?`
+      const mainQueryParams = [...queryParams, limit, offset]
+
+      // Execute both queries
+      const [patientsResult] = await connection.execute(baseQuery, mainQueryParams) as any[]
+      const [countResult] = await connection.execute(countQuery, queryParams) as any[]
+
+      const total = countResult[0]?.total || 0
+      const totalPages = Math.ceil(total / limit)
+
+      const patients = patientsResult.map((patient: any) => ({
         id: patient.id,
-        firstName: firstName || '',
-        lastName: lastName || '',
+        patient_id: patient.patient_id,
         name: patient.name,
-        dateOfBirth: patient.dateOfBirth,
-        age: patient.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : null,
-        phone: patient.phone,
+        date_of_birth: patient.date_of_birth,
+        gender: patient.gender,
+        contact_number: patient.contact_number,
         email: patient.email,
         address: patient.address,
-        gender: patient.gender,
-        totalAppointments: patient.totalAppointments || 0,
-        lastVisit: patient.lastVisit,
-        createdAt: patient.created_at,
-      };
-    });
+        city: patient.city,
+        state: patient.state,
+        pincode: patient.pincode,
+        emergency_contact_name: patient.emergency_contact_name,
+        emergency_contact_number: patient.emergency_contact_number,
+        blood_group: patient.blood_group,
+        is_active: patient.is_active,
+        registration_date: patient.registration_date
+      }))
 
-    return NextResponse.json(patients);
+      const response = {
+        patients,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages
+        }
+      }
+
+      return NextResponse.json(response)
+
+    } finally {
+      await connection.end()
+    }
   } catch (error) {
     console.error('Error fetching patients:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const userId = await getLoggedInUserId(req);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { 
-      firstName, 
-      lastName, 
-      dateOfBirth, 
-      phone, 
-      email, 
-      address, 
-      gender,
-      emergencyContact,
-      medicalHistory 
-    } = body;
-
-    if (!firstName || !lastName) {
-        return NextResponse.json({ error: 'First name and last name are required' }, { status: 400 });
-    }
-
-    const name = `${firstName} ${lastName}`.trim();
-
-    // Insert new patient
-    const insertQuery = `
-      INSERT INTO patients (
-        name, 
-        date_of_birth, 
-        contact_number, 
-        email, 
-        address, 
-        gender,
-        emergency_contact,
-        medical_history,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-    `;
-
-    const result: any = await executeQuery(insertQuery, [
-      name,
-      dateOfBirth,
-      phone,
-      email,
-      address,
-      gender,
-      emergencyContact,
-      medicalHistory
-    ]);
-
-    // Get the created patient
-    const getPatientQuery = `
-      SELECT * FROM patients WHERE id = ?
-    `;
-
-    const patientData: any = await executeQuery(getPatientQuery, [result.insertId]);
-    const newPatient = patientData[0];
-
-    const [fName, ...lNameParts] = newPatient.name.split(' ');
-    const lName = lNameParts.join(' ');
-
-    const response = {
-      id: newPatient.id,
-      firstName: fName,
-      lastName: lName,
-      name: newPatient.name,
-      dateOfBirth: newPatient.date_of_birth,
-      age: newPatient.date_of_birth ? new Date().getFullYear() - new Date(newPatient.date_of_birth).getFullYear() : null,
-      phone: newPatient.contact_number,
-      email: newPatient.email,
-      address: newPatient.address,
-      gender: newPatient.gender,
-      emergencyContact: newPatient.emergency_contact,
-      medicalHistory: newPatient.medical_history,
-      createdAt: newPatient.created_at,
-    };
-
-    return NextResponse.json(response, { status: 201 });
-  } catch (error) {
-    console.error('Error creating patient:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
