@@ -5,6 +5,10 @@ const dbConfig = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'hospital_management',
+  port: parseInt(process.env.DB_PORT || '3306'),
+  charset: 'utf8mb4',
+  timezone: '+00:00',
+  connectTimeout: 60000,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

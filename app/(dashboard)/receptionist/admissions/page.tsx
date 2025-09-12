@@ -326,7 +326,7 @@ export default function AdmissionsPage() {
       'cancelled': { color: 'bg-red-100 text-red-700', icon: XCircle }
     }
     
-    const config = statusConfig[status] || statusConfig['active']
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['active']
     const Icon = config.icon
     
     return (
@@ -345,7 +345,7 @@ export default function AdmissionsPage() {
       'observation': { color: 'bg-purple-100 text-purple-700', icon: Eye }
     }
     
-    const config = typeConfig[type] || typeConfig['planned']
+    const config = typeConfig[type as keyof typeof typeConfig] || typeConfig['planned']
     const Icon = config.icon
     
     return (

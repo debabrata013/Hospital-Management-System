@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Heart, LayoutDashboard, Users, UserCheck, UserCog, Settings, FileText, Bell, LogOut, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, Shield } from 'lucide-react'
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 // Interfaces
 interface DashboardStats {
@@ -50,14 +50,6 @@ interface MonthlyData {
   month: string
   users: number
   doctors: number
-}
-
-interface RecentActivity {
-  action: string
-  table_name: string
-  user_id: number
-  created_at: string
-  details: string
 }
 
 // Navigation items (removed hospital management)
@@ -83,7 +75,6 @@ export default function SuperAdminDashboard() {
   const [notifications] = useState(5)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -105,20 +96,10 @@ export default function SuperAdminDashboard() {
       const data = await response.json()
       setStats(data.stats)
       setMonthlyData(data.monthlyData || [])
-      setRecentActivities(data.recentActivities || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'user_suspended': return <UserCog className="h-4 w-4 text-yellow-500" />
-      case 'system_update': return <Settings className="h-4 w-4 text-blue-500" />
-      case 'security_alert': return <AlertTriangle className="h-4 w-4 text-red-500" />
-      default: return <Activity className="h-4 w-4 text-gray-500" />
     }
   }
 
@@ -360,31 +341,31 @@ export default function SuperAdminDashboard() {
 
                   <Card className="border-pink-100">
                     <CardHeader>
-                      <CardTitle className="text-gray-900">Recent Activities</CardTitle>
-                      <CardDescription>Latest system activities and changes</CardDescription>
+                      <CardTitle className="text-gray-900">User Distribution</CardTitle>
+                      <CardDescription>Distribution of users by role</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {recentActivities.length > 0 ? (
-                          recentActivities.slice(0, 5).map((activity, index) => (
-                            <div key={index} className="flex items-start space-x-3">
-                              {getActivityIcon(activity.action)}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {activity.details || `${activity.action} on ${activity.table_name}`}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(activity.created_at).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500">No recent activities</p>
-                          </div>
-                        )}
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Doctors', value: stats?.totalDoctors || 0, fill: '#10b981' },
+                                { name: 'Admins', value: stats?.totalAdmins || 0, fill: '#ec4899' },
+                                { name: 'Other Staff', value: (stats?.totalUsers || 0) - (stats?.totalDoctors || 0) - (stats?.totalAdmins || 0), fill: '#3b82f6' }
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
                     </CardContent>
                   </Card>

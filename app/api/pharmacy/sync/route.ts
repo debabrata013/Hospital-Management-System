@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         
       } catch (error) {
         results.failed++
-        results.errors.push(`Item ${item.id}: ${error.message}`)
+        results.issues.push(`Item ${item.id}: ${error.message}`)
       }
     }
 

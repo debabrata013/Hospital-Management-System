@@ -6,7 +6,7 @@ const dbConfig = {
   user: process.env.DB_USER || 'u153229971_admin',
   password: process.env.DB_PASSWORD || 'Admin!2025',
   database: process.env.DB_NAME || 'u153229971_Hospital',
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT || '3306'),
   charset: 'utf8mb4',
   timezone: '+05:30',
   connectTimeout: 20000

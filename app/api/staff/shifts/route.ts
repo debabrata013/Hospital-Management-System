@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         { 
           success: false, 
           error: 'Invalid query parameters',
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           { 
             success: false, 
             error: 'Invalid shift data',
-            details: validation.error.errors 
+            details: validation.error.issues 
           },
           { status: 400 }
         );
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
           { 
             success: false, 
             error: 'Invalid check-in data',
-            details: validation.error.errors 
+            details: validation.error.issues 
           },
           { status: 400 }
         );
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
           { 
             success: false, 
             error: 'Invalid check-out data',
-            details: validation.error.errors 
+            details: validation.error.issues 
           },
           { status: 400 }
         );
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
           { 
             success: false, 
             error: 'Invalid break data',
-            details: validation.error.errors 
+            details: validation.error.issues 
           },
           { status: 400 }
         );
@@ -247,7 +247,7 @@ export async function PUT(request: NextRequest) {
         { 
           success: false, 
           error: 'Invalid update data',
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );
