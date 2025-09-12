@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       notes: {
         bill_id: billId,
         patient_name: bill.patient_name,
-        hospital: 'Arogya Hospital'
+        hospital: 'NMSC'
       }
     };
     

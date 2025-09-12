@@ -64,7 +64,7 @@ export default function SettingsPage() {
               <Label htmlFor="hospital-name">Hospital System Name</Label>
               <Input 
                 id="hospital-name" 
-                defaultValue="Arogya Hospital Management System"
+                defaultValue="NMSC Management System"
                 className="border-pink-200 focus:border-pink-400"
               />
             </div>

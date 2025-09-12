@@ -264,7 +264,7 @@ export default function BillingPage() {
           key: data.key,
           amount: data.order.amount,
           currency: data.order.currency,
-          name: 'Arogya Hospital',
+          name: 'NMSC',
           description: `Bill Payment - ${billId}`,
           order_id: data.order.id,
           handler: async (response: any) => {

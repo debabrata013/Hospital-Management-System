@@ -1,5 +1,5 @@
 // Verify pharmacy user credentials
-// Hospital Management System - Arogya Hospital
+// Hospital Management System - NMSC
 
 const { executeQuery } = require('../lib/mysql-connection.js');
 const bcrypt = require('bcryptjs');

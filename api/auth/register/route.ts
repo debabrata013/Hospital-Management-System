@@ -327,7 +327,7 @@ async function sendWelcomeEmail(user: any): Promise<void> {
     // const transporter = nodemailer.createTransporter({...});
     // await transporter.sendMail({
     //   to: user.email,
-    //   subject: 'Welcome to आरोग्य अस्पताल',
+    //   subject: 'Welcome to NMSC',
     //   html: generateWelcomeEmailTemplate(user)
     // });
   } catch (error) {

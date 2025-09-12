@@ -1,5 +1,5 @@
 // Create missing prescription tables
-// Hospital Management System - Arogya Hospital
+// Hospital Management System - NMSC
 
 const { executeQuery } = require('../lib/mysql-connection.js');
 

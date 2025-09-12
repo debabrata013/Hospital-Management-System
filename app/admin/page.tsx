@@ -38,7 +38,7 @@ import { Heart, LayoutDashboard, Users, Calendar, UserCheck, Package, CreditCard
 
 // Mock data for the dashboard (some parts are still mock)
 const branchInfo = {
-  name: "आरोग्य अस्पताल - मुख्य शाखा",
+  name: "NMSC - मुख्य शाखा",
   location: "नई दिल्ली",
   adminName: "डॉ. प्रिया शर्मा"
 }
@@ -227,7 +227,7 @@ export default function AdminDashboard() {
                 <Heart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">आरोग्य अस्पताल</h2>
+                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
                 <p className="text-sm text-gray-500">
                   {user?.name || 'Admin'} - {user?.role || 'Administrator'}
                 </p>

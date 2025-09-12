@@ -1,4 +1,4 @@
-// Database Initialization Script for Arogya Hospital
+// Database Initialization Script for NMSC
 import { connectToDatabase } from '../lib/mongodb'
 import { Collections } from '../lib/models'
 import { DatabaseUtils } from '../lib/db-utils'

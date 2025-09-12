@@ -93,7 +93,7 @@ export default function PharmacyLayout({
                 <Heart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">आरोग्य अस्पताल</h2>
+                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
                 <p className="text-sm text-gray-500">फार्मेसी विभाग</p>
               </div>
             </div>
