@@ -76,14 +76,6 @@ const navigationItems = [
       { title: "Manage Doctors", icon: UserCheck, url: "/super-admin/doctors" },
       { title: "Manage Staff", icon: Users, url: "/super-admin/staff" },
     ]
-  },
-  {
-    title: "System",
-    items: [
-      { title: "System Settings", icon: Settings, url: "/super-admin/settings" },
-      { title: "Security", icon: Shield, url: "/super-admin/security" },
-      { title: "Logs", icon: FileText, url: "/super-admin/logs" },
-    ]
   }
 ]
 
@@ -226,15 +218,6 @@ export default function SuperAdminDashboard() {
                       <p className="text-xs leading-none text-muted-foreground">System Administrator</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Shield className="mr-2 h-4 w-4" />
-                    Security
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -406,42 +389,6 @@ export default function SuperAdminDashboard() {
                     </CardContent>
                   </Card>
                 </div>
-
-                {/* Quick Actions */}
-                <Card className="border-pink-100">
-                  <CardHeader>
-                    <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-                    <CardDescription>Common administrative tasks</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <UserCog className="h-6 w-6" />
-                        <span className="text-sm">Add Admin</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <UserCheck className="h-6 w-6" />
-                        <span className="text-sm">Add Doctor</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <Settings className="h-6 w-6" />
-                        <span className="text-sm">System Config</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <FileText className="h-6 w-6" />
-                        <span className="text-sm">View Logs</span>
-                      </Button>
-                      
-                      <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-2">
-                        <Shield className="h-6 w-6" />
-                        <span className="text-sm">Security</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
               </>
             )}
           </main>
