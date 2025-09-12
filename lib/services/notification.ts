@@ -134,7 +134,7 @@ export class NotificationService {
         <body>
           <div class="container">
             <div class="header">
-              <h2>🏥 आरोग्य अस्पताल</h2>
+              <h2>🏥 NMSC</h2>
               <p>${data.category} Notification</p>
             </div>
             <div class="content">

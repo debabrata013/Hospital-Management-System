@@ -27,7 +27,7 @@ function testPDFImplementation() {
     runTest('generatePrescriptionPDF Function', /generatePrescriptionPDF/.test(content))
     runTest('printPrescription Function', /printPrescription/.test(content))
     runTest('downloadPrescriptionPDF Function', /downloadPrescriptionPDF/.test(content))
-    runTest('Hospital Header in PDF', /आरोग्य अस्पताल/.test(content))
+    runTest('Hospital Header in PDF', /NMSC/.test(content))
     runTest('Medicine Details Layout', /medicine_name.*dosage.*frequency/.test(content))
   }
 

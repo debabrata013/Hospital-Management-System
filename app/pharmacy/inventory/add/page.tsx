@@ -202,7 +202,7 @@ export default function AddMedicine() {
                 <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
                   <Heart className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-800">आरोग्य अस्पताल</span>
+                <span className="text-xl font-bold text-gray-800">NMSC</span>
               </Link>
               <div className="h-6 w-px bg-gray-300"></div>
               <div className="flex items-center space-x-2">

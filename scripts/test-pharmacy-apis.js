@@ -1,5 +1,5 @@
 // Test all pharmacy APIs
-// Hospital Management System - Arogya Hospital
+// Hospital Management System - NMSC
 
 const fetch = require('node-fetch');
 

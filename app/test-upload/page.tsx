@@ -46,7 +46,7 @@ export default function TestUploadPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">🏥 आरोग्य अस्पताल</h1>
+        <h1 className="text-3xl font-bold">🏥 NMSC</h1>
         <h2 className="text-xl text-muted-foreground">Cloudflare R2 Storage Test</h2>
         <p className="text-sm text-muted-foreground">
           Test file upload functionality for the Hospital Management System

@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Create a test file buffer
     const testContent = `
-🏥 आरोग्य अस्पताल (Arogya Hospital) - R2 Storage Test
+🏥 NMSC (NMSC) - R2 Storage Test
 =================================================
 
 Test File Details:

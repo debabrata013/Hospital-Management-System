@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     await executeQuery('UPDATE users SET otp = ?, otpExpires = ? WHERE id = ?', [otp, expires, user.id]);
 
     // Send the OTP via SMS
-    const message = `Your आरोग्य अस्पताल login OTP is: ${otp}. It is valid for 10 minutes.`;
+    const message = `Your NMSC login OTP is: ${otp}. It is valid for 10 minutes.`;
     await sendSms(user.phoneNumber, message);
 
     return NextResponse.json({ message: 'OTP sent successfully' }, { status: 200 });

@@ -370,7 +370,7 @@ export default function ReceptionistDashboard() {
                 <Heart className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
               </div>
               <div className="hidden lg:block">
-                <h2 className="text-lg font-bold text-gray-900">Arogya Hospital</h2>
+                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
                 <p className="text-sm text-gray-500">Receptionist</p>
               </div>
             </div>

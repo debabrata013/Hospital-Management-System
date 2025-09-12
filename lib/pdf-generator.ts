@@ -22,9 +22,9 @@ export function generatePrescriptionPDF(data: PrescriptionData): jsPDF {
   
   // Header
   doc.setFontSize(20)
-  doc.text('आरोग्य अस्पताल', 105, 20, { align: 'center' })
+  doc.text('NMSC', 105, 20, { align: 'center' })
   doc.setFontSize(12)
-  doc.text('Arogya Hospital', 105, 28, { align: 'center' })
+  doc.text('NMSC', 105, 28, { align: 'center' })
   doc.text('Medical Prescription', 105, 35, { align: 'center' })
   
   // Line separator

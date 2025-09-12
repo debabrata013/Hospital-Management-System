@@ -220,7 +220,7 @@ const createTablesSQL = [
 const sampleData = [
   // Hospital settings
   `INSERT IGNORE INTO hospital_settings (setting_key, setting_value, setting_type, category, description, is_public) VALUES
-  ('hospital_name', 'आरोग्य अस्पताल (Arogya Hospital)', 'string', 'general', 'Hospital Name', TRUE),
+  ('hospital_name', 'NMSC (NMSC)', 'string', 'general', 'Hospital Name', TRUE),
   ('hospital_address', 'Main Street, City, State - 123456', 'string', 'general', 'Hospital Address', TRUE),
   ('hospital_phone', '+91-1234567890', 'string', 'general', 'Hospital Contact Number', TRUE),
   ('consultation_fee', '500.00', 'number', 'billing', 'Default Consultation Fee', FALSE)`,

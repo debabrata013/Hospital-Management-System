@@ -273,7 +273,7 @@ export default function DoctorDashboard() {
                 <Heart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">आरोग्य अस्पताल</h2>
+                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
                 <p className="text-sm text-gray-500">डॉक्टर पैनल</p>
               </div>
             </div>

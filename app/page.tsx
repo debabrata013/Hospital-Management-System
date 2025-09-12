@@ -17,7 +17,7 @@ import { Heart, Users, Calendar, Pill, Shield, Clock, Award, Phone, Globe, UserC
 
 const content = {
   hindi: {
-    hospitalName: "आरोग्य अस्पताल",
+    hospitalName: "NMSC",
     nav: {
       home: "मुख्य पृष्ठ",
       about: "हमारे बारे में",
@@ -31,7 +31,7 @@ const content = {
       title: "आपकी स्वास्थ्य",
       titleHighlight: "यात्रा",
       titleEnd: "हमारी प्राथमिकता",
-      description: "आरोग्य अस्पताल में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
+      description: "NMSC में, हम आपकी स्वास्थ्य देखभाल को सरल, सुरक्षित और सुविधाजनक बनाते हैं। ऑनलाइन अपॉइंटमेंट से लेकर डिजिटल रिपोर्ट तक, आपका स्वास्थ्य अब आपके हाथों में है।",
       getStarted: "अपॉइंटमेंट बुक करें",
       bookDemo: "हमसे मिलें",
       stats: {
@@ -101,7 +101,7 @@ const content = {
       },
     },
     about: {
-      title: "आरोग्य अस्पताल आपके लिए क्यों सबसे अच्छा है?",
+      title: "NMSC आपके लिए क्यों सबसे अच्छा है?",
       description: "हम समझते हैं कि हर मरीज़ अलग है। इसीलिए हमने आपकी सुविधा को ध्यान में रखते हुए अपनी सेवाएं डिज़ाइन की हैं। आपका स्वास्थ्य, आपकी सुविधा, हमारी जिम्मेदारी।",
       support247: {
         title: "तुरंत सेवा",
@@ -137,14 +137,14 @@ const content = {
       title: "हमारे",
       titleHighlight: "संस्थापक",
       titleEnd: "से मिलें",
-      description: "डॉ. जी के नायक, आरोग्य अस्पताल के दूरदर्शी संस्थापक, ने 45 वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने आरोग्य अस्पताल को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
+      description: "डॉ. जी के नायक, NMSC के दूरदर्शी संस्थापक, ने 45 वर्षों तक असाधारण आर्थोपेडिक देखभाल प्रदान करने के लिए समर्पित किया है। रोगी कल्याण और चिकित्सा उत्कृष्टता के प्रति उनकी प्रतिबद्धता ने NMSC को स्वास्थ्य सेवा में एक विश्वसनीय नाम बनाया है।",
       qualifications: {
         title: "विशेषज्ञ योग्यताएं",
         description: "जोड़ों के प्रतिस्थापन और आघात सर्जरी में 45 वर्षों के विशेष अनुभव के साथ एमएस (आर्थोपेडिक्स)"
       },
       vision: {
         title: "रोगी-केंद्रित दृष्टि",
-        description: "सभी को सुलभ, गुणवत्तापूर्ण स्वास्थ्य सेवा प्रदान करने के मिशन के साथ आरोग्य अस्पताल की स्थापना की"
+        description: "सभी को सुलभ, गुणवत्तापूर्ण स्वास्थ्य सेवा प्रदान करने के मिशन के साथ NMSC की स्थापना की"
       },
       excellence: {
         title: "चिकित्सा उत्कृष्टता",
@@ -181,7 +181,7 @@ const content = {
       whatsapp: "व्हाट्सऐप पर संदेश"
     },
     footer: {
-      hospitalName: "आरोग्य अस्पताल",
+      hospitalName: "NMSC",
       tagline: "आपकी स्वास्थ्य देखभाल में आपका विश्वसनीय साथी",
       quickLinks: {
         title: "त्वरित लिंक",
@@ -221,7 +221,7 @@ const content = {
         instagram: "Instagram",
         youtube: "YouTube"
       },
-      copyright: "© 2024 आरोग्य अस्पताल। सभी अधिकार सुरक्षित।",
+      copyright: "© 2024 NMSC। सभी अधिकार सुरक्षित।",
       privacy: "गोपनीयता नीति",
       terms: "नियम और शर्तें",
       disclaimer: "अस्वीकरण"
@@ -348,7 +348,7 @@ const content = {
       title: "Meet Our",
       titleHighlight: "Founder",
       titleEnd: "",
-      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated 45 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made Arogya Hospital a trusted name in healthcare.",
+      description: "Dr. G K Nayak, the visionary founder of NMSC, has dedicated 45 years to providing exceptional orthopedic care. His commitment to patient welfare and medical excellence has made NMSC a trusted name in healthcare.",
       qualifications: {
         title: "Expert Qualifications",
         description: "MS (Orthopedics) with 45 years of specialized experience in joint replacement and trauma surgery"
@@ -426,7 +426,7 @@ const content = {
         pharmacy: "Pharmacy: 7:00 AM - 11:00 PM"
       },
      
-      copyright: " 2024 Arogya Hospital. All rights reserved.",
+      copyright: " 2024 NMSC. All rights reserved.",
       privacy: "Privacy Policy",
       terms: "Terms & Conditions",
       disclaimer: "Disclaimer"
@@ -1377,7 +1377,7 @@ export default function LandingPage() {
               <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl p-6 shadow-2xl">
                 <Image
                   src="https://placehold.co/500x500/DDD6FE/312E81?text=Healthcare+Team"
-                  alt="Healthcare Team - Arogya Hospital"
+                  alt="Healthcare Team - NMSC"
                   width={500}
                   height={400}
                   className="rounded-2xl shadow-lg object-cover w-full h-[400px]"
@@ -1555,7 +1555,7 @@ export default function LandingPage() {
                   <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-pink-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-medium text-gray-700">आरोग्य अस्पताल</span>
+                      <span className="text-sm font-medium text-gray-700">NMSC</span>
                     </div>
                   </div>
                 </div>
