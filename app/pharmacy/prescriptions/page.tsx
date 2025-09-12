@@ -229,16 +229,62 @@ export default function PrescriptionsPage() {
                   <div className="space-y-1 text-sm">
                     <p><span className="font-medium">Name:</span> {selectedPrescription.patient_name}</p>
                     <p><span className="font-medium">ID:</span> {selectedPrescription.patient_id}</p>
+                    {selectedPrescription.patient_age && (
+                      <p><span className="font-medium">Age:</span> {selectedPrescription.patient_age} years</p>
+                    )}
+                    {selectedPrescription.patient_gender && (
+                      <p><span className="font-medium">Gender:</span> {selectedPrescription.patient_gender}</p>
+                    )}
+                    {selectedPrescription.patient_contact && (
+                      <p><span className="font-medium">Contact:</span> {selectedPrescription.patient_contact}</p>
+                    )}
                   </div>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h3 className="font-semibold mb-2">Doctor Information</h3>
                   <div className="space-y-1 text-sm">
                     <p><span className="font-medium">Name:</span> Dr. {selectedPrescription.doctor_name}</p>
+                    {selectedPrescription.doctor_department && (
+                      <p><span className="font-medium">Department:</span> {selectedPrescription.doctor_department}</p>
+                    )}
                     <p><span className="font-medium">Date:</span> {new Date(selectedPrescription.prescription_date || selectedPrescription.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
               </div>
+
+              {/* Vitals Information */}
+              {selectedPrescription.vitals && Object.values(selectedPrescription.vitals).some(v => v) && (
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <h3 className="font-semibold mb-2">Patient Vitals</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                    {selectedPrescription.vitals.blood_pressure && (
+                      <div>
+                        <span className="font-medium">BP:</span> {selectedPrescription.vitals.blood_pressure}
+                      </div>
+                    )}
+                    {selectedPrescription.vitals.heart_rate && (
+                      <div>
+                        <span className="font-medium">HR:</span> {selectedPrescription.vitals.heart_rate} bpm
+                      </div>
+                    )}
+                    {selectedPrescription.vitals.temperature && (
+                      <div>
+                        <span className="font-medium">Temp:</span> {selectedPrescription.vitals.temperature}°F
+                      </div>
+                    )}
+                    {selectedPrescription.vitals.weight && (
+                      <div>
+                        <span className="font-medium">Weight:</span> {selectedPrescription.vitals.weight} kg
+                      </div>
+                    )}
+                    {selectedPrescription.vitals.height && (
+                      <div>
+                        <span className="font-medium">Height:</span> {selectedPrescription.vitals.height} cm
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Prescription Items */}
               <div>
@@ -254,16 +300,24 @@ export default function PrescriptionsPage() {
                   </div>
                   {selectedPrescription.items?.map((item: any, index: number) => (
                     <div key={index} className="grid grid-cols-6 gap-4 p-3 border-t text-sm">
-                      <div className="font-medium">{item.medicine_name}</div>
+                      <div className="font-medium">{item.medicine_name || item.name}</div>
                       <div>{item.dosage}</div>
                       <div>{item.frequency}</div>
                       <div>{item.duration}</div>
-                      <div>{item.quantity}</div>
-                      <div>₹{(item.unit_price * item.quantity).toFixed(2)}</div>
+                      <div>{item.quantity || 1}</div>
+                      <div>₹{((item.unit_price || item.price || 0) * (item.quantity || 1)).toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Remarks */}
+              {selectedPrescription.remarks && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold mb-2">Doctor's Remarks & Instructions</h3>
+                  <p className="text-sm text-gray-700">{selectedPrescription.remarks}</p>
+                </div>
+              )}
 
               {/* Total */}
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
