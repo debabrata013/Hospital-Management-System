@@ -19,7 +19,8 @@ import {
   Heart,
   Thermometer,
   Weight,
-  Ruler
+  Ruler,
+  Users
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -67,19 +68,33 @@ export default function PatientDetailPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [currentAppointment, setCurrentAppointment] = useState<Appointment | null>(null)
   const [vitals, setVitals] = useState<VitalSigns | null>(null)
+  const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    fetchAllPatients();
     if (patientId) {
-      fetchPatientData()
-      fetchAppointments()
+      fetchPatientData();
+      fetchAppointments();
       if (appointmentId) {
-        fetchAppointmentDetails()
+        fetchAppointmentDetails();
       } else {
-        setLoading(false)
+        setLoading(false);
       }
     }
-  }, [patientId, appointmentId])
+  }, [patientId, appointmentId]);
+
+  const fetchAllPatients = async () => {
+    try {
+      const response = await fetch('/api/staff/patients');
+      if (response.ok) {
+        const data = await response.json();
+        setAllPatients(data.patients);
+      }
+    } catch (error) {
+      console.error('Error fetching all patients:', error);
+    }
+  };
 
   const fetchPatientData = async () => {
     try {
@@ -170,8 +185,27 @@ export default function PatientDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex">
+      <aside className="w-64 bg-white border-r border-pink-100 p-4 flex-shrink-0">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <Users className="h-5 w-5 mr-2 text-pink-500" />
+          All Patients
+        </h2>
+        <nav className="space-y-2">
+          {allPatients.map((p) => (
+            <Link key={p.id} href={`/doctor/patients/${p.id}`}>
+              <Button
+                variant={p.id.toString() === patientId ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+              >
+                {p.name}
+              </Button>
+            </Link>
+          ))}
+        </nav>
+      </aside>
+      <main className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -393,7 +427,8 @@ export default function PatientDetailPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }

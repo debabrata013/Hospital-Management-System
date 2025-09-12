@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,81 +26,31 @@ import {
   Phone,
 } from "lucide-react"
 
-// Mock data
-const assignedPatients = [
-  {
-    id: "P001",
-    name: "Ram Sharma",
-    age: 45,
-    gender: "Male",
-    roomNumber: "101",
-    bedNumber: "A1",
-    condition: "Stable",
-    diagnosis: "Hypertension monitoring",
-    doctor: "Dr. Anil Kumar",
-    admissionDate: "2024-01-08",
-    lastVitals: { time: "2 hours ago", bp: "130/85", pulse: "78", temp: "98.6°F", oxygen: "98%" },
-    nextMedicine: "14:30",
-    allergies: "None known",
-    emergencyContact: "+91 98765 43210",
-    notes: "Patient responding well to medication",
-  },
-  {
-    id: "P002",
-    name: "Sunita Devi",
-    age: 32,
-    gender: "Female",
-    roomNumber: "205",
-    bedNumber: "B2",
-    condition: "Good",
-    diagnosis: "Post-delivery care",
-    doctor: "Dr. Priya Singh",
-    admissionDate: "2024-01-07",
-    lastVitals: { time: "1 hour ago", bp: "120/80", pulse: "72", temp: "98.4°F", oxygen: "99%" },
-    nextMedicine: "15:00",
-    allergies: "Penicillin",
-    emergencyContact: "+91 98765 43211",
-    notes: "Recovery progressing normally",
-  },
-  {
-    id: "P003",
-    name: "Ajay Kumar",
-    age: 28,
-    gender: "Male",
-    roomNumber: "ICU-1",
-    bedNumber: "I1",
-    condition: "Critical",
-    diagnosis: "Accident trauma",
-    doctor: "Dr. Rajesh Gupta",
-    admissionDate: "2024-01-08",
-    lastVitals: { time: "30 minutes ago", bp: "110/70", pulse: "95", temp: "99.2°F", oxygen: "95%" },
-    nextMedicine: "Every 2 hours",
-    allergies: "None known",
-    emergencyContact: "+91 98765 43212",
-    notes: "Requires continuous monitoring",
-  },
-  {
-    id: "P004",
-    name: "Geeta Sharma",
-    age: 55,
-    gender: "Female",
-    roomNumber: "102",
-    bedNumber: "A2",
-    condition: "Stable",
-    diagnosis: "Diabetes management",
-    doctor: "Dr. Anil Kumar",
-    admissionDate: "2024-01-06",
-    lastVitals: { time: "3 hours ago", bp: "140/90", pulse: "80", temp: "98.8°F", oxygen: "97%" },
-    nextMedicine: "16:00",
-    allergies: "Sulfa drugs",
-    emergencyContact: "+91 98765 43213",
-    notes: "Blood sugar levels stabilizing",
-  },
-]
 
 export default function StaffPatientsPage() {
-  const [activeTab, setActiveTab] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/staff/patients');
+        if (response.ok) {
+          const data = await response.json();
+          setPatients(data.patients);
+        }
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, []);
 
   const getConditionBadge = (condition: string) => {
     switch (condition) {
@@ -115,11 +65,10 @@ export default function StaffPatientsPage() {
     }
   }
 
-  const filteredPatients = assignedPatients.filter((patient) => {
+  const filteredPatients = patients.filter((patient) => {
     const matchesSearch =
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.roomNumber.includes(searchQuery) ||
-      patient.diagnosis.toLowerCase().includes(searchQuery.toLowerCase())
+      patient.email.toLowerCase().includes(searchQuery.toLowerCase())
 
     if (activeTab === "all") return matchesSearch
     if (activeTab === "critical") return matchesSearch && patient.condition === "Critical"
@@ -148,7 +97,7 @@ export default function StaffPatientsPage() {
             </div>
           </div>
           <Badge variant="outline" className="bg-green-50 text-green-700 self-start sm:self-auto">
-            {assignedPatients.length} Patients
+            {patients.length} Patients
           </Badge>
         </div>
       </div>
@@ -162,7 +111,7 @@ export default function StaffPatientsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
-                  <p className="text-xl sm:text-3xl font-bold text-gray-900">{assignedPatients.length}</p>
+                  <p className="text-xl sm:text-3xl font-bold text-gray-900">{patients.length}</p>
                 </div>
                 <div className="bg-green-100 p-2 sm:p-3 rounded-xl">
                   <Users className="h-5 w-5 sm:h-8 sm:w-8 text-green-600" />
@@ -176,7 +125,7 @@ export default function StaffPatientsPage() {
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Critical</p>
                   <p className="text-xl sm:text-3xl font-bold text-gray-900">
-                    {assignedPatients.filter((p) => p.condition === "Critical").length}
+                    {patients.filter((p) => p.condition === "Critical").length}
                   </p>
                 </div>
                 <div className="bg-red-100 p-2 sm:p-3 rounded-xl">
@@ -191,7 +140,7 @@ export default function StaffPatientsPage() {
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Stable</p>
                   <p className="text-xl sm:text-3xl font-bold text-gray-900">
-                    {assignedPatients.filter((p) => p.condition === "Stable").length}
+                    {patients.filter((p) => p.condition === "Stable").length}
                   </p>
                 </div>
                 <div className="bg-blue-100 p-2 sm:p-3 rounded-xl">
@@ -247,7 +196,12 @@ export default function StaffPatientsPage() {
               </TabsList>
 
               <TabsContent value={activeTab} className="space-y-4">
-                {filteredPatients.map((patient) => (
+                {loading ? (
+                  <p>Loading patients...</p>
+                ) : filteredPatients.length === 0 ? (
+                  <p>No patients found.</p>
+                ) : (
+                  filteredPatients.map((patient) => (
                   <Card key={patient.id} className="border hover:shadow-md transition-shadow">
                     <CardContent className="p-4 sm:p-6">
                       {/* Top Section */}
@@ -261,10 +215,10 @@ export default function StaffPatientsPage() {
                           <div>
                             <h3 className="text-lg sm:text-xl font-semibold">{patient.name}</h3>
                             <p className="text-gray-600 text-sm sm:text-base">
-                              {patient.age}Y • {patient.gender} • Room {patient.roomNumber}
+                              {patient.age}Y • {patient.gender}
                             </p>
                             <p className="text-xs sm:text-sm text-gray-500">
-                              {patient.diagnosis} • Dr. {patient.doctor}
+                              {patient.email}
                             </p>
                           </div>
                         </div>
@@ -289,76 +243,13 @@ export default function StaffPatientsPage() {
 
                       {/* Vitals */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <Heart className="h-4 w-4 text-red-500" />
-                            <span className="text-xs sm:text-sm font-medium">Blood Pressure</span>
-                          </div>
-                          <p className="text-base sm:text-lg font-semibold">{patient.lastVitals.bp}</p>
-                          <p className="text-xs text-gray-500">{patient.lastVitals.time}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <Activity className="h-4 w-4 text-blue-500" />
-                            <span className="text-xs sm:text-sm font-medium">Pulse</span>
-                          </div>
-                          <p className="text-base sm:text-lg font-semibold">{patient.lastVitals.pulse} bpm</p>
-                          <p className="text-xs text-gray-500">{patient.lastVitals.time}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <Thermometer className="h-4 w-4 text-orange-500" />
-                            <span className="text-xs sm:text-sm font-medium">Temperature</span>
-                          </div>
-                          <p className="text-base sm:text-lg font-semibold">{patient.lastVitals.temp}</p>
-                          <p className="text-xs text-gray-500">{patient.lastVitals.time}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <Stethoscope className="h-4 w-4 text-green-500" />
-                            <span className="text-xs sm:text-sm font-medium">Oxygen</span>
-                          </div>
-                          <p className="text-base sm:text-lg font-semibold">{patient.lastVitals.oxygen}</p>
-                          <p className="text-xs text-gray-500">{patient.lastVitals.time}</p>
-                        </div>
                       </div>
 
                       {/* Bottom Info */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-600">Next Medicine: </span>
-                          <span className="flex items-center">
-                            <Pill className="h-4 w-4 mr-1 text-purple-500" />
-                            {patient.nextMedicine}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Allergies: </span>
-                          <span>{patient.allergies}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Emergency: </span>
-                          <span className="flex items-center">
-                            <Phone className="h-4 w-4 mr-1 text-blue-500" />
-                            {patient.emergencyContact}
-                          </span>
-                        </div>
-                      </div>
 
-                      {patient.notes && (
-                        <div className="mt-3 pt-3 border-t text-sm">
-                          <div className="flex items-start gap-2">
-                            <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
-                            <p className="text-gray-700">
-                              <span className="font-medium text-gray-600">Notes: </span>
-                              {patient.notes}
-                            </p>
-                          </div>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
-                ))}
+                )))}
               </TabsContent>
             </Tabs>
           </CardContent>
