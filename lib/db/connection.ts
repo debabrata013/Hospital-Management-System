@@ -14,29 +14,33 @@ const dbConfig = {
   queueLimit: 0
 }
 
-let pool: mysql.Pool | null = null
+// Augment the global type to include our custom database pool
+declare global {
+  var mysqlPool: mysql.Pool | undefined;
+}
+
+let pool: mysql.Pool;
+
+if (process.env.NODE_ENV === 'production') {
+  pool = mysql.createPool(dbConfig);
+} else {
+  if (!global.mysqlPool) {
+    global.mysqlPool = mysql.createPool(dbConfig);
+  }
+  pool = global.mysqlPool;
+}
 
 export function getConnection() {
-  if (!pool) {
-    pool = mysql.createPool(dbConfig)
-  }
-  return pool
+  return pool;
 }
 
 export async function executeQuery(query: string, params: any[] = []) {
-  const connection = getConnection()
+  const connection = getConnection();
   try {
-    const [results] = await connection.execute(query, params)
-    return results
+    const [results] = await connection.execute(query, params);
+    return results;
   } catch (error) {
-    console.error('Database query error:', error)
-    throw error
-  }
-}
-
-export async function closeConnection() {
-  if (pool) {
-    await pool.end()
-    pool = null
+    console.error('Database query error:', error);
+    throw error;
   }
 }

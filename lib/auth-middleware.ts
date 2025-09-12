@@ -48,7 +48,7 @@ function extractToken(request: NextRequest): string | null {
 }
 
 // Main authentication function
-export async function authenticateUser(request: NextRequest): Promise<AuthResult | NextResponse> {
+export async function authenticateUser(request: NextRequest, existingConnection?: any): Promise<AuthResult | NextResponse> {
   try {
     // Use direct database connection instead of Sequelize models
     const { getConnection } = require('@/lib/db/connection');
@@ -69,7 +69,7 @@ export async function authenticateUser(request: NextRequest): Promise<AuthResult
     }
 
     console.log('Looking up user with ID:', decoded.userId);
-    const connection = await getConnection();
+    const connection = existingConnection || getConnection();
     
     // Try to find user by ID first
     const [users] = await connection.execute(
@@ -105,6 +105,7 @@ export async function authenticateUser(request: NextRequest): Promise<AuthResult
       role: user.role,
     };
 
+    // Do not end the connection here; it will be managed by the calling function
     return { user: authenticatedUser };
   } catch (error) {
     console.error('Authentication error:', error);
