@@ -125,7 +125,6 @@ export default function StaffPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingStaff.id,
-          role: editingStaff.role,
           ...formData
         })
       })
@@ -218,103 +217,136 @@ export default function StaffPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Users className="h-8 w-8 mr-3 text-pink-500" />
-            Manage Staff
+            Hospital Staff Management
           </h1>
-          <p className="text-gray-600 mt-1">Manage pharmacy, reception, nursing, and cleaning staff</p>
+          <p className="text-gray-600 mt-1">
+            Manage employee records for pharmacy, reception, nursing, and cleaning staff
+          </p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-pink-500 hover:bg-pink-600" onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Staff
+              Add New Employee
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Staff</DialogTitle>
+              <DialogTitle>Create New Staff Member</DialogTitle>
               <DialogDescription>
-                Add new staff member with 10-digit mobile and 6-digit password
+                Add hospital employee with required credentials and role assignment
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate}>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Enter full name"
-                    required
-                  />
+              <div className="space-y-6">
+                <div className="bg-pink-50 p-3 rounded-md border border-pink-100">
+                  <h3 className="text-sm font-medium text-pink-800 mb-2">Basic Information</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        placeholder="Enter employee's full name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="mobile">Mobile Number</Label>
+                      <Input
+                        id="mobile"
+                        value={formData.mobile}
+                        onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Must be a valid 10-digit number starting with 6-9</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="password">Login Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        placeholder="6-digit password"
+                        maxLength={6}
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">6-digit numeric password for staff portal access</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="mobile">Mobile Number</Label>
-                  <Input
-                    id="mobile"
-                    value={formData.mobile}
-                    onChange={(e) => setFormData({...formData, mobile: e.target.value})}
-                    placeholder="10-digit mobile number"
-                    maxLength={10}
-                    required
-                  />
+                
+                <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">Job Details</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <Label htmlFor="role">Staff Position</Label>
+                      <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select staff position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {staffRoles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              <div className="flex items-center">
+                                <role.icon className="h-4 w-4 mr-2" />
+                                {role.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="department">Department</Label>
+                      <Input
+                        id="department"
+                        value={formData.department}
+                        onChange={(e) => setFormData({...formData, department: e.target.value})}
+                        placeholder="Department or unit assignment"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="specialization">Specialization/Skills</Label>
+                      <Input
+                        id="specialization"
+                        value={formData.specialization}
+                        onChange={(e) => setFormData({...formData, specialization: e.target.value})}
+                        placeholder="Relevant skills or specialization"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    placeholder="6-digit password"
-                    maxLength={6}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role">Staff Role</Label>
-                  <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {staffRoles.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    placeholder="Department (optional)"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="shift">Shift</Label>
-                  <Select value={formData.shift} onValueChange={(value) => setFormData({...formData, shift: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select shift" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {shifts.map((shift) => (
-                        <SelectItem key={shift} value={shift}>{shift}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="specialization">Specialization</Label>
-                  <Input
-                    id="specialization"
-                    value={formData.specialization}
-                    onChange={(e) => setFormData({...formData, specialization: e.target.value})}
-                    placeholder="Specialization (optional)"
-                  />
+                
+                <div className="bg-purple-50 p-3 rounded-md border border-purple-100">
+                  <h3 className="text-sm font-medium text-purple-800 mb-2">Schedule Information</h3>
+                  <div>
+                    <Label htmlFor="shift">Work Shift</Label>
+                    <Select value={formData.shift} onValueChange={(value) => setFormData({...formData, shift: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select work shift" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shifts.map((shift) => (
+                          <SelectItem key={shift} value={shift}>
+                            {shift === 'flexible' ? 'Flexible Hours' : `${shift} Shift`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formData.role === 'pharmacy' ? 'Pharmacy hours may vary based on department needs' :
+                       formData.role === 'receptionist' ? 'Front desk schedule with potential rotations' :
+                       formData.role === 'staff' ? 'Nursing rotation and assigned floors' :
+                       formData.role === 'cleaning' ? 'Cleaning and maintenance schedule' : 
+                       'Select the primary work schedule'}
+                    </p>
+                  </div>
                 </div>
               </div>
               <DialogFooter className="mt-6">
@@ -333,30 +365,30 @@ export default function StaffPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Hospital Staff</CardTitle>
+          <CardTitle>Hospital Staff Directory</CardTitle>
           <CardDescription>
-            {staff.length} staff member{staff.length !== 1 ? 's' : ''} registered
+            {staff.length} active hospital employee{staff.length !== 1 ? 's' : ''} across all departments
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
             <TabsList>
-              <TabsTrigger value="all">All Staff ({staff.length})</TabsTrigger>
-              <TabsTrigger value="pharmacy">Pharmacy ({staff.filter(s => s.role === 'pharmacy').length})</TabsTrigger>
+              <TabsTrigger value="all">All Employees ({staff.length})</TabsTrigger>
+              <TabsTrigger value="pharmacy">Pharmacy Staff ({staff.filter(s => s.role === 'pharmacy').length})</TabsTrigger>
               <TabsTrigger value="receptionist">Reception ({staff.filter(s => s.role === 'receptionist').length})</TabsTrigger>
-              <TabsTrigger value="staff">Nurses ({staff.filter(s => s.role === 'staff').length})</TabsTrigger>
-              <TabsTrigger value="cleaning">Cleaning ({staff.filter(s => s.role === 'cleaning').length})</TabsTrigger>
+              <TabsTrigger value="staff">Nursing Staff ({staff.filter(s => s.role === 'staff').length})</TabsTrigger>
+              <TabsTrigger value="cleaning">Housekeeping ({staff.filter(s => s.role === 'cleaning').length})</TabsTrigger>
             </TabsList>
           </Tabs>
 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Staff Member</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Role & Department</TableHead>
-                <TableHead>Shift</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Staff Information</TableHead>
+                <TableHead>Contact Details</TableHead>
+                <TableHead>Position & Specialization</TableHead>
+                <TableHead>Work Schedule</TableHead>
+                <TableHead>Employment Info</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -374,7 +406,7 @@ export default function StaffPage() {
                         </Avatar>
                         <div>
                           <div className="font-medium">{member.name}</div>
-                          <div className="text-sm text-gray-500">{member.user_id}</div>
+                          <div className="text-sm text-gray-500">ID: {member.user_id}</div>
                         </div>
                       </div>
                     </TableCell>
@@ -396,21 +428,40 @@ export default function StaffPage() {
                           <StaffIcon className="h-3 w-3 mr-1" />
                           {staffRoles.find(r => r.value === member.role)?.label}
                         </Badge>
-                        <div className="text-sm text-gray-500">{member.department}</div>
+                        <div className="text-sm font-medium">{member.department}</div>
                         {member.specialization && (
-                          <div className="text-xs text-gray-400">{member.specialization}</div>
+                          <div className="text-xs text-gray-600">
+                            Specializes in: {member.specialization}
+                          </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">
-                        {member.shift || 'Not specified'}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant="secondary">
+                          {member.shift || 'Not specified'} Shift
+                        </Badge>
+                        <div className="text-xs text-gray-600">
+                          {member.role === 'pharmacy' ? 'Pharmacy Hours' : 
+                           member.role === 'receptionist' ? 'Front Desk' : 
+                           member.role === 'staff' ? 'Nursing Schedule' : 'Cleaning Schedule'}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={member.isActive ? "default" : "secondary"}>
-                        {member.isActive ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant={member.isActive ? "default" : "secondary"}>
+                          {member.isActive ? "Active Employee" : "Inactive"}
+                        </Badge>
+                        <div className="text-xs text-gray-600">
+                          Joined: {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : 'N/A'}
+                        </div>
+                        {member.lastLogin && (
+                          <div className="text-xs text-gray-500">
+                            Last active: {new Date(member.lastLogin).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
@@ -418,6 +469,7 @@ export default function StaffPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => openEditDialog(member)}
+                          title="Edit staff details"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -426,6 +478,7 @@ export default function StaffPage() {
                           variant="outline"
                           onClick={() => handleDelete(member)}
                           className="text-red-600 hover:text-red-700"
+                          title="Remove staff member"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -439,7 +492,6 @@ export default function StaffPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -449,103 +501,138 @@ export default function StaffPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEdit}>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-name">Full Name</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Enter full name"
-                  required
-                />
+            <div className="space-y-4">
+              <div className="bg-pink-50 p-3 rounded-md border border-pink-100">
+                <h3 className="text-sm font-medium text-pink-800 mb-2">Employee Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-name">Full Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      placeholder="Employee full name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-mobile">Mobile Number</Label>
+                    <Input
+                      id="edit-mobile"
+                      value={formData.mobile}
+                      onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-mobile">Mobile Number</Label>
-                <Input
-                  id="edit-mobile"
-                  value={formData.mobile}
-                  onChange={(e) => setFormData({...formData, mobile: e.target.value})}
-                  placeholder="10-digit mobile number"
-                  maxLength={10}
-                  required
-                />
+              
+              <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">Account & Job Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-password">Update Password</Label>
+                    <Input
+                      id="edit-password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      placeholder="Leave empty to keep current"
+                      maxLength={6}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">6-digit password (optional)</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-department">Department/Unit</Label>
+                    <Input
+                      id="edit-department"
+                      value={formData.department}
+                      onChange={(e) => setFormData({...formData, department: e.target.value})}
+                      placeholder="Department or unit"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-password">New Password</Label>
-                <Input
-                  id="edit-password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder="Leave empty to keep current"
-                  maxLength={6}
-                />
-                <p className="text-xs text-gray-500 mt-1">6-digit password (optional)</p>
-              </div>
-              <div>
-                <Label htmlFor="edit-department">Department</Label>
-                <Input
-                  id="edit-department"
-                  value={formData.department}
-                  onChange={(e) => setFormData({...formData, department: e.target.value})}
-                  placeholder="Department"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-shift">Work Shift</Label>
-                <Select value={formData.shift} onValueChange={(value) => setFormData({...formData, shift: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select shift" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {shifts.map((shift) => (
-                      <SelectItem key={shift} value={shift}>
-                        {shift === 'flexible' ? 'Flexible Hours' : `${shift} Shift`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-specialization">
-                  {editingStaff?.role === 'pharmacy' ? 'Pharmacy Specialization' :
-                   editingStaff?.role === 'receptionist' ? 'Reception Skills' :
-                   editingStaff?.role === 'staff' ? 'Nursing Specialization' :
-                   editingStaff?.role === 'cleaning' ? 'Cleaning Specialization' : 'Specialization'}
-                </Label>
-                <Input
-                  id="edit-specialization"
-                  value={formData.specialization}
-                  onChange={(e) => setFormData({...formData, specialization: e.target.value})}
-                  placeholder={
-                    editingStaff?.role === 'pharmacy' ? 'e.g., Clinical Pharmacy, Drug Information' :
-                    editingStaff?.role === 'receptionist' ? 'e.g., Patient Relations, Insurance' :
-                    editingStaff?.role === 'staff' ? 'e.g., ICU, Emergency, Pediatric' :
-                    editingStaff?.role === 'cleaning' ? 'e.g., Room Sanitization, Equipment' : 'Specialization'
-                  }
-                />
+              
+              <div className="bg-purple-50 p-3 rounded-md border border-purple-100">
+                <h3 className="text-sm font-medium text-purple-800 mb-2">Schedule & Expertise</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-shift">Work Shift</Label>
+                    <Select value={formData.shift} onValueChange={(value) => setFormData({...formData, shift: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select work schedule" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shifts.map((shift) => (
+                          <SelectItem key={shift} value={shift}>
+                            {shift === 'flexible' ? 'Flexible Hours' : `${shift} Shift`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-specialization">
+                      {editingStaff?.role === 'pharmacy' ? 'Pharmacy Expertise' :
+                       editingStaff?.role === 'receptionist' ? 'Reception Skills' :
+                       editingStaff?.role === 'staff' ? 'Nursing Specialization' :
+                       editingStaff?.role === 'cleaning' ? 'Cleaning Expertise' : 'Specialization'}
+                    </Label>
+                    <Input
+                      id="edit-specialization"
+                      value={formData.specialization}
+                      onChange={(e) => setFormData({...formData, specialization: e.target.value})}
+                      placeholder={
+                        editingStaff?.role === 'pharmacy' ? 'e.g., Clinical Pharmacy, Drug Information' :
+                        editingStaff?.role === 'receptionist' ? 'e.g., Patient Relations, Insurance' :
+                        editingStaff?.role === 'staff' ? 'e.g., ICU, Emergency, Pediatric' :
+                        editingStaff?.role === 'cleaning' ? 'e.g., Room Sanitization, Equipment' : 'Specialization'
+                      }
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             
-            {/* Role-specific information display */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
+            {/* Employee status and system information */}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center space-x-2 mb-3">
                 {editingStaff && (() => {
                   const StaffIcon = getStaffIcon(editingStaff.role)
                   return <StaffIcon className="h-4 w-4 text-gray-600" />
                 })()}
-                <span className="text-sm font-medium text-gray-700">
-                  {editingStaff && staffRoles.find(r => r.value === editingStaff.role)?.label} Information
+                <span className="font-medium text-gray-700">
+                  Employee Record Information
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                <div>User ID: <span className="font-mono">{editingStaff?.user_id}</span></div>
-                <div>Email: <span className="font-mono">{editingStaff?.email}</span></div>
-                <div>Status: <Badge variant={editingStaff?.isActive ? "default" : "secondary"} className="text-xs">
-                  {editingStaff?.isActive ? "Active" : "Inactive"}
-                </Badge></div>
-                <div>Created: {editingStaff?.createdAt ? new Date(editingStaff.createdAt).toLocaleDateString() : 'N/A'}</div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">Employee ID:</span>
+                  <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{editingStaff?.user_id}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">Email:</span>
+                  <span className="font-mono">{editingStaff?.email}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">Status:</span>
+                  <Badge variant={editingStaff?.isActive ? "default" : "secondary"} className="text-xs">
+                    {editingStaff?.isActive ? "Active Employee" : "Inactive"}
+                  </Badge>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">Joined:</span>
+                  <span>{editingStaff?.createdAt ? new Date(editingStaff.createdAt).toLocaleDateString() : 'N/A'}</span>
+                </div>
+                {editingStaff?.lastLogin && (
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-gray-500 mr-2">Last System Login:</span>
+                    <span>{new Date(editingStaff.lastLogin).toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </div>
 
