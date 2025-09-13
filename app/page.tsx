@@ -682,11 +682,16 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/signup">
-                  <Button size="lg" className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                    {t.hero.getStarted}
-                  </Button>
-                </Link>
+              <Button
+  size="lg"
+  className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-full px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+  onClick={() => {
+    document.getElementById("appointment")?.scrollIntoView({ behavior: "smooth" });
+  }}
+>
+  {t.hero.getStarted}
+</Button>
+
                 <Button size="lg" variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full px-8 py-4 text-lg">
                   {t.hero.bookDemo}
                 </Button>
