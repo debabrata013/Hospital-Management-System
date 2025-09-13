@@ -88,86 +88,97 @@ export default function AttendancePage() {
       // Try unified lightweight names API first
       try {
         const data = await fetchJson(`/api/staff/names`, { cache: "no-store" })
-        if (data?.success) {
+        if (data?.success && data.data && data.data.length > 0) {
           for (const item of data.data || []) {
             const opt: StaffOption = {
               userId: String(item.userId || item.id),
               name: item.name,
               department: item.department,
               role: item.role,
+              mobile: item.mobile,
             }
             collected[opt.userId] = opt
           }
         }
-      } catch (_) {}
+      } catch (err) {
+        console.log('Staff names API failed:', err)
+      }
+
+      // Always try super-admin endpoints as backup to ensure we get all doctors
+      try {
+        const [sd, dd] = await Promise.all([
+          fetchJson(`/api/super-admin/staff?type=all`, { credentials: "include", cache: "no-store" }),
+          fetchJson(`/api/super-admin/doctors`, { credentials: "include", cache: "no-store" })
+        ])
+        
+        // Add staff from super-admin staff endpoint
+        if (sd?.success && sd.staff) {
+          const list: any[] = sd.staff || []
+          for (const s of list) {
+            const opt: StaffOption = {
+              userId: String(s.user_id || s.id),
+              name: s.name,
+              employeeId: s.employeeId || undefined,
+              department: s.department || s.specialization || undefined,
+              role: s.role || 'staff',
+              mobile: s.mobile || s.contact_number,
+            }
+            collected[opt.userId] = opt
+          }
+        }
+        
+        // Add doctors from super-admin doctors endpoint
+        if (dd?.success && dd.doctors) {
+          const list: any[] = dd.doctors || []
+          for (const d of list) {
+            const opt: StaffOption = {
+              userId: String(d.user_id || d.id),
+              name: d.name,
+              employeeId: d.employeeId || undefined,
+              department: d.department || d.specialization || undefined,
+              role: 'doctor',
+              mobile: d.mobile || d.contact_number,
+            }
+            collected[opt.userId] = opt
+          }
+        }
+      } catch (err) {
+        console.log('Super-admin endpoints failed:', err)
+      }
 
       // If still empty, fall back to paginated profiles API (requires admin/HR)
       if (Object.keys(collected).length === 0) {
-        let page = 1
-        const limit = 200
-        while (true) {
-          const res = await fetch(`/api/staff/profiles?page=${page}&limit=${limit}&sortBy=name&sortOrder=asc`, { credentials: "include", cache: "no-store" })
-          if (res.status === 401 || res.status === 403) break
-          const data = await fetchJson(`/api/staff/profiles?page=${page}&limit=${limit}&sortBy=name&sortOrder=asc`, { credentials: "include", cache: "no-store" })
-          if (!data?.success) break
-          for (const p of data.data || []) {
-            const opt: StaffOption = {
-              userId: p.userId,
-              name: p.name,
-              employeeId: p.employeeId,
-              department: p.department,
-              role: p.role,
-              mobile: p.mobile || p.user?.mobile,
-            }
-            collected[opt.userId] = opt
-          }
-          const totalPages = data.pagination?.totalPages || 1
-          if (page >= totalPages) break
-          page += 1
-        }
-      }
-
-      // Final fallback to super-admin endpoints
-      if (Object.keys(collected).length === 0) {
         try {
-          const [sd, dd] = await Promise.all([
-            fetchJson(`/api/super-admin/staff?type=all`, { credentials: "include", cache: "no-store" }),
-            fetchJson(`/api/super-admin/doctors`, { credentials: "include", cache: "no-store" })
-          ])
-          if (sd) {
-            const list: any[] = sd?.staff || sd?.data || []
-            for (const s of list) {
+          let page = 1
+          const limit = 200
+          while (true) {
+            const res = await fetch(`/api/staff/profiles?page=${page}&limit=${limit}&sortBy=name&sortOrder=asc`, { credentials: "include", cache: "no-store" })
+            if (res.status === 401 || res.status === 403) break
+            const data = await fetchJson(`/api/staff/profiles?page=${page}&limit=${limit}&sortBy=name&sortOrder=asc`, { credentials: "include", cache: "no-store" })
+            if (!data?.success) break
+            for (const p of data.data || []) {
               const opt: StaffOption = {
-                userId: String(s.user_id || s.id),
-                name: s.name,
-                employeeId: s.employeeId || undefined,
-                department: s.department || s.specialization || undefined,
-                role: s.role || 'staff',
-                mobile: s.mobile || s.contact_number,
+                userId: p.userId,
+                name: p.name,
+                employeeId: p.employeeId,
+                department: p.department,
+                role: p.role,
+                mobile: p.mobile || p.user?.mobile,
               }
               collected[opt.userId] = opt
             }
+            const totalPages = data.pagination?.totalPages || 1
+            if (page >= totalPages) break
+            page += 1
           }
-          if (dd) {
-            const list: any[] = dd?.doctors || dd?.data || []
-            for (const d of list) {
-              const opt: StaffOption = {
-                userId: String(d.user_id || d.id),
-                name: d.name,
-                employeeId: d.employeeId || undefined,
-                department: d.department || d.specialization || undefined,
-                role: 'doctor',
-                mobile: d.mobile || d.contact_number,
-              }
-              collected[opt.userId] = opt
-            }
-          }
-        } catch (err: any) {
-          setStaffError(err?.message || 'Failed to fetch staff list')
+        } catch (err) {
+          console.log('Staff profiles API failed:', err)
         }
       }
 
       const options = Object.values(collected)
+      console.log(`Fetched ${options.length} staff members:`, options.map(o => ({ name: o.name, role: o.role })))
+      
       setStaff(options)
       if (!selectedStaffId && options.length > 0) {
         setSelectedStaffId(options[0].userId)
@@ -447,7 +458,7 @@ export default function AttendancePage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Staff</Label>
+                <Label>Staff ({staff.length} total)</Label>
                 <Button variant="outline" size="sm" onClick={fetchStaff} disabled={loading}>Refresh</Button>
               </div>
               {loading ? (
@@ -459,6 +470,12 @@ export default function AttendancePage() {
                   <Button variant="outline" size="sm" onClick={fetchStaff}>Retry</Button>
                 </div>
               ) : null}
+              {staff.length > 0 && (
+                <div className="text-xs text-gray-600">
+                  Doctors: {staff.filter(s => (s.role || '').toLowerCase().includes('doctor')).length} | 
+                  Staff: {staff.filter(s => !(s.role || '').toLowerCase().includes('doctor')).length}
+                </div>
+              )}
               <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select staff" />
