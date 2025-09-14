@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useOffline } from "@/hooks/use-offline"
 import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
+import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -366,15 +368,21 @@ export default function ReceptionistDashboard() {
         <Sidebar className="border-pink-100 hidden lg:flex">
           <SidebarHeader className="border-b border-pink-100 p-4 lg:p-6">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
-              </div>
-              <div className="hidden lg:block">
-                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
-                <p className="text-sm text-gray-500">Receptionist</p>
-              </div>
-            </div>
-          </SidebarHeader>
+    <Image
+      src="/logo.jpg"
+      alt="NMSC Logo"
+      width={40}
+      height={40}
+      className="rounded-md"
+    />
+    <div>
+      <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+        NMSC
+      </h2>
+      <p className="text-sm text-gray-500">Receptionist</p>
+    </div>
+  </div>
+</SidebarHeader>
           
           <SidebarContent className="px-2 lg:px-4 py-4 lg:py-6">
             {navigationItems.map((section) => (
@@ -440,6 +448,7 @@ export default function ReceptionistDashboard() {
           
           <SidebarRail />
         </Sidebar>
+        
 
         {/* Main Content */}
         <SidebarInset className="flex-1 w-full min-w-0">
@@ -505,7 +514,7 @@ export default function ReceptionistDashboard() {
                   <span className="sm:hidden">New</span>
                 </Button>
 
-                {/* Notifications */}
+                {/* Notifications 
                 <div className="relative">
                   <Button variant="ghost" size="sm" className="relative hover:bg-pink-50 p-1 lg:p-2">
                     <Bell className="h-4 w-4 lg:h-5 lg:w-5 text-gray-600" />
@@ -516,6 +525,7 @@ export default function ReceptionistDashboard() {
                     )}
                   </Button>
                 </div>
+                */}
                 
                 {/* Profile Dropdown */}
                 <DropdownMenu>
@@ -531,13 +541,15 @@ export default function ReceptionistDashboard() {
                     <DropdownMenuLabel>Receptionist Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
-                      <UserCog className="mr-2 h-4 w-4" />
-                      Profile Settings
+                      <Link
+    href="/"
+    className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
+  >
+    <ArrowLeft className="h-4 w-4 mr-2" />
+    Back to Home
+  </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Preferences
-                    </DropdownMenuItem>
+                    
                     <DropdownMenuSeparator />
                     <LogoutButton />
                   </DropdownMenuContent>
