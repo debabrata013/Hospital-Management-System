@@ -4,6 +4,8 @@ import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
+import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
   Sidebar,
@@ -88,16 +90,22 @@ export default function PharmacyLayout({
         {/* Sidebar */}
         <Sidebar className="border-pink-100 shrink-0">
           <SidebarHeader className="border-b border-pink-100 p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
-                <p className="text-sm text-gray-500">फार्मेसी विभाग</p>
-              </div>
-            </div>
-          </SidebarHeader>
+  <div className="flex items-center space-x-3">
+    <Image
+      src="/logo.jpg"
+      alt="NMSC Logo"
+      width={40}
+      height={40}
+      className="rounded-md"
+    />
+    <div>
+      <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+        NMSC
+      </h2>
+      <p className="text-sm text-gray-500">Pharmacy</p>
+    </div>
+  </div>
+</SidebarHeader>
           
           <SidebarContent className="px-4 py-6">
             {navigationItems.map((section) => (
@@ -171,6 +179,7 @@ export default function PharmacyLayout({
           
           <SidebarRail />
         </Sidebar>
+        
 
         {/* Main Content */}
         <SidebarInset className="flex-1 w-full overflow-x-hidden">
@@ -186,13 +195,18 @@ export default function PharmacyLayout({
               </div>
               
               <div className="flex items-center space-x-4">
-                {/* Notifications */}
-                <div className="relative">
-                  <Bell className="h-5 w-5 text-gray-600 cursor-pointer hover:text-pink-500" />
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                    5
-                  </span>
-                </div>
+                {/* Back to Home Link */}
+<div className="mb-6">
+  <Link
+    href="/"
+    className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
+  >
+    <ArrowLeft className="h-4 w-4 mr-2" />
+    Back to Home
+  </Link>
+</div>
+   
+
                 
                 {/* Profile */}
                 <DropdownMenu>
@@ -205,10 +219,7 @@ export default function PharmacyLayout({
                   <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuLabel>Pharmacy Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </DropdownMenuItem>
+                 
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
