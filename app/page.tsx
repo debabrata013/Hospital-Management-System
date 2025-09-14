@@ -1108,7 +1108,7 @@ export default function LandingPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {doctors
-                          .filter(doc => !appointmentForm.department || doc.specialization === appointmentForm.department)
+                         
                           .map((doctor) => (
                             <SelectItem key={doctor.id} value={doctor.name}>
                               {doctor.name} - {doctor.specialization}
