@@ -39,28 +39,32 @@ const PUBLIC_ROUTES = [
 
 // Check if we're in a static build context
 function isStaticBuild() {
-  return process.env.NEXT_STATIC_BUILD === 'true' || 
-         process.env.STATIC_BUILD === 'true' || 
-         process.env.NEXT_PHASE === 'phase-export' ||
-         process.env.NEXT_PHASE === 'phase-production-build' ||
-         process.env.NODE_ENV === 'production';
+  return process.env.NEXT_PHASE === 'phase-export' ||
+         process.env.NEXT_PHASE === 'phase-production-build';
 }
 
 export async function middleware(request: NextRequest) {
-  // Always bypass middleware during build
+  const { pathname } = request.nextUrl
+  
+  console.log(`[MIDDLEWARE] Processing request: ${pathname}`)
+
+  // Only bypass middleware during static build, not in development
   if (isStaticBuild()) {
+    console.log(`[MIDDLEWARE] Static build detected, bypassing`)
     return NextResponse.next();
   }
-  
-  const { pathname } = request.nextUrl
 
   // Skip middleware for static files and API routes that don't need protection
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/static/') ||
-    pathname.includes('.') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/public/') ||
+    (pathname.includes('.') && !pathname.startsWith('/api/')) ||
     PUBLIC_ROUTES.includes(pathname)
   ) {
+    console.log(`[MIDDLEWARE] Skipping middleware for: ${pathname}`)
     return NextResponse.next()
   }
 
@@ -70,19 +74,25 @@ export async function middleware(request: NextRequest) {
   )
 
   if (!protectedRoute) {
+    console.log(`[MIDDLEWARE] Route not protected: ${pathname}`)
     return NextResponse.next()
   }
+
+  console.log(`[MIDDLEWARE] Checking protected route: ${pathname}`)
 
   // Get token from cookies
   const token = request.cookies.get('auth-token')?.value
 
   if (!token) {
+    console.log(`[MIDDLEWARE] No token found, redirecting to login`)
     // Redirect to login with return URL
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('message', 'unauthorized')
     loginUrl.searchParams.set('returnUrl', pathname)
     return NextResponse.redirect(loginUrl)
   }
+
+  console.log(`[MIDDLEWARE] Token found, verifying...`)
 
   try {
     // Verify JWT token
@@ -140,8 +150,17 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-    // Include API routes in the matcher but with custom handling for build/export
-    '/api/:path*'
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    '/admin/:path*',
+    '/doctor/:path*',
+    '/pharmacy/:path*',
+    '/staff/:path*',
+    '/receptionist/:path*',
+    '/super-admin/:path*',
+    '/api/admin/:path*',
+    '/api/doctor/:path*',
+    '/api/pharmacy/:path*',
+    '/api/staff/:path*',
+    '/api/receptionist/:path*'
   ],
 }

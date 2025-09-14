@@ -1410,11 +1410,13 @@ export default function LandingPage() {
             {t.cta.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
-              <Button size="lg" className="bg-white text-pink-500 hover:bg-gray-50 rounded-full px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
-                {t.cta.startTrial}
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              onClick={() => document.getElementById("appointment")?.scrollIntoView({ behavior: "smooth" })}
+              className="bg-white text-pink-500 hover:bg-gray-50 rounded-full px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              {t.cta.startTrial}
+            </Button>
             <Button size="lg" variant="outline" className="bg-white text-pink-500 hover:bg-gray-50 rounded-full px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
               {t.cta.scheduleDemo}
             </Button>
