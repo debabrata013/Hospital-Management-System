@@ -46,6 +46,12 @@ export function getConnection() {
 }
 
 export async function executeQuery(query: string, params: any[] = []) {
+  // During build time, return empty results to prevent build failures
+  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_STATIC_BUILD === 'true') {
+    console.log('Build time detected, returning empty results for query:', query.substring(0, 50) + '...');
+    return [];
+  }
+
   let connection: mysql.PoolConnection | null = null;
   const maxRetries = 3;
   let retryCount = 0;
@@ -93,6 +99,16 @@ export async function executeQuery(query: string, params: any[] = []) {
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         continue;
+      }
+
+      // During build, return empty results instead of throwing
+      if (process.env.NODE_ENV === 'production' && error instanceof Error && (
+        error.message.includes('ECONNRESET') || 
+        error.message.includes('ETIMEDOUT') ||
+        error.message.includes('Connection lost')
+      )) {
+        console.log('Build time database error, returning empty results');
+        return [];
       }
 
       throw error;

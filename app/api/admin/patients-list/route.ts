@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       rows = await executeQuery(`
         SELECT id, name, 
                COALESCE(patient_id, '') as patient_id,
-               COALESCE(contact_number, phone, '') as contact_number,
+               COALESCE(contact_number, '') as contact_number,
                date_of_birth, gender,
                COALESCE(is_active, 1) as is_active
         FROM patients 
