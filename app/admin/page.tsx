@@ -633,7 +633,7 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions
             <Card className="border-pink-100">
               <CardHeader>
                 <CardTitle className="text-gray-900">Quick Actions</CardTitle>
@@ -671,6 +671,7 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+             */}
 
             {/* Main Dashboard Widgets */}
             <div className="grid lg:grid-cols-2 gap-6">
