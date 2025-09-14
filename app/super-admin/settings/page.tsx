@@ -392,16 +392,17 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="p-3 sm:p-4 border border-pink-100 rounded-lg">
-                <h4 className="font-semibold text-gray-900">SMS Service</h4>
-                <p className="text-sm text-gray-600 mb-2">Twilio API Key</p>
+              <div className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h4 className="font-semibold text-gray-500">SMS Service</h4>
+                <p className="text-sm text-gray-500 mb-2">SMS functionality disabled</p>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input 
-                    type="password" 
-                    defaultValue="AC1234567890abcdef"
-                    className="border-pink-200 focus:border-pink-400 flex-1"
+                    type="text" 
+                    defaultValue="SMS service not configured"
+                    className="border-gray-300 bg-gray-100 text-gray-500 flex-1"
+                    disabled
                   />
-                  <Button variant="outline" size="sm">Edit</Button>
+                  <Button variant="outline" size="sm" disabled>Disabled</Button>
                 </div>
               </div>
             </div>

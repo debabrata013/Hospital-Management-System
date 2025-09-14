@@ -8,10 +8,15 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT || '3306'),
   charset: 'utf8mb4',
   timezone: '+00:00',
-  connectTimeout: 60000,
+  connectTimeout: 30000,
+  acquireTimeout: 30000,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  connectionLimit: 3,
+  maxIdle: 2,
+  idleTimeout: 60000,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
 }
 
 // Augment the global type to include our custom database pool
@@ -35,12 +40,34 @@ export function getConnection() {
 }
 
 export async function executeQuery(query: string, params: any[] = []) {
-  const connection = getConnection();
+  let connection: mysql.PoolConnection | null = null;
   try {
+    connection = await pool.getConnection();
     const [results] = await connection.execute(query, params);
     return results;
   } catch (error) {
     console.error('Database query error:', error);
+    // Retry logic for connection issues
+    if (error instanceof Error && (
+      error.message.includes('ECONNRESET') || 
+      error.message.includes('ETIMEDOUT') ||
+      error.message.includes('Connection lost')
+    )) {
+      console.log('Retrying database query due to connection issue...');
+      try {
+        if (connection) connection.release();
+        connection = await pool.getConnection();
+        const [results] = await connection.execute(query, params);
+        return results;
+      } catch (retryError) {
+        console.error('Database retry failed:', retryError);
+        throw retryError;
+      }
+    }
     throw error;
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { executeQuery } from '../../../../lib/db/connection';
 import { generateOtp } from '../../../../lib/otp-utils';
-import { sendSms } from '../../../../lib/sms-provider';
 
 export async function POST(req: Request) {
   try {
@@ -25,17 +24,14 @@ export async function POST(req: Request) {
     // Update the user's record with the new OTP
     await executeQuery('UPDATE users SET otp = ?, otpExpires = ? WHERE id = ?', [otp, expires, user.id]);
 
-    // Send the OTP via SMS
+    // Log the OTP to console instead of sending SMS
     const message = `Your NMSC login OTP is: ${otp}. It is valid for 10 minutes.`;
-    await sendSms(user.phoneNumber, message);
+    console.log(`OTP for ${user.phoneNumber}: ${otp}`);
+    console.log(`Message: ${message}`);
 
-    return NextResponse.json({ message: 'OTP sent successfully' }, { status: 200 });
+    return NextResponse.json({ message: 'OTP generated successfully (check console logs)' }, { status: 200 });
   } catch (error) {
     console.error('SEND_OTP_ERROR:', error);
-    // In case of a Twilio error, sendSms will throw.
-    if (error instanceof Error && error.message === 'Failed to send SMS.') {
-        return NextResponse.json({ message: 'Failed to send OTP. Please check the phone number or try again later.' }, { status: 500 });
-    }
     return NextResponse.json({ message: 'An internal server error occurred' }, { status: 500 });
   }
 }
