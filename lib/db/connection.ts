@@ -9,10 +9,9 @@ const dbConfig = {
   charset: 'utf8mb4',
   timezone: '+00:00',
   connectTimeout: 30000,
-  acquireTimeout: 30000,
   waitForConnections: true,
-  connectionLimit: 3,
-  maxIdle: 2,
+  connectionLimit: 5,
+  maxIdle: 3,
   idleTimeout: 60000,
   queueLimit: 0,
   enableKeepAlive: true,
@@ -26,48 +25,85 @@ declare global {
 
 let pool: mysql.Pool;
 
+function createPool() {
+  return mysql.createPool(dbConfig);
+}
+
 if (process.env.NODE_ENV === 'production') {
-  pool = mysql.createPool(dbConfig);
+  pool = createPool();
 } else {
   if (!global.mysqlPool) {
-    global.mysqlPool = mysql.createPool(dbConfig);
+    global.mysqlPool = createPool();
   }
   pool = global.mysqlPool;
 }
 
 export function getConnection() {
+  if (!pool) {
+    pool = createPool();
+  }
   return pool;
 }
 
 export async function executeQuery(query: string, params: any[] = []) {
   let connection: mysql.PoolConnection | null = null;
-  try {
-    connection = await pool.getConnection();
-    const [results] = await connection.execute(query, params);
-    return results;
-  } catch (error) {
-    console.error('Database query error:', error);
-    // Retry logic for connection issues
-    if (error instanceof Error && (
-      error.message.includes('ECONNRESET') || 
-      error.message.includes('ETIMEDOUT') ||
-      error.message.includes('Connection lost')
-    )) {
-      console.log('Retrying database query due to connection issue...');
-      try {
-        if (connection) connection.release();
-        connection = await pool.getConnection();
-        const [results] = await connection.execute(query, params);
-        return results;
-      } catch (retryError) {
-        console.error('Database retry failed:', retryError);
-        throw retryError;
+  const maxRetries = 3;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    try {
+      // Ensure pool exists
+      const currentPool = getConnection();
+      if (!currentPool) {
+        throw new Error('Database pool not initialized');
       }
-    }
-    throw error;
-  } finally {
-    if (connection) {
-      connection.release();
+
+      connection = await currentPool.getConnection();
+      if (!connection) {
+        throw new Error('Failed to get database connection from pool');
+      }
+
+      const [results] = await connection.execute(query, params);
+      return results;
+    } catch (error) {
+      console.error(`Database query error (attempt ${retryCount + 1}):`, error);
+      
+      // Release connection if it exists
+      if (connection) {
+        try {
+          connection.release();
+        } catch (releaseError) {
+          console.error('Error releasing connection:', releaseError);
+        }
+        connection = null;
+      }
+
+      retryCount++;
+      
+      // Check if we should retry
+      const shouldRetry = error instanceof Error && (
+        error.message.includes('ECONNRESET') || 
+        error.message.includes('ETIMEDOUT') ||
+        error.message.includes('Connection lost') ||
+        error.message.includes('Cannot read properties of undefined')
+      );
+
+      if (shouldRetry && retryCount < maxRetries) {
+        console.log(`Retrying database query (${retryCount}/${maxRetries})...`);
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        continue;
+      }
+
+      throw error;
+    } finally {
+      if (connection) {
+        try {
+          connection.release();
+        } catch (releaseError) {
+          console.error('Error releasing connection in finally block:', releaseError);
+        }
+      }
     }
   }
 }
