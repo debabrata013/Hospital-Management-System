@@ -1,6 +1,8 @@
 "use client";
 
 import Link from 'next/link';
+import Image from "next/image";
+
 import { Button } from '@/components/ui/button';
 import { Heart, Globe, User as UserIcon, MenuIcon, X } from 'lucide-react';
 import { AuthState } from '@/lib/types';
@@ -37,11 +39,19 @@ export const Navbar = ({ t, language, toggleLanguage, authState, logout }: Navba
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
-            <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-              <Heart className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-800">{t.hospitalName}</span>
-          </div>
+  <Image 
+    src="/logo.jpg" 
+    alt={t.hospitalName} 
+    width={40} 
+    height={40} 
+    className="rounded-md"
+  />
+  <span className="text-xl font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+  {t.hospitalName}
+</span>
+
+</div>
+
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
