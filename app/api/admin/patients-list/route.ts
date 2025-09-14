@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import mysql from 'mysql2/promise'
-
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'hospital_management',
-  port: parseInt(process.env.DB_PORT || '3306')
-}
+import { executeQuery } from '../../../../lib/db/connection'
 
 export async function GET(request: NextRequest) {
   try {
-    const connection = await mysql.createConnection(dbConfig)
-
     // Detect available columns
-    const [cols] = await connection.execute(`
+    const cols = await executeQuery(`
       SELECT COLUMN_NAME 
       FROM INFORMATION_SCHEMA.COLUMNS 
       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'patients'
@@ -33,9 +23,7 @@ export async function GET(request: NextRequest) {
     }
     query += ' ORDER BY name ASC'
 
-    const [rows] = await connection.execute(query)
-
-    await connection.end()
+    const rows = await executeQuery(query)
 
     // Normalize payload
     const list = (rows as any[]).map(r => ({
