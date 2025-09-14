@@ -9,6 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
+import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
+
+
 
 import { 
   Sidebar,
@@ -222,18 +226,23 @@ export default function AdminDashboard() {
         {/* Sidebar */}
         <Sidebar className="border-pink-100">
           <SidebarHeader className="border-b border-pink-100 p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
-                <p className="text-sm text-gray-500">
-                  {user?.name || 'Admin'} - {user?.role || 'Administrator'}
-                </p>
-              </div>
-            </div>
-          </SidebarHeader>
+  <div className="flex items-center space-x-3">
+    <Image
+      src="/logo.jpg"
+      alt="NMSC Logo"
+      width={40}
+      height={40}
+      className="rounded-md"
+    />
+    <div>
+      <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+        NMSC
+      </h2>
+      <p className="text-sm text-gray-500">Super Admin</p>
+    </div>
+  </div>
+</SidebarHeader>
+
           
           <SidebarContent className="px-4 py-6">
             {/* Navigation items */}
@@ -460,6 +469,17 @@ export default function AdminDashboard() {
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
+              {/* Back to Home Link */}
+<div className="mb-6">
+  <Link
+    href="/"
+    className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
+  >
+    <ArrowLeft className="h-4 w-4 mr-2" />
+    Back to Home
+  </Link>
+</div>
+
             </div>
           </SidebarFooter>
           

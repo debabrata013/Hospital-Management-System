@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
+
+
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -113,16 +117,23 @@ export default function SuperAdminDashboard() {
         {/* Sidebar */}
         <Sidebar className="border-pink-100">
           <SidebarHeader className="border-b border-pink-100 p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
-                <p className="text-sm text-gray-500">Super Admin</p>
-              </div>
-            </div>
-          </SidebarHeader>
+  <div className="flex items-center space-x-3">
+    <Image
+      src="/logo.jpg"
+      alt="NMSC Logo"
+      width={40}
+      height={40}
+      className="rounded-md"
+    />
+    <div>
+      <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+        NMSC
+      </h2>
+      <p className="text-sm text-gray-500">Super Admin</p>
+    </div>
+  </div>
+</SidebarHeader>
+
           
           <SidebarContent className="px-4 py-6">
             {navigationItems.map((section) => (
@@ -183,6 +194,17 @@ export default function SuperAdminDashboard() {
                   </span>
                 )}
               </Button> */}
+              {/* Back to Home Link */}
+<div className="mb-6">
+  <Link
+    href="/"
+    className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
+  >
+    <ArrowLeft className="h-4 w-4 mr-2" />
+    Back to Home
+  </Link>
+</div>
+
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
