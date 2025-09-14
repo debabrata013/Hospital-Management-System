@@ -168,9 +168,9 @@ const content = {
       callUs: "कॉल करें",
       phone: "+91 98765 43210",
       email: "ईमेल करें",
-      emailAddress: "care@arogyahospital.com",
+      emailAddress: "care@nmsc.in",
       address: "पता",
-      fullAddress: "123, स्वास्थ्य नगर, कनॉट प्लेस के पास, नई दिल्ली - 110001",
+      fullAddress: "Nayak Maternity and Surgical Centre, Anupam Plaza Korva Para Station Road, Champa, Chhattisgarh, 495671",
       supportHours: "सेवा समय",
       available: "24/7 उपलब्ध",
       emergency: "आपातकाल",
@@ -203,9 +203,9 @@ const content = {
       },
       contact: {
         title: "संपर्क जानकारी",
-        address: "123, स्वास्थ्य नगर, नई दिल्ली - 110001",
+        address: "Nayak Maternity and Surgical Centre, Anupam Plaza Korva Para Station Road, Champa, Chhattisgarh, 495671",
         phone: "+91 98765 43210",
-        email: "care@arogyahospital.com",
+        email: "care@nmsc.in",
         emergency: "आपातकाल: +91 98765 43211"
       },
       hours: {
@@ -381,7 +381,7 @@ const content = {
       email: "Email Us",
       emailAddress: "care@nmsc.in",
       address: "Address",
-      fullAddress: "123, Health Nagar, Near Connaught Place, New Delhi - 110001",
+      fullAddress: "Nayak Maternity and Surgical Centre, Anupam Plaza Korva Para Station Road, Champa, Chhattisgarh, 495671",
       supportHours: "Service Hours",
       available: "24/7 Available",
       emergency: "Emergency",
@@ -414,7 +414,7 @@ const content = {
       },
       contact: {
         title: "Contact Info",
-        address: "123, Health Nagar, New Delhi - 110001",
+        address: "Nayak Maternity and Surgical Centre, Anupam Plaza Korva Para Station Road, Champa, Chhattisgarh, 495671",
         phone: "+91 98765 43210",
         email: "care@nmsc.in",
         emergency: "Emergency: +91 98765 43211"
