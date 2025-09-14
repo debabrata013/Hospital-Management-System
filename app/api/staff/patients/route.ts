@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser } from '@/lib/auth-middleware'
 import { getConnection } from '@/lib/db/connection'
+import { isStaticBuild } from '@/lib/api-utils'
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      success: true,
+      patients: [
+        {
+          id: 1,
+          patient_id: 'PAT-001',
+          name: 'Sample Patient 1',
+          date_of_birth: '1990-01-01',
+          gender: 'Male',
+          blood_group: 'O+',
+          contact_number: '9876543210',
+          email: 'patient1@example.com',
+          address: '123 Sample Street',
+          city: 'Sample City',
+          state: 'Sample State',
+          emergency_contact_name: 'Emergency Contact 1',
+          emergency_contact_number: '9876543211',
+          is_active: true,
+          registration_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          age: 33
+        }
+      ]
+    });
+  }
+
   try {
     const mysql = require('mysql2/promise');
     const connection = await mysql.createConnection({

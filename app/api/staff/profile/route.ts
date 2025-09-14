@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
 import { getServerSession } from '@/lib/auth-simple'
+import { isStaticBuild } from '@/lib/api-utils'
 
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -10,9 +11,33 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT || '3306')
 }
 
+// This enables dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // GET - Fetch staff profile data
 export async function GET(request: NextRequest) {
   try {
+    // For static generation compatibility, provide mock data during build
+    if (isStaticBuild()) {
+      return NextResponse.json({
+        success: true,
+        staff: {
+          id: 1,
+          user_id: 'STAFF-001',
+          name: 'Staff Member',
+          email: 'staff@hospital.com',
+          mobile: '9876543210',
+          role: 'staff',
+          department: 'Nursing',
+          specialization: 'General Care',
+          shift: 'morning',
+          isActive: true,
+          createdAt: '2023-01-01',
+          lastLogin: '2023-09-14'
+        }
+      });
+    }
+
     const session = await getServerSession(request)
     if (!session) {
       return NextResponse.json(

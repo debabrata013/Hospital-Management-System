@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { executeQuery } from '@/lib/db/connection'
 import jwt from 'jsonwebtoken'
 import mysql from 'mysql2/promise'
+import { isStaticBuild, getMockData } from '@/lib/api-utils'
+
+// Force dynamic for development server
+export const dynamic = 'force-dynamic';
+
+// Generate static parameters for build
+export async function generateStaticParams() {
+  // During static build, we provide a list of IDs to pre-render
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' }
+  ];
+}
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -45,6 +59,21 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // During static build, return mock data
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      message: "Leave request processed successfully",
+      leaveRequest: {
+        id: params.id,
+        staff_id: "STAFF-001",
+        leave_type: "Medical",
+        status: "approved",
+        approved_by: "ADMIN-001",
+        approved_by_name: "Admin User"
+      }
+    });
+  }
+  
   try {
     const tokenResult = extractAndVerifyToken(request)
     if (!tokenResult.success) {
@@ -150,6 +179,22 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // During static build, return mock data
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      id: params.id,
+      staff_id: "STAFF-001",
+      name: "Sample Staff Member",
+      leave_type: "Medical",
+      from_date: "2025-09-20",
+      to_date: "2025-09-22",
+      reason: "Medical procedure",
+      status: "pending",
+      approved_by_name: null,
+      replacement_doctor_name: "Dr. Backup"
+    });
+  }
+  
   try {
     const tokenResult = extractAndVerifyToken(request)
     if (!tokenResult.success) {

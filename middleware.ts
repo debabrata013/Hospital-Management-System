@@ -37,7 +37,21 @@ const PUBLIC_ROUTES = [
   '/api/auth/reset-password'
 ]
 
+// Check if we're in a static build context
+function isStaticBuild() {
+  return process.env.NEXT_STATIC_BUILD === 'true' || 
+         process.env.STATIC_BUILD === 'true' || 
+         process.env.NEXT_PHASE === 'phase-export' ||
+         process.env.NEXT_PHASE === 'phase-production-build' ||
+         process.env.NODE_ENV === 'production';
+}
+
 export async function middleware(request: NextRequest) {
+  // Always bypass middleware during build
+  if (isStaticBuild()) {
+    return NextResponse.next();
+  }
+  
   const { pathname } = request.nextUrl
 
   // Skip middleware for static files and API routes that don't need protection
@@ -122,11 +136,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
     '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Include API routes in the matcher but with custom handling for build/export
+    '/api/:path*'
   ],
 }

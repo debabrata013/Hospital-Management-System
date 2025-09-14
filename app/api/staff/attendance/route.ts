@@ -10,6 +10,9 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT || '3306')
 }
 
+// This enables dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // GET - Fetch staff attendance data
 export async function GET(request: NextRequest) {
   try {

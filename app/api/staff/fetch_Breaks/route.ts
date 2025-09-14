@@ -3,8 +3,30 @@ import { getServerSession } from '@/lib/auth-simple';
 import Break from '@/models/Break';
 import { Op } from 'sequelize';
 import { startOfDay, endOfDay } from 'date-fns';
+import { isStaticBuild } from '@/lib/api-utils';
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({ 
+      success: true, 
+      breaks: [
+        {
+          id: 1,
+          user_id: 1,
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + 15 * 60000).toISOString(),
+          duration: 15,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ]
+    });
+  }
+
   const session = await getServerSession(req);
 
   if (!session || !session.user?.id) {

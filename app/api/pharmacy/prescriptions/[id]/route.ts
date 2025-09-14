@@ -1,3 +1,17 @@
+import { isStaticBuild } from '@/lib/api-utils';
+
+// Generate static parameters for build
+export function generateStaticParams() {
+  // During static build, we provide a list of IDs to pre-render
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' }
+  ];
+}
+
+export const dynamic = 'force-dynamic';
+
 /**
  * Pharmacy Prescription Management API Route
  * 
@@ -44,10 +58,99 @@ import { executeQuery } from '@/lib/mysql-connection';
  * @param params - Route parameters containing prescription ID
  * @returns JSON response with prescription data or error message
  */
+type DispenseStatus = 'fully_dispensed' | 'partially_dispensed' | 'pending';
+
+interface PrescriptionMedication {
+  is_dispensed: boolean;
+  dispensed_quantity: number;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    const dispensingStatus = 'partially_dispensed';
+    return NextResponse.json({
+      success: true,
+      data: {
+        prescription: {
+          id: 1,
+          prescription_id: 'RX-001',
+          patient_id: 1,
+          doctor_id: 1,
+          prescription_date: new Date().toISOString(),
+          total_amount: 1500,
+          status: 'active',
+          notes: 'Sample prescription',
+          follow_up_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          patient_name: 'Sample Patient',
+          patient_code: 'PAT-001',
+          patient_phone: '9876543210',
+          patient_email: 'patient@example.com',
+          age: 35,
+          gender: 'Male',
+          patient_address: '123 Sample Street',
+          doctor_name: 'Dr. Sample',
+          specialization: 'General Medicine',
+          doctor_phone: '9876543211',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          dispensing_status: dispensingStatus,
+          total_medications: 3,
+          dispensed_medications: 1,
+          pending_medications: 1,
+          partially_dispensed: 1
+        },
+        medications: [
+          {
+            id: 1,
+            medicine_id: 1,
+            medicine_name: 'Sample Medicine 1',
+            generic_name: 'Generic 1',
+            strength: '500mg',
+            dosage_form: 'Tablet',
+            quantity: 30,
+            dosage: '1',
+            frequency: 'Once daily',
+            duration: '30 days',
+            instructions: 'Take after meals',
+            unit_price: 10,
+            total_price: 300,
+            is_dispensed: true,
+            dispensed_quantity: 30,
+            stock_status: 'available'
+          }
+        ],
+        history: [
+          {
+            id: 1,
+            log_id: 'DISP-001',
+            action: 'dispense',
+            quantity: 30,
+            batch_number: 'BATCH-001',
+            expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            unit_price: 10,
+            total_amount: 300,
+            pharmacist_notes: 'First dispense',
+            created_at: new Date().toISOString(),
+            dispensed_by_name: 'Sample Pharmacist',
+            medicine_name: 'Sample Medicine 1'
+          }
+        ],
+        summary: {
+          total_medications: 3,
+          dispensed_medications: 1,
+          pending_medications: 1,
+          partially_dispensed: 1,
+          total_amount: 1500,
+          dispensing_status: dispensingStatus
+        }
+      }
+    });
+  }
+
   try {
     // Extract prescription ID from route parameters
     // This can be either the database ID or the human-readable prescription_id
@@ -173,9 +276,9 @@ export async function GET(
     // Calculate prescription summary statistics for dashboard display
     // These metrics help pharmacists quickly understand prescription status
     const totalMedications = medications.length;
-    const dispensedMedications = medications.filter(m => m.is_dispensed).length;
-    const partiallyDispensed = medications.filter(m => m.dispensed_quantity > 0 && !m.is_dispensed).length;
-    const pendingMedications = medications.filter(m => m.dispensed_quantity === 0).length;
+    const dispensedMedications = medications.filter((m: PrescriptionMedication) => m.is_dispensed).length;
+    const partiallyDispensed = medications.filter((m: PrescriptionMedication) => m.dispensed_quantity > 0 && !m.is_dispensed).length;
+    const pendingMedications = medications.filter((m: PrescriptionMedication) => m.dispensed_quantity === 0).length;
 
     // Determine overall dispensing status based on medication states
     // This provides a quick status indicator for the prescription
@@ -208,7 +311,7 @@ export async function GET(
           pending_medications: pendingMedications,
           partially_dispensed: partiallyDispensed,
           total_amount: prescription.total_amount,
-          dispensing_status
+          dispensing_status: dispensingStatus
         }
       }
     });

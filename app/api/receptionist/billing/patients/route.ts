@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { isStaticBuild, getSearchParams } from '@/lib/api-utils';
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -18,10 +22,33 @@ async function getConnection() {
 
 // GET - Search patients for billing
 export async function GET(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      patients: [
+        {
+          id: 1,
+          patient_id: 'PAT-001',
+          name: 'Sample Patient',
+          age: 35,
+          gender: 'Male',
+          contact_number: '9876543210',
+          address: '123 Sample Street',
+          registration_date: new Date().toISOString(),
+          total_bills: 5,
+          pending_amount: 1000,
+          paid_amount: 5000,
+          last_bill_date: new Date().toISOString()
+        }
+      ]
+    });
+  }
+
   let connection;
   
   try {
-    const { searchParams } = new URL(request.url);
+    // Use safe method to get search params
+    const searchParams = getSearchParams(request);
     const query = searchParams.get('q');
     const patientId = searchParams.get('patientId');
     
@@ -43,7 +70,8 @@ export async function GET(request: NextRequest) {
         [patientId]
       );
       
-      if (patients.length === 0) {
+      const patientRows = patients as any[];
+      if (patientRows.length === 0) {
         return NextResponse.json(
           { message: 'Patient not found' },
           { status: 404 }
@@ -63,7 +91,7 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json({
         patient: {
-          ...patients[0],
+          ...patientRows[0],
           recentBills
         }
       });

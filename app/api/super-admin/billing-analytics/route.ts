@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { isStaticBuild, getSearchParams } from '@/lib/api-utils';
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -10,10 +14,37 @@ const dbConfig = {
 };
 
 export async function GET(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    const now = new Date();
+    return NextResponse.json({
+      totalCashCollection: 50000,
+      totalOnlineCollection: 75000,
+      totalCollection: 125000,
+      dailyCollections: Array.from({length: 7}, (_, i) => ({
+        date: new Date(now.getTime() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        cash: Math.floor(Math.random() * 5000) + 3000,
+        online: Math.floor(Math.random() * 7000) + 4000,
+        total: Math.floor(Math.random() * 12000) + 7000
+      })),
+      monthlyTrend: ['Jan', 'Feb', 'Mar'].map(month => ({
+        month,
+        cash: Math.floor(Math.random() * 50000) + 30000,
+        online: Math.floor(Math.random() * 70000) + 40000
+      })),
+      paymentMethodBreakdown: [
+        { method: 'Cash', amount: 50000, percentage: 40 },
+        { method: 'UPI/Digital', amount: 45000, percentage: 36 },
+        { method: 'Card', amount: 30000, percentage: 24 }
+      ]
+    });
+  }
+
   let connection;
   
   try {
-    const { searchParams } = new URL(request.url);
+    // Use safe method to get search params
+    const searchParams = getSearchParams(request);
     const startDate = searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
     
@@ -83,7 +114,8 @@ export async function GET(request: NextRequest) {
       ORDER BY amount DESC
     `, [startDate, endDate]);
     
-    const totalAmount = totalCollections[0]?.total_collection || 0;
+    const totalCollectionsData = totalCollections as any[];
+    const totalAmount = totalCollectionsData[0]?.total_collection || 0;
     
     // Calculate percentages for payment breakdown
     const paymentMethodBreakdown = (paymentBreakdown as any[]).map(item => ({
@@ -93,8 +125,8 @@ export async function GET(request: NextRequest) {
     }));
     
     const analytics = {
-      totalCashCollection: parseFloat(totalCollections[0]?.total_cash) || 0,
-      totalOnlineCollection: parseFloat(totalCollections[0]?.total_online) || 0,
+      totalCashCollection: parseFloat(totalCollectionsData[0]?.total_cash) || 0,
+      totalOnlineCollection: parseFloat(totalCollectionsData[0]?.total_online) || 0,
       totalCollection: parseFloat(totalAmount) || 0,
       dailyCollections: (dailyCollections as any[]).map(day => ({
         date: day.date,

@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { isStaticBuild } from '@/lib/api-utils';
+
+// Add the dynamic directive
+export const dynamic = 'force-dynamic';
+
+// Generate static parameters for build
+export async function generateStaticParams() {
+  // During static build, we provide a list of IDs to pre-render
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' }
+  ];
+}
 
 // Database connection
 async function getConnection() {
@@ -15,6 +29,23 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // During static build, return mock data
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      id: params.id,
+      type: "summary",
+      patientId: "PATIENT-001",
+      patientName: "Test Patient",
+      originalNotes: "Patient presented with symptoms of...",
+      aiGeneratedContent: "Summary: The patient has symptoms consistent with...",
+      doctorId: "DOC-001",
+      doctorName: "Dr. Test Doctor",
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      approvedAt: null
+    });
+  }
+
   let connection;
   
   try {

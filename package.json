@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node next-build.config.js",
+    "build:static": "cross-env NEXT_STATIC_BUILD=true next build",
+    "build:standard": "next build",
+    "build:simple": "node simple-build.js",
     "start": "next start",
     "lint": "next lint",
     "init-db": "node scripts/init-db.js",

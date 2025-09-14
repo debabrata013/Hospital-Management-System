@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import mysql from 'mysql2/promise'
+import { isStaticBuild, getCookies } from '@/lib/api-utils'
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic'
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -15,9 +19,39 @@ const dbConfig = {
 }
 
 export async function GET(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      message: 'Doctor profile retrieved successfully',
+      profile: {
+        id: 1,
+        user_id: 'DOCTOR-001',
+        name: 'Dr. Sample Doctor',
+        email: 'sample.doctor@hospital.com',
+        contact_number: '9876543210',
+        role: 'doctor',
+        department: 'General Medicine',
+        specialization: 'Internal Medicine',
+        qualification: 'MBBS, MD',
+        joining_date: '2023-01-01',
+        is_active: true,
+        is_verified: true,
+        address: '123 Medical Center',
+        employee_type: 'full-time',
+        salary: null,
+        emergency_contact: '9876543211',
+        emergency_contact_name: 'Emergency Contact',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    });
+  }
+
   let connection;
   try {
-    const token = request.cookies.get('auth-token')?.value
+    // Use safe method to get cookies
+    const cookies = getCookies(request);
+    const token = cookies.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -101,8 +135,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      message: 'Profile updated successfully'
+    });
+  }
+
   try {
-    const token = request.cookies.get('auth-token')?.value
+    // Use safe method to get cookies
+    const cookies = getCookies(request);
+    const token = cookies.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json(

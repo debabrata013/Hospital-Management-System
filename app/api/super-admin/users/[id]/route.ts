@@ -1,3 +1,18 @@
+import { isStaticBuild } from '@/lib/api-utils';
+
+// Force dynamic for development server
+// Generate static parameters for build
+export async function generateStaticParams() {
+  // During static build, we provide a list of IDs to pre-render
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' }
+  ];
+}
+
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
 

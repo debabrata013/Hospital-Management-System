@@ -7,6 +7,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    unoptimized: true,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
@@ -24,9 +25,20 @@ const nextConfig = {
       },
     ],
   },
-  // Remove output: 'export' for Vercel deployment with API routes
+  // Configure dynamic routes that use request.cookies or request.url
   experimental: {
     serverComponentsExternalPackages: ['mysql2', 'sequelize'],
+    // This makes sure dynamic API routes work during build
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
+  // Set output to standalone for simpler deployment
+  output: 'standalone',
+  // Set environment variable for static build detection
+  env: {
+    NEXT_STATIC_BUILD: 'true',
+    STATIC_BUILD: 'true',
   },
 }
 

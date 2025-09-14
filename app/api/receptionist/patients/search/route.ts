@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { isStaticBuild, getSearchParams } from '@/lib/api-utils';
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -17,10 +21,30 @@ async function getConnection() {
 }
 
 export async function GET(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      patients: [
+        {
+          id: 1,
+          patient_id: 'PAT-001',
+          name: 'Sample Patient',
+          age: 35,
+          gender: 'Male',
+          contact_number: '9876543210',
+          address: '123 Sample Street',
+          emergency_contact_name: 'Emergency Contact',
+          registration_date: new Date().toISOString()
+        }
+      ]
+    });
+  }
+
   let connection;
   
   try {
-    const { searchParams } = new URL(request.url);
+    // Use safe method to get search params
+    const searchParams = getSearchParams(request);
     const query = searchParams.get('q');
     
     if (!query || query.length < 2) {

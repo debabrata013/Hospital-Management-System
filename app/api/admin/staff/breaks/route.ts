@@ -4,9 +4,48 @@ import Break from '@/models/Break';
 import { getConnection } from '@/lib/db/connection';
 import { Op } from 'sequelize';
 import { startOfDay, endOfDay } from 'date-fns';
+import { isStaticBuild, getSearchParams } from '@/lib/api-utils';
+
+// Add dynamic directive to ensure this route is processed server-side during normal operation
+export const dynamic = 'force-dynamic';
 
 // GET all breaks from all staff members for admin view
 export async function GET(req: NextRequest) {
+  // During static build, return mock data
+  if (isStaticBuild()) {
+    return NextResponse.json({ 
+      success: true, 
+      breaks: [
+        {
+          id: 1,
+          user_id: 1,
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + 15 * 60000).toISOString(),
+          duration: 15,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          staff_name: 'Staff Member 1',
+          staff_mobile: '9876543210',
+          department: 'Nursing',
+          role: 'staff'
+        },
+        {
+          id: 2,
+          user_id: 2,
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + 30 * 60000).toISOString(),
+          duration: 30,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          staff_name: 'Staff Member 2',
+          staff_mobile: '9876543211',
+          department: 'Reception',
+          role: 'receptionist'
+        }
+      ]
+    });
+  }
+
   const session = await getServerSession(req);
 
   if (!session || !session.user?.id) {
@@ -19,7 +58,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { searchParams } = new URL(req.url);
+    // Use safe method to get search params
+    const searchParams = getSearchParams(req, { date: new Date().toISOString().split('T')[0] });
     const dateFilter = searchParams.get('date'); // Optional date filter (YYYY-MM-DD format)
     
     let whereClause = '';

@@ -2,9 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth-simple';
 import LeaveRequest from '@/models/LeaveRequest';
 import { getConnection } from '@/lib/db/connection';
+import { isStaticBuild } from '@/lib/api-utils';
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic';
 
 // GET all leave requests from all staff members for admin view
 export async function GET(req: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({ 
+      success: true, 
+      leaveRequests: [
+        {
+          id: 1,
+          user_id: 1,
+          leave_type: 'Sick Leave',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          reason: 'Medical appointment',
+          status: 'Pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          staff_name: 'Sample Staff',
+          staff_mobile: '9876543210',
+          department: 'Nursing',
+          role: 'nurse'
+        }
+      ]
+    });
+  }
+
   const session = await getServerSession(req);
 
   if (!session || !session.user?.id) {
@@ -49,6 +77,24 @@ export async function GET(req: NextRequest) {
 
 // PUT to update leave request status (approve/reject)
 export async function PUT(req: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      success: true,
+      leaveRequest: {
+        id: 1,
+        user_id: 1,
+        leave_type: 'Sick Leave',
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        reason: 'Medical appointment',
+        status: 'Approved',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    });
+  }
+
   const session = await getServerSession(req);
 
   if (!session || !session.user?.id) {

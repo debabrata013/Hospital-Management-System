@@ -3,6 +3,10 @@
 
 import { NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { isStaticBuild, getSearchParams, getMockData } from '@/lib/api-utils';
+
+// Add force-dynamic directive to prevent static generation errors
+export const dynamic = 'force-dynamic';
 
 const dbConfig = {
   host: 'srv2047.hstgr.io',
@@ -14,8 +18,13 @@ const dbConfig = {
 
 // GET - Generate inventory reports
 export async function GET(request) {
+  // Handle static build scenario
+  if (isStaticBuild()) {
+    return NextResponse.json(getMockData('/api/admin/inventory/reports'));
+  }
+  
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = getSearchParams(request, { type: 'summary' });
     const reportType = searchParams.get('type') || 'summary';
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');

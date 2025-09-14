@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
+import { isStaticBuild } from '@/lib/api-utils'
 
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -9,10 +10,59 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT || '3306')
 }
 
+// This enables dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // GET /api/staff/names
 // Returns a unified list of staff and doctors for selects
 export async function GET(_request: NextRequest) {
   try {
+    // For static generation compatibility, provide mock data during build
+    if (isStaticBuild()) {
+      const mockStaffList = [
+        {
+          id: "1",
+          userId: "STAFF-001",
+          name: "John Doe",
+          role: "staff",
+          department: "Nursing"
+        },
+        {
+          id: "2",
+          userId: "STAFF-002",
+          name: "Jane Smith",
+          role: "pharmacy",
+          department: "Pharmacy"
+        },
+        {
+          id: "3",
+          userId: "STAFF-003",
+          name: "Michael Johnson",
+          role: "receptionist",
+          department: "Administration"
+        },
+        {
+          id: "4",
+          userId: "DOC-001",
+          name: "Dr. Sarah Wilson",
+          role: "doctor",
+          department: "Cardiology"
+        },
+        {
+          id: "5",
+          userId: "DOC-002",
+          name: "Dr. Robert Brown",
+          role: "doctor",
+          department: "Orthopedics"
+        }
+      ];
+      
+      return NextResponse.json({ 
+        success: true, 
+        data: mockStaffList 
+      });
+    }
+
     const connection = await mysql.createConnection(dbConfig)
 
     // Doctors

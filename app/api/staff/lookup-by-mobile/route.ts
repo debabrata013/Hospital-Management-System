@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
+import { isStaticBuild, getSearchParams } from '@/lib/api-utils'
+
+// Force dynamic for development
+export const dynamic = 'force-dynamic'
 
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -11,8 +15,25 @@ const dbConfig = {
 
 // GET /api/staff/lookup-by-mobile?mobile=9876543210
 export async function GET(request: NextRequest) {
+  // Handle static builds
+  if (isStaticBuild()) {
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: '1',
+        userId: 'STAFF-001',
+        name: 'Sample Staff',
+        email: 'staff@hospital.com',
+        mobile: '9876543210',
+        role: 'staff',
+        department: 'General'
+      }
+    });
+  }
+
   try {
-    const { searchParams } = new URL(request.url)
+    // Use safe method to get search params
+    const searchParams = getSearchParams(request);
     const mobile = (searchParams.get('mobile') || '').trim()
     if (!/^[0-9]{8,15}$/.test(mobile)) {
       return NextResponse.json({ success: false, error: 'Invalid mobile format' }, { status: 400 })
