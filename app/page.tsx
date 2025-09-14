@@ -379,7 +379,7 @@ const content = {
       callUs: "Call Us",
       phone: "+91 98765 43210",
       email: "Email Us",
-      emailAddress: "care@arogyahospital.com",
+      emailAddress: "care@nmsc.in",
       address: "Address",
       fullAddress: "123, Health Nagar, Near Connaught Place, New Delhi - 110001",
       supportHours: "Service Hours",
@@ -416,7 +416,7 @@ const content = {
         title: "Contact Info",
         address: "123, Health Nagar, New Delhi - 110001",
         phone: "+91 98765 43210",
-        email: "care@arogyahospital.com",
+        email: "care@nmsc.in",
         emergency: "Emergency: +91 98765 43211"
       },
       hours: {
@@ -1460,17 +1460,23 @@ export default function LandingPage() {
                   </div>
 
                   {/* Email */}
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center mb-3">
-                      <Mail className="h-5 w-5 text-blue-500 mr-2" />
-                      <span className="font-semibold text-gray-900">{t.contact.email}</span>
-                    </div>
-                    <p className="text-gray-700 font-medium">{t.contact.emailAddress}</p>
-                    <Button className="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-full">
-                      <Mail className="h-4 w-4 mr-2" />
-                      Send Email
-                    </Button>
-                  </div>
+                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl hover:shadow-lg transition-all duration-300">
+  <div className="flex items-center mb-3">
+    <Mail className="h-5 w-5 text-blue-500 mr-2" />
+    <span className="font-semibold text-gray-900">{t.contact.email}</span>
+  </div>
+  
+  <p className="text-gray-700 font-medium">{t.contact.emailAddress}</p>
+  
+ <a href={`mailto:${t.contact.emailAddress}`}>
+  <Button className="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-full">
+    <Mail className="h-4 w-4 mr-2" />
+    Send Email
+  </Button>
+</a>
+
+</div>
+
 
                   {/* Emergency */}
                   <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl hover:shadow-lg transition-all duration-300">
@@ -1608,11 +1614,18 @@ export default function LandingPage() {
             {/* Hospital Info */}
             <div className="lg:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                  <Heart className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">{t.footer.hospitalName}</span>
-              </div>
+  <Image
+    src="/logo.jpg"
+    alt={t.footer.hospitalName}
+    width={40}
+    height={40}
+    className="rounded-md"
+  />
+  <span className="text-xl font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+    {t.footer.hospitalName}
+  </span>
+</div>
+
               <p className="text-gray-400 mb-6 leading-relaxed">
                 {t.footer.tagline}
               </p>
