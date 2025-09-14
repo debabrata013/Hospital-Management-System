@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/useAuth"
+import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -266,17 +268,24 @@ export default function DoctorDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white flex">
         {/* Sidebar */}
         <Sidebar className="border-pink-100">
-          <SidebarHeader className="border-b border-pink-100 p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">NMSC</h2>
-                <p className="text-sm text-gray-500">डॉक्टर पैनल</p>
-              </div>
-            </div>
-          </SidebarHeader>
+         <SidebarHeader className="border-b border-pink-100 p-6">
+  <div className="flex items-center space-x-3">
+    <Image
+      src="/logo.jpg"
+      alt="NMSC Logo"
+      width={40}
+      height={40}
+      className="rounded-md"
+    />
+    <div>
+      <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
+        NMSC
+      </h2>
+      <p className="text-sm text-gray-500">Doctor pannel</p>
+    </div>
+  </div>
+</SidebarHeader>
+
           
           <SidebarContent className="px-4 py-6">
             {navigationItems.map((section: any) => (
@@ -338,17 +347,18 @@ export default function DoctorDashboard() {
               </div>
               
               <div className="flex items-center space-x-4">
-                {/* Notifications */}
-                <div className="relative">
-                  <Button variant="ghost" size="sm" className="relative hover:bg-pink-50">
-                    <Bell className="h-5 w-5 text-gray-600" />
-                    {notifications > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {notifications}
-                      </span>
-                    )}
-                  </Button>
-                </div>
+               {/* Back to Home Link */}
+<div className="mb-6">
+  <Link
+    href="/"
+    className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
+  >
+    <ArrowLeft className="h-4 w-4 mr-2" />
+    Back to Home
+  </Link>
+</div>
+   
+
                 
                 {/* Profile Dropdown */}
                 <DropdownMenu>

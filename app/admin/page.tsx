@@ -238,7 +238,7 @@ export default function AdminDashboard() {
       <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
         NMSC
       </h2>
-      <p className="text-sm text-gray-500">Super Admin</p>
+      <p className="text-sm text-gray-500"> Admin</p>
     </div>
   </div>
 </SidebarHeader>
