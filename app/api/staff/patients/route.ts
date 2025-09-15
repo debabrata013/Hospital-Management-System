@@ -1,88 +1,69 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser } from '@/lib/auth-middleware'
-import { getConnection } from '@/lib/db/connection'
-import { isStaticBuild } from '@/lib/api-utils'
 
-// Force dynamic for development
+// Force dynamic for development to ensure fresh data on each request
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  // Handle static builds
-  if (isStaticBuild()) {
-    return NextResponse.json({
-      success: true,
-      patients: [
-        {
-          id: 1,
-          patient_id: 'PAT-001',
-          name: 'Sample Patient 1',
-          date_of_birth: '1990-01-01',
-          gender: 'Male',
-          blood_group: 'O+',
-          contact_number: '9876543210',
-          email: 'patient1@example.com',
-          address: '123 Sample Street',
-          city: 'Sample City',
-          state: 'Sample State',
-          emergency_contact_name: 'Emergency Contact 1',
-          emergency_contact_number: '9876543211',
-          is_active: true,
-          registration_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          age: 33
-        }
-      ]
-    });
-  }
-
+  let connection;
   try {
+    console.log('Attempting to connect to the database...');
     const mysql = require('mysql2/promise');
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'hospital_management',
+    // Establish database connection
+    connection = await mysql.createConnection({
+      host: process.env.DB_HOST || 'srv2047.hstgr.io',
+      user: process.env.DB_USER || 'u153229971_admin',
+      password: process.env.DB_PASSWORD || 'Admin!2025',
+      database: process.env.DB_NAME || 'u153229971_Hospital',
       port: parseInt(process.env.DB_PORT || '3306'),
     });
+    console.log('✅ Database connection successful.');
 
-    // Verify authentication using the created connection
+    // Verify user authentication
     const authResult = await authenticateUser(request, connection);
     if (authResult instanceof NextResponse) {
-      await connection.end();
+      console.error('❌ Authentication failed.');
       return authResult;
     }
 
     const { user } = authResult;
+    console.log(`✅ User authenticated: ${user.role}`);
 
-    // Debug: Log user role
-    console.log('User role:', user.role)
-    console.log('User details:', user)
-    
-    // Allow all authenticated users for now to debug the issue
-    console.log('Allowing access for debugging purposes')
-
+    console.log('Executing query to fetch patients with prescriptions...');
+    // CORRECTED QUERY: Removed the join on the non-existent 'patient_assignments' table.
     const [patients] = await connection.execute(
-      `SELECT 
-        id, patient_id, name, date_of_birth, gender, blood_group, contact_number, 
-        email, address, city, state, emergency_contact_name, emergency_contact_number, 
-        is_active, registration_date, created_at,
-        YEAR(CURDATE()) - YEAR(date_of_birth) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(date_of_birth, '%m%d')) AS age
-      FROM patients 
-      WHERE is_active = TRUE
-      ORDER BY name ASC`
+      `SELECT DISTINCT
+        p.patient_id AS id,
+        p.name
+      FROM 
+        prescriptions pr
+      JOIN 
+        patients p ON pr.patient_id = p.id
+      WHERE 
+        p.is_active = TRUE
+      ORDER BY 
+        p.name ASC`
     );
 
-    await connection.end();
+    console.log(`✅ Query executed. Found ${ (patients as any[]).length } patients.`);
+    if ((patients as any[]).length > 0) {
+        console.log('Sample patient data:', (patients as any[])[0]);
+    }
 
-    console.log('Total patients found:', (patients as any[]).length);
-    console.log('Sample patients:', (patients as any[]).slice(0, 3));
-
+    // Return the list of patients
     return NextResponse.json({ 
       success: true, 
       patients 
     });
+
   } catch (error) {
-    console.error('Error fetching patients:', error)
+    console.error('❌ An error occurred in GET /api/staff/patients:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 })
+  } finally {
+    if (connection) {
+      await connection.end();
+      console.log('🔌 Database connection closed.');
+    }
   }
 }

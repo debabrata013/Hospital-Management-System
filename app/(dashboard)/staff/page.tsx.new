@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
   Sidebar,
   SidebarContent,
@@ -100,6 +100,24 @@ export default function StaffDashboard() {
   const [allStaff, setAllStaff] = useState<any[]>([])
   const { authState } = useAuth()
   const user = authState?.user
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [tasks, setTasks] = useState([
+    { description: "Complete equipment inventory", due: "11:00 AM", status: "completed" },
+    { description: "Restock medication carts", due: "2:00 PM", status: "in-progress" },
+    { description: "Submit shift report", due: "4:00 PM", status: "pending" },
+  ]);
+
+  const handleAddTask = (event) => {
+    event.preventDefault();
+    const newTask = {
+      description: event.target.description.value,
+      due: event.target.due.value,
+      status: "pending",
+    };
+    setTasks([...tasks, newTask]);
+    setIsAddTaskDialogOpen(false);
+  };
+
 
   // Fetch staff profile data and colleagues
   useEffect(() => {
@@ -138,6 +156,8 @@ export default function StaffDashboard() {
         return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>
       case 'overdue':
         return <Badge className="bg-red-100 text-red-700">Overdue</Badge>
+        case 'in-progress':
+        return <Badge className="bg-orange-100 text-orange-700">In Progress</Badge>
       default:
         return <Badge className="bg-gray-100 text-gray-700">{status}</Badge>
     }
@@ -382,9 +402,9 @@ export default function StaffDashboard() {
                         <h3 className="font-medium text-green-800">Today's Tasks</h3>
                         <ClipboardList className="h-5 w-5 text-green-500" />
                       </div>
-                      <p className="text-2xl font-bold mt-2">8</p>
+                      <p className="text-2xl font-bold mt-2">{tasks.length}</p>
                       <p className="text-sm text-gray-600 mt-1">
-                        <span className="text-green-600 font-medium">3 completed</span> • 5 pending
+                        <span className="text-green-600 font-medium">{tasks.filter(t => t.status === 'completed').length} completed</span> • {tasks.filter(t => t.status !== 'completed').length} pending
                       </p>
                     </div>
                     
@@ -547,46 +567,59 @@ export default function StaffDashboard() {
                 <div className="space-y-4">
                   {/* Task List */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  {tasks.map((task, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                        {task.status === 'completed' && <CheckCircle className="h-5 w-5 text-green-500 mr-3" />}
+                        {task.status === 'in-progress' && <AlertTriangle className="h-5 w-5 text-orange-500 mr-3" />}
+                        {task.status === 'pending' && <Clock className="h-5 w-5 text-gray-400 mr-3" />}
                         <div>
-                          <p className="font-medium">Complete equipment inventory</p>
-                          <p className="text-sm text-gray-500">Due by 11:00 AM</p>
+                          <p className="font-medium">{task.description}</p>
+                          <p className="text-sm text-gray-500">Due by {task.due}</p>
                         </div>
                       </div>
-                      <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Completed</Badge>
+                      {getTaskStatusBadge(task.status)}
                     </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center">
-                        <AlertTriangle className="h-5 w-5 text-orange-500 mr-3" />
-                        <div>
-                          <p className="font-medium">Restock medication carts</p>
-                          <p className="text-sm text-gray-500">Due by 2:00 PM</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200">In Progress</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center">
-                        <Clock className="h-5 w-5 text-gray-400 mr-3" />
-                        <div>
-                          <p className="font-medium">Submit shift report</p>
-                          <p className="text-sm text-gray-500">Due by 4:00 PM</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">Pending</Badge>
-                    </div>
+                  ))}
                   </div>
                   
                   {/* Add New Task Button */}
                   <div className="pt-2">
-                    <Button variant="outline" className="w-full border-dashed border-gray-300 text-gray-600 hover:border-pink-300 hover:text-pink-600">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add New Task
-                    </Button>
+                  <Dialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full border-dashed border-gray-300 text-gray-600 hover:border-pink-300 hover:text-pink-600">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add New Task
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Task</DialogTitle>
+                        <DialogDescription>
+                          Fill in the details below to add a new task.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleAddTask}>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="description" className="text-right">
+                              Description
+                            </label>
+                            <Input id="description" name="description" className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="due" className="text-right">
+                              Due
+                            </label>
+                            <Input id="due" name="due" className="col-span-3" />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit">Add Task</Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                   </div>
                 </div>
               </CardContent>
