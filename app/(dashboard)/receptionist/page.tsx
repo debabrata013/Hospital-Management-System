@@ -69,6 +69,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { LogoutButton } from "@/components/auth/LogoutButton"
+import { title } from "process"
 
 // Mock data for receptionist dashboard
 const receptionistStats = {
@@ -200,6 +201,7 @@ const navigationItems = [
       { title: "Appointments", icon: Calendar, url: "/receptionist/appointments" },
       { title: "Surgery Appointments", icon: Stethoscope, url: "/receptionist/surgery-appointments" },
       { title: "Admissions", icon: Bed, url: "/receptionist/admissions" },
+      { title: "Search Patients", icon: Search, url: "/receptionist/search-patients" }
     ]
   },
   {
