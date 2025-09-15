@@ -80,19 +80,15 @@ export async function middleware(request: NextRequest) {
 
   console.log(`[MIDDLEWARE] Checking protected route: ${pathname}`)
 
-  // Get token from cookies - try primary first, then backup
-  let token = request.cookies.get('auth-token')?.value
-  if (!token) {
-    token = request.cookies.get('auth-backup')?.value
-  }
+  // Get token from cookies
+  const token = request.cookies.get('auth-token')?.value
   
   const allCookies = request.cookies.getAll()
   console.log(`[MIDDLEWARE] All cookies:`, allCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`))
-  console.log(`[MIDDLEWARE] Primary token found:`, !!request.cookies.get('auth-token')?.value)
-  console.log(`[MIDDLEWARE] Backup token found:`, !!request.cookies.get('auth-backup')?.value)
+  console.log(`[MIDDLEWARE] Auth token found:`, !!token)
 
   if (!token) {
-    console.log(`[MIDDLEWARE] No auth tokens found, redirecting to login`)
+    console.log(`[MIDDLEWARE] No auth token found, redirecting to login`)
     // Redirect to login with return URL
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('message', 'unauthorized')
@@ -141,8 +137,7 @@ export async function middleware(request: NextRequest) {
     
     // Clear invalid token
     const response = NextResponse.redirect(loginUrl)
-    response.cookies.delete('auth-token')
-    response.cookies.delete('auth-backup')
+    response.cookies.set('auth-token', '', { maxAge: 0, path: '/' })
     
     return response
   }

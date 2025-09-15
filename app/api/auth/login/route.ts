@@ -55,7 +55,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = userArray[0]
+    // If multiple users found, prioritize by role order: super-admin > admin > doctor > staff > others
+    const roleOrder = ['super-admin', 'admin', 'doctor', 'staff', 'receptionist', 'pharmacy'];
+    const user = userArray.sort((a, b) => {
+      const aIndex = roleOrder.indexOf(a.role);
+      const bIndex = roleOrder.indexOf(b.role);
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+    })[0];
 
     // Compare password with hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash)
@@ -105,29 +111,18 @@ export async function POST(request: NextRequest) {
       user: userData
     })
 
-    // Set multiple cookie variations to ensure compatibility
-    const cookieOptions = {
+    // Set cookie with explicit options for better compatibility
+    response.cookies.set({
+      name: 'auth-token',
+      value: token,
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax' as const,
-      maxAge: 24 * 60 * 60,
+      secure: false, // Set to true in production with HTTPS
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 24 hours
       path: '/'
-    }
-    
-    // Set primary cookie
-    response.cookies.set('auth-token', token, cookieOptions)
-    
-    // Set backup cookie without httpOnly for client-side access if needed
-    response.cookies.set('auth-backup', token, {
-      ...cookieOptions,
-      httpOnly: false
     })
     
-    // Add token to response headers as well
-    response.headers.set('X-Auth-Token', token)
-    
-    console.log('[LOGIN] Cookies set successfully for user:', userData.email)
-    console.log('[LOGIN] Cookie options:', cookieOptions)
+    console.log('[LOGIN] Cookie set for user:', userData.email)
 
     return response
 

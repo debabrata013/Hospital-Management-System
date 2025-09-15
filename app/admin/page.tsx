@@ -566,9 +566,6 @@ export default function AdminDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
                       <p className="text-3xl font-bold text-gray-900">{todayStats.totalAppointments}</p>
-                      <p className="text-sm text-green-600 mt-1">
-                        {todayStats.completedAppointments} completed
-                      </p>
                     </div>
                     <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
                       <Calendar className="h-8 w-8 text-white" />
@@ -583,9 +580,6 @@ export default function AdminDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Admitted Patients</p>
                       <p className="text-3xl font-bold text-gray-900">{todayStats.admittedPatients}</p>
-                      <p className="text-sm text-blue-600 mt-1">
-                        {todayStats.availableBeds} beds available
-                      </p>
                     </div>
                     <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
                       <Bed className="h-8 w-8 text-white" />
@@ -600,9 +594,6 @@ export default function AdminDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Stock Alerts</p>
                       <p className="text-3xl font-bold text-red-600">{todayStats.criticalAlerts}</p>
-                      <p className="text-sm text-red-600 mt-1">
-                        Require immediate attention
-                      </p>
                     </div>
                     <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
                       <AlertTriangle className="h-8 w-8 text-white" />
@@ -617,10 +608,6 @@ export default function AdminDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
                       <p className="text-3xl font-bold text-green-600">₹{(todayStats.todayRevenue || 0).toLocaleString()}</p>
-                      <p className="text-sm text-green-600 flex items-center mt-1">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        +12% from yesterday
-                      </p>
                     </div>
                     <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
                       <DollarSign className="h-8 w-8 text-white" />
