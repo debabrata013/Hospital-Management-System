@@ -1574,9 +1574,46 @@ export default function AdminInventoryPage() {
 
               {/* Action Buttons */}
               <div className="flex gap-2 mt-2 md:mt-0">
-                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50"><Eye className="h-4 w-4"/></Button>
-                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50"><Edit className="h-4 w-4"/></Button>
-                <Button variant="outline" size="sm" className="border-green-200 text-green-600 hover:bg-green-50"><ShoppingCart className="h-4 w-4"/></Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                  onClick={() => {
+                    alert(`Medicine: ${item.medicine_name}\nStock: ${item.current_stock}/${item.maximum_stock}\nBatch: ${item.batch_number || '-'}\nExpiry: ${item.expiry_date || '-'}`)
+                  }}
+                >
+                  <Eye className="h-4 w-4"/>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                  onClick={() => {
+                    setShowAddModal(true)
+                    setForm({
+                      id: item.id,
+                      medicine_name: item.medicine_name,
+                      manufacturer: item.manufacturer,
+                      price: item.price,
+                      current_stock: item.current_stock,
+                      maximum_stock: item.maximum_stock,
+                      batch_number: item.batch_number || '',
+                      expiry_date: item.expiry_date || ''
+                    })
+                  }}
+                >
+                  <Edit className="h-4 w-4"/>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-green-200 text-green-600 hover:bg-green-50"
+                  onClick={() => {
+                    alert('Purchase flow coming soon')
+                  }}
+                >
+                  <ShoppingCart className="h-4 w-4"/>
+                </Button>
               </div>
             </div>
           ))}

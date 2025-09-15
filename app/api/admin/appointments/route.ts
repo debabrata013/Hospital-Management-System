@@ -186,28 +186,38 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Generate unique appointment_id
-    const [lastAppointment] = await connection.execute(
-      'SELECT appointment_id FROM appointments ORDER BY id DESC LIMIT 1'
+    // Generate unique appointment_id using MAX on existing records to avoid duplicates
+    const [maxRows] = await connection.execute(
+      `SELECT MAX(CAST(SUBSTRING(appointment_id, 2) AS UNSIGNED)) AS maxNum FROM appointments`
     )
-    let nextAppointmentId = 'A001'
-    if ((lastAppointment as any[]).length > 0) {
-      const lastId = (lastAppointment as any[])[0].appointment_id
-      let num = 1
-      if (lastId && /^A\d+$/.test(lastId)) {
-        num = parseInt(lastId.substring(1)) + 1
-      }
-      nextAppointmentId = `A${num.toString().padStart(3, '0')}`
-    }
+    let nextNum = ((maxRows as any[])[0]?.maxNum || 0) + 1
+    let nextAppointmentId = `A${nextNum.toString().padStart(3, '0')}`
 
-    // Insert new appointment with appointment_id
-    const [result] = await connection.execute(
-      `INSERT INTO appointments (
-        appointment_id, patient_id, doctor_id, appointment_date, appointment_time, 
-        appointment_type, status, notes, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'Scheduled', ?, NOW(), NOW())`,
-      [nextAppointmentId, patient_id, doctor_id, appointment_date, appointment_time, appointment_type, notes || null]
-    )
+    // Try insert; if duplicate (race condition), increment and retry a few times
+    let result: any
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const [res] = await connection.execute(
+          `INSERT INTO appointments (
+            appointment_id, patient_id, doctor_id, appointment_date, appointment_time, 
+            appointment_type, status, notes, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'Scheduled', ?, NOW(), NOW())`,
+          [nextAppointmentId, patient_id, doctor_id, appointment_date, appointment_time, appointment_type, notes || null]
+        )
+        result = res
+        break
+      } catch (e: any) {
+        if (e?.code === 'ER_DUP_ENTRY') {
+          nextNum += 1
+          nextAppointmentId = `A${nextNum.toString().padStart(3, '0')}`
+          continue
+        }
+        throw e
+      }
+    }
+    if (!result) {
+      throw new Error('Failed to generate unique appointment id')
+    }
 
     await connection.end()
 

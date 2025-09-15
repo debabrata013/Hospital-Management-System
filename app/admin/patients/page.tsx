@@ -73,6 +73,7 @@ export default function PatientsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [expandedPatientId, setExpandedPatientId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     date_of_birth: '',
@@ -289,6 +290,20 @@ export default function PatientsPage() {
     ) : (
       <Badge className="bg-red-100 text-red-700">Inactive</Badge>
     )
+  }
+
+  function formatInsurance(p: Patient): string {
+    if (!p.insurance_provider) {
+      return '-'
+    }
+    const parts: string[] = [p.insurance_provider]
+    if (p.insurance_policy_number) {
+      parts.push(`(${p.insurance_policy_number})`)
+    }
+    if (p.insurance_expiry_date) {
+      parts.push(`exp ${new Date(p.insurance_expiry_date).toLocaleDateString()}`)
+    }
+    return parts.join(' ')
   }
 
   return (
@@ -644,6 +659,15 @@ export default function PatientsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => setExpandedPatientId(expandedPatientId === patient.id ? null : patient.id)}
+                      className="w-1/2 sm:w-auto"
+                    >
+                      <Eye className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">View</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => openEditDialog(patient)}
                       className="w-1/2 sm:w-auto"
                     >
@@ -660,6 +684,36 @@ export default function PatientsPage() {
                       <span className="hidden sm:inline">Delete</span>
                     </Button>
                   </div>
+                {expandedPatientId === patient.id && (
+                  <div className="mt-3 rounded-lg border border-pink-100 bg-white p-4 text-sm text-gray-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <span className="font-medium">Gender:</span> {patient.gender || '-'}
+                      </div>
+                      <div>
+                        <span className="font-medium">DOB:</span> {new Date(patient.date_of_birth).toLocaleDateString()}
+                      </div>
+                      <div>
+                        <span className="font-medium">Blood Group:</span> {patient.blood_group || '-'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Aadhar:</span> {patient.aadhar_number || '-'}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="font-medium">Medical History:</span> {patient.medical_history || '—'}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="font-medium">Allergies:</span> {patient.allergies || '—'}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="font-medium">Current Medications:</span> {patient.current_medications || '—'}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="font-medium">Insurance:</span> {formatInsurance(patient)}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 </div>
               ))}
             </div>

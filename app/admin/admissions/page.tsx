@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   Bed, 
   Plus, 
@@ -88,6 +89,27 @@ export default function AdmissionsPage() {
   })
 
   const [stats, setStats] = useState<{ admittedPatients?: number; availableBeds?: number; dischargesToday?: number; criticalPatients?: number }>({})
+  const [editOpen, setEditOpen] = useState(false)
+  const [editing, setEditing] = useState<AdmittedPatient | null>(null)
+  const [editForm, setEditForm] = useState({ diagnosis: '', expectedDischargeDate: '', notes: '', name: '', contactNumber: '', gender: 'Unknown', dateOfBirth: '' })
+
+  const viewAdmission = (admission: AdmittedPatient) => {
+    const summary = [
+      `Name: ${admission.name}`,
+      `Patient ID: ${admission.patientId}`,
+      `Age: ${admission.age ?? '—'}`,
+      `Room: ${admission.roomNumber}`,
+      `Admitted: ${new Date(admission.admissionDate).toLocaleDateString()}`,
+      `Condition: ${admission.condition || '—'}`
+    ].join('\n')
+    alert(summary)
+  }
+
+  const editAdmission = (admission: AdmittedPatient) => {
+    setEditing(admission)
+    setEditForm({ diagnosis: admission.condition || '', expectedDischargeDate: '', notes: '', name: admission.name, contactNumber: '', gender: 'Unknown', dateOfBirth: '' })
+    setEditOpen(true)
+  }
 
   async function fetchAdmissions() {
     try {
@@ -424,10 +446,10 @@ export default function AdmissionsPage() {
                 </div>
 
                 <div className="flex gap-2 mt-2 sm:mt-0 sm:flex-col">
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => viewAdmission(admission)}>
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                  <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => editAdmission(admission)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" size="sm" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => dischargePatient(admission.patientId)}>
@@ -439,6 +461,95 @@ export default function AdmissionsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Admission</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!editing) return
+              try {
+                const res = await fetch('/api/admin/rooms', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'updateAdmission',
+                    assignmentId: editing.id,
+                    diagnosis: editForm.diagnosis,
+                    expectedDischargeDate: editForm.expectedDischargeDate || null,
+                    notes: editForm.notes
+                  })
+                })
+                if (!res.ok) throw new Error('Update failed')
+                // Update patient core fields too (optional)
+                await fetch('/api/admin/rooms', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'updatePatientFields',
+                    patientId: editing.patientId,
+                    fields: {
+                      name: editForm.name || undefined,
+                      contact_number: editForm.contactNumber || undefined,
+                      gender: editForm.gender || undefined,
+                      date_of_birth: editForm.dateOfBirth || undefined
+                    }
+                  })
+                })
+                setEditOpen(false)
+                setEditing(null)
+                await fetchAdmissions()
+              } catch (err) {
+                alert('Failed to update admission')
+              }
+            }}
+            className="space-y-3"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-gray-700">Patient Name</label>
+                <Input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Phone</label>
+                <Input value={editForm.contactNumber} onChange={e => setEditForm({ ...editForm, contactNumber: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Gender</label>
+                <select className="w-full h-10 border rounded px-3" value={editForm.gender} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                  <option>Unknown</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Date of Birth</label>
+                <Input type="date" value={editForm.dateOfBirth} onChange={e => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Diagnosis</label>
+              <Input value={editForm.diagnosis} onChange={e => setEditForm({ ...editForm, diagnosis: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Expected Discharge</label>
+              <Input type="date" value={editForm.expectedDischargeDate} onChange={e => setEditForm({ ...editForm, expectedDischargeDate: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Notes</label>
+              <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Room Status Overview */}
       <Card className="border-pink-100 mt-6">

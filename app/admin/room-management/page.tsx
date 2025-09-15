@@ -98,6 +98,8 @@ export default function RoomManagementPage() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const { toast } = useToast()
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailsRoom, setDetailsRoom] = useState<Room | null>(null)
 
   async function fetchRooms() {
     try {
@@ -426,7 +428,7 @@ export default function RoomManagementPage() {
                            onCleaningAssigned={refreshData}
                          />
                        )}
-                       <Button size="sm" variant="outline">
+                       <Button size="sm" variant="outline" onClick={() => { setDetailsRoom(room); setDetailsOpen(true) }}>
                          <FileText className="mr-1 h-3 w-3" />
                          Details
                        </Button>
@@ -437,6 +439,39 @@ export default function RoomManagementPage() {
             })}
           </div>
         </TabsContent>
+
+        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Room Details</DialogTitle>
+              <DialogDescription>Current information for this room.</DialogDescription>
+            </DialogHeader>
+            {detailsRoom && (
+              <div className="space-y-2 text-sm">
+                <div><span className="font-medium">Room:</span> {detailsRoom.roomNumber} ({detailsRoom.type})</div>
+                <div><span className="font-medium">Floor:</span> {detailsRoom.floor}</div>
+                <div><span className="font-medium">Capacity:</span> {detailsRoom.capacity}</div>
+                <div><span className="font-medium">Occupied:</span> {detailsRoom.currentOccupancy}</div>
+                <div><span className="font-medium">Status:</span> {detailsRoom.status}</div>
+                <div className="mt-3">
+                  <p className="font-medium mb-1">Patients in this room:</p>
+                  {getRoomOccupancy(detailsRoom.id).length === 0 ? (
+                    <p className="text-muted-foreground">No active admissions</p>
+                  ) : (
+                    <ul className="list-disc pl-5 space-y-1">
+                      {getRoomOccupancy(detailsRoom.id).map(p => (
+                        <li key={p.id}>{p.name} — {p.diagnosis} (Admitted {p.admissionDate})</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Patients Tab */}
         <TabsContent value="patients" className="space-y-4">

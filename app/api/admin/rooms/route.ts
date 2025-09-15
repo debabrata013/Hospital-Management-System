@@ -326,6 +326,26 @@ export async function POST(request: NextRequest) {
           message: 'Room status updated successfully'
         })
 
+      } else if (action === 'updateAdmission') {
+        const { assignmentId, diagnosis, expectedDischargeDate, notes } = data
+        const [assignments] = await connection.execute(`
+          SELECT * FROM room_assignments WHERE id = ?
+        `, [assignmentId])
+        if (!Array.isArray(assignments) || assignments.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Admission not found' }, { status: 404 })
+        }
+
+        await connection.execute(`
+          UPDATE room_assignments
+          SET diagnosis = ?, expected_discharge_date = ?, notes = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [diagnosis || '', expectedDischargeDate || null, notes || '', assignmentId])
+
+        await connection.commit()
+
+        return NextResponse.json({ success: true, message: 'Admission updated successfully' })
+
       } else {
         await connection.rollback()
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
@@ -458,6 +478,30 @@ export async function PUT(request: NextRequest) {
           data: updatedPatients[0],
           message: 'Patient updated successfully'
         })
+      } else if (action === 'updatePatientFields') {
+        const { patientId, fields } = data
+        const [patientRows] = await connection.execute(`
+          SELECT * FROM patients WHERE id = ?
+        `, [patientId])
+        if (!Array.isArray(patientRows) || patientRows.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+        }
+        const updateFields = [] as string[]
+        const updateValues = [] as any[]
+        Object.entries(fields || {}).forEach(([key, value]) => {
+          if (value !== undefined) { updateFields.push(`${key} = ?`); updateValues.push(value) }
+        })
+        if (updateFields.length === 0) {
+          await connection.rollback()
+          return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+        }
+        updateValues.push(patientId)
+        await connection.execute(`
+          UPDATE patients SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = ?
+        `, updateValues)
+        await connection.commit()
+        return NextResponse.json({ success: true, message: 'Patient fields updated' })
 
       } else {
         await connection.rollback()

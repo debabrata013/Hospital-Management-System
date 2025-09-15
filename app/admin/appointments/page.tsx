@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import {
-  Plus, Search, Filter, Edit, Trash2,
+  Plus, Search, Filter, Edit, Trash2, Eye,
   Calendar, Clock, User, Phone,
   ArrowLeft, ChevronLeft, ChevronRight,
   Stethoscope, FileText
@@ -49,6 +49,7 @@ interface Pagination {
 export default function AppointmentsPage() {
   const { toast } = useToast()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [expandedAppointmentId, setExpandedAppointmentId] = useState<number | null>(null)
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 10,
@@ -115,12 +116,30 @@ export default function AppointmentsPage() {
 
       if (patientsRes.ok) {
         const patientsData = await patientsRes.json()
-        setPatients(patientsData)
+        if (Array.isArray(patientsData) && patientsData.length > 0) {
+          setPatients(patientsData)
+        } else {
+          // Fallback: pull from paginated patients API and normalize
+          const fallbackRes = await fetch('/api/admin/patients?status=active&limit=100')
+          if (fallbackRes.ok) {
+            const fb = await fallbackRes.json()
+            const normalized = (fb.patients || []).map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              patient_id: p.patient_id || p.patientId,
+              contact_number: p.contact_number || p.phone,
+            }))
+            setPatients(normalized)
+          }
+        }
       }
 
       if (doctorsRes.ok) {
         const doctorsData = await doctorsRes.json()
-        setDoctors(doctorsData.doctors)
+        const list = Array.isArray(doctorsData.doctors)
+          ? doctorsData.doctors
+          : Array.isArray(doctorsData) ? doctorsData : []
+        setDoctors(list)
       }
     } catch (error) {
       console.error('Error fetching form data:', error)
@@ -130,15 +149,28 @@ export default function AppointmentsPage() {
   const handleAddAppointment = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Basic client-side validation and normalization
+      if (!formData.patient_id || !formData.doctor_id || !formData.appointment_date || !formData.appointment_time || !formData.appointment_type) {
+        throw new Error('Please fill all required fields')
+      }
+      const payload = {
+        patient_id: Number(formData.patient_id),
+        doctor_id: Number(formData.doctor_id),
+        appointment_date: formData.appointment_date,
+        appointment_time: formData.appointment_time,
+        appointment_type: formData.appointment_type,
+        notes: formData.notes?.trim() || undefined,
+      }
+
       const response = await fetch('/api/admin/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create appointment')
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || `Failed to create appointment`)
       }
 
       toast({
@@ -268,6 +300,17 @@ export default function AppointmentsPage() {
     })
   }
 
+  const getAge = (dob?: string) => {
+    if (!dob) return undefined
+    const birth = new Date(dob)
+    if (isNaN(birth.getTime())) return undefined
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+    return age
+  }
+
   const formatTime = (timeString: string) => {
     const [hours, minutes] = timeString.split(':')
     const hour = parseInt(hours, 10)
@@ -310,13 +353,39 @@ export default function AppointmentsPage() {
                         <SelectValue placeholder="Select patient" />
                       </SelectTrigger>
                       <SelectContent>
-                        {patients.map((patient) => (
-                          <SelectItem key={patient.id} value={patient.id.toString()}>
-                            {patient.name} ({patient.patient_id})
-                          </SelectItem>
-                        ))}
+                        {patients.map((p: any) => {
+                          const age = getAge(p.date_of_birth)
+                          const label = [
+                            p.name,
+                            p.patient_id || p.patientId ? `(${p.patient_id || p.patientId})` : undefined,
+                            p.contact_number || p.contactNumber,
+                            age !== undefined ? `${age} yrs` : undefined,
+                            p.gender
+                          ].filter(Boolean).join(' • ')
+                          return (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {label}
+                            </SelectItem>
+                          )
+                        })}
                       </SelectContent>
                     </Select>
+                    {/* Selected patient quick summary */}
+                    {formData.patient_id && (() => {
+                      const p = patients.find((x: any) => String(x.id) === String(formData.patient_id))
+                      if (!p) return null
+                      const age = getAge(p.date_of_birth)
+                      return (
+                        <div className="mt-3 rounded-lg border border-pink-100 bg-white p-3 text-sm text-gray-700">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div><span className="font-medium">Name:</span> {p.name}</div>
+                            <div><span className="font-medium">Patient ID:</span> {p.patient_id || p.patientId || '-'}</div>
+                            <div><span className="font-medium">Phone:</span> {p.contact_number || p.contactNumber || '-'}</div>
+                            <div><span className="font-medium">Age/Gender:</span> {age !== undefined ? `${age}` : '-'}{p.gender ? ` / ${p.gender}` : ''}</div>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div>
                     <Label htmlFor="doctor_id">Doctor *</Label>
@@ -469,75 +538,107 @@ export default function AppointmentsPage() {
           ) : (
             <div className="space-y-4">
               {appointments.map((appointment) => (
-                <div key={appointment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-start space-x-4 mb-4 sm:mb-0">
-                    <Avatar className="h-12 w-12 flex-shrink-0">
-                      <AvatarFallback className="bg-pink-100 text-pink-700">
-                        {appointment.patient.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                        <h3 className="font-semibold text-gray-900">{appointment.patient.name}</h3>
-                        {getStatusBadge(appointment.status)}
-                      </div>
-                      <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-600 mt-1">
-                        <span className="flex items-center">
-                          <User className="h-3 w-3 mr-1" />
-                          {appointment.patient.patientId}
-                        </span>
-                        <span className="flex items-center">
-                          <Phone className="h-3 w-3 mr-1" />
-                          {appointment.patient.contactNumber}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {formatDate(appointment.appointmentDate)}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {formatTime(appointment.appointmentTime)}
-                        </span>
-                        <span className="flex items-center">
-                          <FileText className="h-3 w-3 mr-1" />
-                          {appointment.appointmentType}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center">
-                          <Stethoscope className="h-3 w-3 mr-1" />
-                          Dr. {appointment.doctor.name} ({appointment.doctor.department})
-                        </span>
-                      </div>
-                      {appointment.notes && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          <span className="font-medium">Notes:</span> {appointment.notes}
+                <div key={appointment.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start space-x-4 mb-4 sm:mb-0">
+                      <Avatar className="h-12 w-12 flex-shrink-0">
+                        <AvatarFallback className="bg-pink-100 text-pink-700">
+                          {appointment.patient.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                          <h3 className="font-semibold text-gray-900">{appointment.patient.name}</h3>
+                          {getStatusBadge(appointment.status)}
                         </div>
-                      )}
+                        <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-600 mt-1">
+                          <span className="flex items-center">
+                            <User className="h-3 w-3 mr-1" />
+                            {appointment.patient.patientId}
+                          </span>
+                          <span className="flex items-center">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {appointment.patient.contactNumber}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 text-sm text-gray-500 mt-1">
+                          <span className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {formatDate(appointment.appointmentDate)}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatTime(appointment.appointmentTime)}
+                          </span>
+                          <span className="flex items-center">
+                            <FileText className="h-3 w-3 mr-1" />
+                            {appointment.appointmentType}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+                          <span className="flex items-center">
+                            <Stethoscope className="h-3 w-3 mr-1" />
+                            Dr. {appointment.doctor.name} ({appointment.doctor.department})
+                          </span>
+                        </div>
+                        {appointment.notes && (
+                          <div className="text-sm text-gray-500 mt-1">
+                            <span className="font-medium">Notes:</span> {appointment.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpandedAppointmentId(expandedAppointmentId === appointment.id ? null : appointment.id)}
+                        className="w-1/2 sm:w-auto"
+                      >
+                        <Eye className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">View</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(appointment)}
+                        className="w-1/2 sm:w-auto"
+                      >
+                        <Edit className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteAppointment(appointment.id)}
+                        className="text-red-600 hover:text-red-700 w-1/2 sm:w-auto"
+                      >
+                        <Trash2 className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Cancel</span>
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(appointment)}
-                      className="w-1/2 sm:w-auto"
-                    >
-                      <Edit className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Edit</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteAppointment(appointment.id)}
-                      className="text-red-600 hover:text-red-700 w-1/2 sm:w-auto"
-                    >
-                      <Trash2 className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Cancel</span>
-                    </Button>
-                  </div>
+                  {expandedAppointmentId === appointment.id && (
+                    <div className="mt-3 rounded-lg border border-pink-100 bg-white p-4 text-sm text-gray-700">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <span className="font-medium">Patient ID:</span> {appointment.patient.patientId}
+                        </div>
+                        <div>
+                          <span className="font-medium">Doctor:</span> Dr. {appointment.doctor.name}
+                        </div>
+                        <div>
+                          <span className="font-medium">Department:</span> {appointment.doctor.department}
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span> {appointment.status}
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="font-medium">Notes:</span> {appointment.notes || '—'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
