@@ -248,8 +248,8 @@ export default function StaffDashboard() {
               <div className="flex items-center space-x-4">
                 <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Staff Dashboard</h1>
-                  <p className="text-sm text-gray-500">Staff management and hospital operations</p>
+                  <h1 className="text-xl font-bold text-gray-900">Nurse Dashboard</h1>
+                  <p className="text-sm text-gray-500">Nurse management and hospital operations</p>
                 </div>
               </div>
 
@@ -345,7 +345,7 @@ export default function StaffDashboard() {
                     <UserCog className="h-6 w-6 mr-2 text-pink-500" />
                     My Profile
                   </CardTitle>
-                  <CardDescription>Your staff information</CardDescription>
+                  <CardDescription>Your nurse profile information</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
@@ -503,96 +503,7 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </div>
-            
-            {/* Staff Directory Section */}
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold flex items-center">
-                  <Users className="h-6 w-6 mr-2 text-pink-500" />
-                  Staff Directory
-                </CardTitle>
-                <CardDescription>Contact information for your colleagues</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Staff Directory Tabs */}
-                  <div className="border-b border-gray-200">
-                    <nav className="flex space-x-8">
-                      <button className="border-b-2 border-pink-500 pb-2 px-1 text-sm font-medium text-pink-600">
-                        All Staff
-                      </button>
-                      <button className="border-b-2 border-transparent pb-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                        Nursing
-                      </button>
-                      <button className="border-b-2 border-transparent pb-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                        Pharmacy
-                      </button>
-                      <button className="border-b-2 border-transparent pb-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                        Reception
-                      </button>
-                    </nav>
-                  </div>
-                  
-                  {/* Staff List */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {loading ? (
-                      <div className="col-span-3 text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
-                        <p className="mt-2 text-gray-500">Loading staff directory...</p>
-                      </div>
-                    ) : allStaff && allStaff.length > 0 ? (
-                      allStaff.map((staff, index) => (
-                        <div key={staff.id || index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-pink-100 text-pink-700">
-                                {staff.name?.split(' ').map((n: string) => n[0]).join('') || 'ST'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-medium">{staff.name}</h3>
-                              <p className="text-sm text-gray-500 capitalize">{staff.role || 'Staff'}</p>
-                            </div>
-                          </div>
-                          <div className="mt-3 grid grid-cols-2 gap-1 text-xs text-gray-600">
-                            <div>
-                              <span className="block text-gray-500">Department</span>
-                              <span>{staff.department || 'General'}</span>
-                            </div>
-                            <div>
-                              <span className="block text-gray-500">Shift</span>
-                              <span className="capitalize">{staff.shift || 'Flexible'}</span>
-                            </div>
-                            {staff.mobile && (
-                              <div className="col-span-2 mt-1">
-                                <span className="block text-gray-500">Contact</span>
-                                <span className="flex items-center">
-                                  <Phone className="h-3 w-3 mr-1" />
-                                  {staff.mobile}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-3 text-center py-8">
-                        <Shield className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500">No staff members found</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Load More Button */}
-                  <div className="flex justify-center mt-4">
-                    <Button variant="outline" className="text-gray-600">
-                      View All Staff
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
+                        
             {/* Quick Tasks Section */}
             <Card className="border-pink-100">
               <CardHeader>
