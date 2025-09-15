@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
       ORDER BY u.name`
     );
 
+    console.log('Doctors API - Raw doctor data:', doctors);
+
     return NextResponse.json({ doctors });
 
   } catch (error) {

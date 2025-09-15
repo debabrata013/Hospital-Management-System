@@ -96,10 +96,17 @@ export default function AppointmentsPage() {
   })
 
   useEffect(() => {
-    fetchAppointments()
     fetchDoctors()
-    fetchAllPatients()
-  }, [selectedDate, statusFilter, doctorFilter])
+    fetchAppointments()
+  }, [selectedDate])
+
+  useEffect(() => {
+    console.log('Current doctors list:', doctors);
+  }, [doctors])
+
+  useEffect(() => {
+    fetchAppointments()
+  }, [statusFilter, doctorFilter])
 
   const fetchAppointments = async () => {
     try {
@@ -177,6 +184,15 @@ export default function AppointmentsPage() {
 
   const handleCreateAppointment = async () => {
     try {
+      console.log('Creating appointment with data:', {
+        patientId: appointmentForm.patientId,
+        doctorId: appointmentForm.doctorId,
+        appointmentDate: selectedDate,
+        appointmentTime: appointmentForm.appointmentTime,
+        appointmentType: appointmentForm.appointmentType,
+        notes: appointmentForm.notes
+      });
+      
       const response = await fetch('/api/receptionist/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -459,14 +475,14 @@ export default function AppointmentsPage() {
 
       {/* New Appointment Dialog */}
       <Dialog open={newAppointmentDialog} onOpenChange={setNewAppointmentDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Schedule New Appointment</DialogTitle>
             <DialogDescription>
               Create a new appointment for {new Date(selectedDate).toLocaleDateString()}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6 py-4">
             <div>
               <Label>Search Patient</Label>
               <Input
@@ -531,7 +547,7 @@ export default function AppointmentsPage() {
                   {doctors.map(doctor => (
                     <SelectItem key={doctor.id} value={doctor.id.toString()}>
                       <div className="flex items-center justify-between w-full">
-                        <span>Dr. {doctor.name}</span>
+                        <span>Dr. {doctor.name} (ID: {doctor.id})</span>
                         {getDoctorStatusBadge(doctor)}
                       </div>
                     </SelectItem>
@@ -540,22 +556,24 @@ export default function AppointmentsPage() {
               </Select>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Time</Label>
+                <Label htmlFor="appointment-time">Appointment Time</Label>
                 <Input
+                  id="appointment-time"
                   type="time"
                   value={appointmentForm.appointmentTime}
                   onChange={(e) => setAppointmentForm(prev => ({ ...prev, appointmentTime: e.target.value }))}
+                  className="w-full"
                 />
               </div>
               <div>
-                <Label>Type</Label>
+                <Label htmlFor="appointment-type">Appointment Type</Label>
                 <Select value={appointmentForm.appointmentType} onValueChange={(value) => 
                   setAppointmentForm(prev => ({ ...prev, appointmentType: value }))
                 }>
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger id="appointment-type" className="w-full">
+                    <SelectValue placeholder="Select appointment type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="consultation">Consultation</SelectItem>
@@ -568,21 +586,24 @@ export default function AppointmentsPage() {
             </div>
             
             <div>
-              <Label>Notes</Label>
+              <Label htmlFor="appointment-notes">Additional Notes</Label>
               <Textarea
-                placeholder="Additional notes..."
+                id="appointment-notes"
+                placeholder="Enter any additional notes for the appointment..."
                 value={appointmentForm.notes}
                 onChange={(e) => setAppointmentForm(prev => ({ ...prev, notes: e.target.value }))}
+                className="min-h-[80px] resize-none"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewAppointmentDialog(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4">
+            <Button variant="outline" onClick={() => setNewAppointmentDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button 
               onClick={handleCreateAppointment}
               disabled={!appointmentForm.patientId || !appointmentForm.doctorId || !appointmentForm.appointmentTime}
+              className="w-full sm:w-auto bg-pink-500 hover:bg-pink-600"
             >
               Schedule Appointment
             </Button>

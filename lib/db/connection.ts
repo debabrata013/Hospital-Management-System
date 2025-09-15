@@ -50,13 +50,20 @@ export async function executeQuery(
   params: any[] = [],
   options: { allowDuringBuild?: boolean } = {}
 ) {
+  console.log('[DB] executeQuery called with query:', query.substring(0, 100) + '...');
+  console.log('[DB] executeQuery params:', params);
+  console.log('[DB] NEXT_PHASE:', process.env.NEXT_PHASE);
+  console.log('[DB] NEXT_STATIC_BUILD:', process.env.NEXT_STATIC_BUILD);
+  
   const { allowDuringBuild = false } = options;
   // During build time, return empty results to prevent build failures unless explicitly allowed
-  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_STATIC_BUILD === 'true';
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  
+  console.log('[DB] isBuildPhase:', isBuildPhase);
+  console.log('[DB] allowDuringBuild:', allowDuringBuild);
+  
   if (!allowDuringBuild && isBuildPhase) {
-    if (process.env.SHOW_DB_BUILD_LOGS === 'true') {
-      console.log('Build time detected, returning empty results for query:', query.substring(0, 50) + '...');
-    }
+    console.log('[DB] Build time detected, returning empty results for query:', query.substring(0, 50) + '...');
     return [];
   }
 
@@ -77,7 +84,12 @@ export async function executeQuery(
         throw new Error('Failed to get database connection from pool');
       }
 
+      console.log('[DB] Executing query:', query.substring(0, 100) + '...');
+      console.log('[DB] With params:', params);
       const [results] = await connection.execute(query, params);
+      console.log('[DB] Query results:', results);
+      console.log('[DB] Results type:', typeof results);
+      console.log('[DB] Results length:', Array.isArray(results) ? results.length : 'not array');
       return results;
     } catch (error) {
       console.error(`Database query error (attempt ${retryCount + 1}):`, error);

@@ -1,23 +1,27 @@
 import { NextRequest } from 'next/server';
-// import { getToken } from 'next-auth/jwt';
+import { jwtVerify } from 'jose';
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
 
 /**
  * A utility function to get the logged-in user's ID from the request.
- * This is a placeholder and should be implemented based on your actual authentication setup.
- * For example, if using next-auth with JWT, you might decode the token.
+ * Decodes JWT token from cookies to get the actual user ID.
  */
 export async function getLoggedInUserId(req: NextRequest): Promise<string | null> {
-  // Option 1: Using next-auth/jwt
-  // const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  // if (token) {
-  //   // Assuming the user ID is stored in the 'sub' or a custom claim in the token
-  //   return token.sub || (token.id as string) || null;
-  // }
+  try {
+    const token = req.cookies.get('auth-token')?.value;
+    if (!token) {
+      console.log('No auth token found in cookies');
+      return null;
+    }
 
-  // Option 2: Hardcoded for development. Replace with your actual auth logic.
-  // IMPORTANT: Do not use this in production.
-  return '1'; // Assuming '1' is a valid doctor ID in your database.
-
-  // If you have a different way of storing session, implement it here.
-  // return null;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const userId = payload.userId as string;
+    
+    console.log('Decoded user ID from JWT:', userId);
+    return userId;
+  } catch (error) {
+    console.error('Error decoding JWT token:', error);
+    return null;
+  }
 }

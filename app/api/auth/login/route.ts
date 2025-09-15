@@ -41,9 +41,11 @@ export async function POST(request: NextRequest) {
 
     // Find user by mobile number or email
     const [users] = await connection.execute(
-      'SELECT * FROM users WHERE (contact_number = ? OR email = ?) AND is_active = 1',
+      'SELECT * FROM users WHERE (contact_number = ? OR email = ?) AND is_active = 1 ORDER BY id ASC',
       [login, login]
     )
+    
+    console.log('Login query found users:', users);
 
     await connection.end()
 
@@ -55,9 +57,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If multiple users found, use the first one (most recently created)
-    // This prevents role confusion when users share contact numbers
+    // If multiple users found, prefer the one with the lowest ID (original entry)
+    // This ensures we use the correct Dr. Rajesh Kumar (ID 3) instead of duplicate (ID 22)
     const user = userArray[0];
+    console.log('Selected user for login:', { id: user.id, name: user.name, role: user.role });
 
     // Compare password with hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash)
