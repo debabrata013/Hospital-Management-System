@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import { executeQuery } from '@/lib/db/connection'
 import jwt from 'jsonwebtoken'
 import mysql from 'mysql2/promise'
