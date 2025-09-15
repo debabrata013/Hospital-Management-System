@@ -11,14 +11,8 @@ const JWT_SECRET = new TextEncoder().encode(
 )
 
 export async function GET(request: NextRequest) {
-  // Handle static build scenario
-  if (isStaticBuild()) {
-    return NextResponse.json(getMockData('/api/auth/session'));
-  }
-
   try {
-    const cookies = getCookies(request, { 'auth-token': 'mock-token-for-static-build' });
-    const token = cookies.get('auth-token')?.value
+    const token = request.cookies.get('auth-token')?.value
 
     if (!token) {
       return NextResponse.json(
