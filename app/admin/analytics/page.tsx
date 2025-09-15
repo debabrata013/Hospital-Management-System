@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,8 +17,48 @@ import {
   DollarSign,
   Activity,
 } from 'lucide-react'
+import { ResponsiveContainer, LineChart as ReLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts'
+
+type DailyReg = { date: string; count: number }
+type DeptLoad = { department: string; count: number }
+type DeptPerf = { department: string; completed: number; scheduled: number; total: number }
 
 export default function AdminAnalyticsPage() {
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [daily, setDaily] = useState<DailyReg[]>([])
+  const [deptLoad, setDeptLoad] = useState<DeptLoad[]>([])
+  const [deptPerf, setDeptPerf] = useState<DeptPerf[]>([])
+  const [kpis, setKpis] = useState<any>(null)
+  const SHOW_OPERATIONAL_METRICS = false
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await fetch(`/api/admin/analytics?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`)
+        if (!res.ok) throw new Error('Failed to fetch analytics')
+        const data = await res.json()
+        setDaily(data.dailyRegistrations || [])
+        setDeptLoad(data.departmentLoad || [])
+        setDeptPerf(data.departmentPerformance || [])
+
+        const k = await fetch('/api/admin/analytics/kpis')
+        if (k.ok) setKpis(await k.json())
+      } catch (e: any) {
+        setError(e.message || 'Failed to load analytics')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [dateRange])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 md:p-6">
       {/* Header */}
@@ -37,18 +78,115 @@ export default function AdminAnalyticsPage() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 w-full sm:w-auto">
-              <Calendar className="h-4 w-4 mr-2" />
-              This Month
-            </Button>
-            <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto">
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="border rounded-md px-2 py-1 text-sm"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange((r) => ({ ...r, startDate: e.target.value }))}
+              />
+              <span className="text-gray-400">to</span>
+              <input
+                type="date"
+                className="border rounded-md px-2 py-1 text-sm"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange((r) => ({ ...r, endDate: e.target.value }))}
+              />
+            </div>
+            {/* Export button removed as requested */}
           </div>
         </div>
       </div>
 
+      {/* KPI Widgets */}
+      {kpis && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Daily Patients</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 text-center">
+                <div>
+                  <div className="text-xs text-gray-500">Today</div>
+                  <div className="text-xl font-bold">{kpis.dailyPatients.today}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Yesterday</div>
+                  <div className="text-xl font-bold">{kpis.dailyPatients.yesterday}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Growth</div>
+                  <div className="text-xl font-bold text-green-600">{kpis.dailyPatients.growthPercent}%</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 text-center">
+                <div>
+                  <div className="text-xs text-gray-500">Scheduled</div>
+                  <div className="text-xl font-bold">{kpis.appointments.scheduled}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Completed</div>
+                  <div className="text-xl font-bold">{kpis.appointments.completed}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Success</div>
+                  <div className="text-xl font-bold text-blue-600">{kpis.appointments.successRate}%</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Daily Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 text-center">
+                <div>
+                  <div className="text-xs text-gray-500">Today</div>
+                  <div className="text-xl font-bold">₹{Number(kpis.revenue.today).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Target</div>
+                  <div className="text-xl font-bold">₹{Number(kpis.revenue.target).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Achievement</div>
+                  <div className="text-xl font-bold text-purple-600">{kpis.revenue.achievement}%</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Staff Efficiency</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 text-center">
+                <div>
+                  <div className="text-xs text-gray-500">On Duty</div>
+                  <div className="text-xl font-bold">{kpis.staff.onDuty}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Avg. Utilization</div>
+                  <div className="text-xl font-bold text-emerald-600">{kpis.staff.avgUtilization}%</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Performance</div>
+                  <div className="text-sm font-semibold">{kpis.staff.performance}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {/* Status Badge */}
       <div className="mb-6">
         <Badge className="bg-green-100 text-green-700 px-4 py-2 w-full sm:w-auto justify-center sm:justify-start">
@@ -57,112 +195,12 @@ export default function AdminAnalyticsPage() {
         </Badge>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        {/* Daily Patients */}
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base md:text-lg">
-              <Users className="h-5 w-5 mr-2 text-blue-500" />
-              Daily Patients
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm md:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Today</span>
-                <span className="font-semibold text-xl md:text-2xl">45</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Yesterday</span>
-                <span className="font-semibold">38</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Growth</span>
-                <span className="font-semibold text-green-600">+18.4%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      
 
-        {/* Appointments */}
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base md:text-lg">
-              <Calendar className="h-5 w-5 mr-2 text-green-500" />
-              Appointments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm md:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Scheduled</span>
-                <span className="font-semibold text-xl md:text-2xl">52</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Completed</span>
-                <span className="font-semibold">38</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Success Rate</span>
-                <span className="font-semibold text-green-600">73%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Revenue */}
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base md:text-lg">
-              <DollarSign className="h-5 w-5 mr-2 text-purple-500" />
-              Daily Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm md:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Today</span>
-                <span className="font-semibold text-xl md:text-2xl">₹15,420</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Target</span>
-                <span className="font-semibold">₹18,000</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Achievement</span>
-                <span className="font-semibold text-yellow-600">85.7%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Staff Efficiency */}
-        <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base md:text-lg">
-              <Activity className="h-5 w-5 mr-2 text-orange-500" />
-              Staff Efficiency
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm md:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">On Duty</span>
-                <span className="font-semibold text-xl md:text-2xl">24</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Avg. Utilization</span>
-                <span className="font-semibold">87%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Performance</span>
-                <span className="font-semibold text-green-600">Excellent</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Error/Loading */}
+      {error && (
+        <div className="mb-6 p-3 border border-red-200 bg-red-50 text-red-700 rounded">{error}</div>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-8">
@@ -172,12 +210,17 @@ export default function AdminAnalyticsPage() {
             <CardTitle>Patient Trends (Last 7 Days)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-56 md:h-64 bg-gradient-to-br from-pink-50 to-blue-50 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <LineChart className="h-12 w-12 md:h-16 md:w-16 text-pink-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-sm md:text-base">Patient trend chart will be implemented here</p>
-                <p className="text-xs md:text-sm text-gray-400 mt-2">Daily patient registration patterns</p>
-              </div>
+            <div className="h-56 md:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ReLineChart data={daily} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" name="Registrations" stroke="#ec4899" strokeWidth={2} dot={false} />
+                </ReLineChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -188,88 +231,119 @@ export default function AdminAnalyticsPage() {
             <CardTitle>Department Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-56 md:h-64 bg-gradient-to-br from-green-50 to-purple-50 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 md:h-16 md:w-16 text-green-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-sm md:text-base">Department performance chart will be implemented here</p>
-                <p className="text-xs md:text-sm text-gray-400 mt-2">Patient load by department</p>
-              </div>
+            <div className="h-56 md:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={deptPerf} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="department" tick={{ fontSize: 12 }} interval={0} angle={-15} height={60} textAnchor="end" />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="completed" name="Completed" fill="#10b981" />
+                  <Bar dataKey="scheduled" name="Scheduled" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Patient load by department */}
+      <div className="mb-8">
+        <Card className="border-pink-100">
+          <CardHeader>
+            <CardTitle>Patient Load by Department</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={deptLoad} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="department" tick={{ fontSize: 12 }} interval={0} angle={-15} height={60} textAnchor="end" />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" name="Patients" fill="#a855f7" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Operational Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-        {/* Staff Performance */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Staff Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Doctors</span>
-                <span className="text-green-600 font-bold">92%</span>
+      {SHOW_OPERATIONAL_METRICS && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+          {/* Staff Performance */}
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Staff Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Doctors</span>
+                  <span className="text-green-600 font-bold">92%</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Nurses</span>
+                  <span className="text-blue-600 font-bold">88%</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Support Staff</span>
+                  <span className="text-purple-600 font-bold">85%</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Nurses</span>
-                <span className="text-blue-600 font-bold">88%</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Support Staff</span>
-                <span className="text-purple-600 font-bold">85%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Appointment Analytics */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Appointment Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Completed</span>
-                <span className="text-green-600 font-bold">38</span>
+          {/* Appointment Analytics */}
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Appointment Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Completed</span>
+                  <span className="text-green-600 font-bold">38</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Pending</span>
+                  <span className="text-yellow-600 font-bold">14</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Cancelled</span>
+                  <span className="text-red-600 font-bold">3</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Pending</span>
-                <span className="text-yellow-600 font-bold">14</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Cancelled</span>
-                <span className="text-red-600 font-bold">3</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Revenue Breakdown */}
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Revenue Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Consultations</span>
-                <span className="text-blue-600 font-bold">₹8,500</span>
+          {/* Revenue Breakdown */}
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle>Revenue Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Consultations</span>
+                  <span className="text-blue-600 font-bold">₹8,500</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Procedures</span>
+                  <span className="text-green-600 font-bold">₹4,200</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg text-sm md:text-base">
+                  <span className="font-medium">Pharmacy</span>
+                  <span className="text-purple-600 font-bold">₹2,720</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Procedures</span>
-                <span className="text-green-600 font-bold">₹4,200</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg text-sm md:text-base">
-                <span className="font-medium">Pharmacy</span>
-                <span className="text-purple-600 font-bold">₹2,720</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Operational Insights */}
       <Card className="border-pink-100">

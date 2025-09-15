@@ -104,6 +104,10 @@ export default function AdminDashboard() {
   const [doctorSchedules, setDoctorSchedules] = useState<DoctorSchedule[]>([]);
   const [notifications] = useState(7);
 
+  // Feature flags to toggle visibility without removing code
+  const SHOW_BILLING_IN_SIDEBAR = false;
+  const SHOW_MESSAGES_IN_SIDEBAR = false;
+
   const handleLogout = () => {
     logout();
   };
@@ -276,17 +280,7 @@ export default function AdminDashboard() {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        asChild 
-                        className="w-full justify-start hover:bg-pink-50"
-                      >
-                        <Link href="/admin/reports" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
-                          <FileText className="h-5 w-5" />
-                          <span>Reports</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {/* Reports menu item removed as requested */}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -386,28 +380,32 @@ export default function AdminDashboard() {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        asChild 
-                        className="w-full justify-start hover:bg-pink-50"
-                      >
-                        <Link href="/admin/billing" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
-                          <CreditCard className="h-5 w-5" />
-                          <span>Billing</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        asChild 
-                        className="w-full justify-start hover:bg-pink-50"
-                      >
-                        <Link href="/admin/messages" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
-                          <MessageSquare className="h-5 w-5" />
-                          <span>Messages</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {SHOW_BILLING_IN_SIDEBAR && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          asChild 
+                          className="w-full justify-start hover:bg-pink-50"
+                        >
+                          <Link href="/admin/billing" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                            <CreditCard className="h-5 w-5" />
+                            <span>Billing</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+                    {SHOW_MESSAGES_IN_SIDEBAR && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          asChild 
+                          className="w-full justify-start hover:bg-pink-50"
+                        >
+                          <Link href="/admin/messages" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                            <MessageSquare className="h-5 w-5" />
+                            <span>Messages</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

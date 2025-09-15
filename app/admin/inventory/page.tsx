@@ -595,7 +595,7 @@ interface Vendor {
 }
 
 // Vendor Management Modal Component
-const VendorModal = ({ isOpen, onClose, onVendorUpdated }: { isOpen: boolean, onClose: () => void, onVendorUpdated: () => void }) => {
+const VendorModal = ({ isOpen, onClose, onVendorUpdated, editingVendorProp }: { isOpen: boolean, onClose: () => void, onVendorUpdated: () => void, editingVendorProp?: Vendor | null }) => {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
@@ -619,6 +619,28 @@ const VendorModal = ({ isOpen, onClose, onVendorUpdated }: { isOpen: boolean, on
       fetchVendors()
     }
   }, [isOpen])
+
+  // Initialize form when a vendor is provided from parent for editing
+  useEffect(() => {
+    if (editingVendorProp) {
+      setEditingVendor(editingVendorProp)
+      setFormData({
+        name: editingVendorProp.name || '',
+        contact_person: editingVendorProp.contact_person || '',
+        phone: editingVendorProp.phone || '',
+        email: editingVendorProp.email || '',
+        address: editingVendorProp.address || '',
+        city: editingVendorProp.city || '',
+        state: editingVendorProp.state || '',
+        pincode: editingVendorProp.pincode || '',
+        gst_number: editingVendorProp.gst_number || '',
+        license_number: editingVendorProp.license_number || '',
+        payment_terms: editingVendorProp.payment_terms || '',
+        credit_limit: editingVendorProp.credit_limit || ''
+      })
+      setShowAddForm(true)
+    }
+  }, [editingVendorProp])
 
   const fetchVendors = async () => {
     try {
@@ -1033,10 +1055,9 @@ const StockAlertsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
 }
 
 // Vendor Details List Component
-const VendorDetailsList = () => {
+const VendorDetailsList = ({ onEditVendor }: { onEditVendor: (vendor: Vendor) => void }) => {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
 
   useEffect(() => {
     fetchVendors()
@@ -1057,7 +1078,7 @@ const VendorDetailsList = () => {
   }
 
   const handleEdit = (vendor: any) => {
-    setEditingVendor(vendor)
+    onEditVendor(vendor)
   }
 
   const handleDelete = async (vendorId: string) => {
@@ -1355,6 +1376,7 @@ export default function AdminInventoryPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false)
   const [showVendorModal, setShowVendorModal] = useState(false)
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
   const [showStockAlertsModal, setShowStockAlertsModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -1386,6 +1408,11 @@ export default function AdminInventoryPage() {
 
   const handleVendorUpdated = () => {
     fetchInventoryData() // Refresh data
+  }
+
+  const openEditVendor = (vendor: Vendor) => {
+    setEditingVendor(vendor)
+    setShowVendorModal(true)
   }
 
   type InventoryItem = {
@@ -1638,7 +1665,7 @@ export default function AdminInventoryPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <VendorDetailsList />
+          <VendorDetailsList onEditVendor={openEditVendor} />
         </CardContent>
       </Card>
 
@@ -1706,8 +1733,12 @@ export default function AdminInventoryPage() {
       {/* Vendor Management Modal */}
       <VendorModal 
         isOpen={showVendorModal} 
-        onClose={() => setShowVendorModal(false)} 
+        onClose={() => {
+          setShowVendorModal(false)
+          setEditingVendor(null)
+        }} 
         onVendorUpdated={handleVendorUpdated}
+        editingVendorProp={editingVendor}
       />
 
       {/* Stock Alerts Modal */}
