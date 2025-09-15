@@ -1,29 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import mysql from 'mysql2/promise'
+import { executeQuery } from '@/lib/db/connection'
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'srv2047.hstgr.io',
-  user: process.env.DB_USER || 'u153229971_admin',
-  password: process.env.DB_PASSWORD || 'Admin!2025',
-  database: process.env.DB_NAME || 'u153229971_Hospital',
-  port: parseInt(process.env.DB_PORT || '3306')
-}
+let cache: any = null
+let cacheAt = 0
+const TTL_MS = 30000
 
 export async function GET(request: NextRequest) {
   try {
-    const connection = await mysql.createConnection(dbConfig)
-    
     // Get current time for shift calculations
     const now = new Date()
     const currentHour = now.getHours()
     const currentDate = now.toISOString().split('T')[0]
+    
+    if (cache && Date.now() - cacheAt < TTL_MS) {
+      return NextResponse.json(cache)
+    }
     
     // 1. Doctors on Duty - Count doctors who are currently on duty
     // This assumes doctors have shifts or are marked as on duty
     let doctorsOnDuty = 0
     try {
       // Check if there's a staff_shifts table or similar
-      const [doctorsResult] = await connection.execute(`
+      const doctorsResult: any = await executeQuery(`
         SELECT COUNT(DISTINCT u.id) as total 
         FROM users u 
         LEFT JOIN staff_shifts ss ON u.id = ss.user_id 
@@ -35,20 +33,18 @@ export async function GET(request: NextRequest) {
           (ss.shift_date = ? AND ss.status = 'active' AND 
            TIME(NOW()) BETWEEN ss.start_time AND ss.end_time)
         )
-      `, [currentDate, currentDate])
-      doctorsOnDuty = (doctorsResult as any)[0].total
+      `, [currentDate, currentDate], { allowDuringBuild: true })
+      doctorsOnDuty = doctorsResult[0]?.total || 0
     } catch (error) {
       // Fallback: count all active doctors if no shift system
-      const [doctorsResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM users WHERE role LIKE "%doctor%" AND is_active = 1'
-      )
-      doctorsOnDuty = (doctorsResult as any)[0].total
+      const doctorsResult: any = await executeQuery('SELECT COUNT(*) as total FROM users WHERE role LIKE "%doctor%" AND is_active = 1', [], { allowDuringBuild: true })
+      doctorsOnDuty = doctorsResult[0]?.total || 0
     }
     
     // 2. Staff on Duty - Count all staff currently on duty
     let staffOnDuty = 0
     try {
-      const [staffResult] = await connection.execute(`
+      const staffResult: any = await executeQuery(`
         SELECT COUNT(DISTINCT u.id) as total 
         FROM users u 
         LEFT JOIN staff_shifts ss ON u.id = ss.user_id 
@@ -61,42 +57,36 @@ export async function GET(request: NextRequest) {
           (ss.shift_date = ? AND ss.status = 'active' AND 
            TIME(NOW()) BETWEEN ss.start_time AND ss.end_time)
         )
-      `, [currentDate, currentDate])
-      staffOnDuty = (staffResult as any)[0].total
+      `, [currentDate, currentDate], { allowDuringBuild: true })
+      staffOnDuty = staffResult[0]?.total || 0
     } catch (error) {
       // Fallback: count all active staff (excluding patients and doctors)
-      const [staffResult] = await connection.execute(`
-        SELECT COUNT(*) as total 
-        FROM users 
-        WHERE role NOT LIKE '%patient%' 
-        AND role NOT LIKE '%doctor%'
-        AND is_active = 1
-      `)
-      staffOnDuty = (staffResult as any)[0].total
+      const staffResult: any = await executeQuery("SELECT COUNT(*) as total FROM users WHERE role NOT LIKE '%patient%' AND role NOT LIKE '%doctor%' AND is_active = 1", [], { allowDuringBuild: true })
+      staffOnDuty = staffResult[0]?.total || 0
     }
     
     // 3. Available Rooms - Count rooms that are not fully occupied
     let availableRooms = 0
     try {
-      const [roomsResult] = await connection.execute(`
+      const roomsResult: any = await executeQuery(`
         SELECT COUNT(*) as total 
         FROM rooms 
         WHERE current_occupancy < capacity 
         AND status = 'active'
-      `)
-      availableRooms = (roomsResult as any)[0].total
+      `, [], { allowDuringBuild: true })
+      availableRooms = roomsResult[0]?.total || 0
     } catch (error) {
       // Fallback: try room_assignments table
       try {
-        const [roomsResult] = await connection.execute(`
+        const roomsResult: any = await executeQuery(`
           SELECT COUNT(DISTINCT room_id) as total 
           FROM rooms r
           LEFT JOIN room_assignments ra ON r.id = ra.room_id AND ra.status = 'Active'
           WHERE r.status = 'active'
           GROUP BY r.id
           HAVING COUNT(ra.id) < r.capacity
-        `)
-        availableRooms = (roomsResult as any).length || 0
+        `, [], { allowDuringBuild: true })
+        availableRooms = (roomsResult as any)?.length || 0
       } catch (error2) {
         // Final fallback: assume some rooms are available
         availableRooms = 8
@@ -107,13 +97,13 @@ export async function GET(request: NextRequest) {
     let shiftChanges = 0
     try {
       // Count shift changes happening today
-      const [shiftsResult] = await connection.execute(`
+      const shiftsResult: any = await executeQuery(`
         SELECT COUNT(*) as total 
         FROM staff_shifts 
         WHERE shift_date = ? 
         AND status IN ('pending', 'starting', 'ending')
-      `, [currentDate])
-      shiftChanges = (shiftsResult as any)[0].total
+      `, [currentDate], { allowDuringBuild: true })
+      shiftChanges = shiftsResult[0]?.total || 0
     } catch (error) {
       // Fallback: count based on time of day
       // More shift changes during typical shift change times
@@ -135,33 +125,26 @@ export async function GET(request: NextRequest) {
     
     try {
       // Total active patients
-      const [patientsResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM patients WHERE is_active = 1'
-      )
-      totalPatients = (patientsResult as any)[0].total
+      const patientsResult: any = await executeQuery('SELECT COUNT(*) as total FROM patients WHERE is_active = 1', [], { allowDuringBuild: true })
+      totalPatients = patientsResult[0]?.total || 0
       
       // Today's appointments
-      const [appointmentsResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM appointments WHERE DATE(appointment_date) = ?',
-        [currentDate]
-      )
-      todayAppointments = (appointmentsResult as any)[0].total
+      const appointmentsResult: any = await executeQuery('SELECT COUNT(*) as total FROM appointments WHERE DATE(appointment_date) = ?', [currentDate], { allowDuringBuild: true })
+      todayAppointments = appointmentsResult[0]?.total || 0
       
       // Emergency cases today
-      const [emergencyResult] = await connection.execute(`
+      const emergencyResult: any = await executeQuery(`
         SELECT COUNT(*) as total 
         FROM appointments 
         WHERE DATE(appointment_date) = ? 
         AND (status = 'emergency' OR chief_complaint LIKE '%emergency%' OR priority = 'high')
-      `, [currentDate])
-      emergencyCases = (emergencyResult as any)[0].total
+      `, [currentDate], { allowDuringBuild: true })
+      emergencyCases = emergencyResult[0]?.total || 0
     } catch (error) {
       console.error('Error fetching additional metrics:', error)
     }
     
-    await connection.end()
-    
-    return NextResponse.json({
+    const payload = {
       doctorsOnDuty,
       staffOnDuty,
       availableRooms,
@@ -170,23 +153,26 @@ export async function GET(request: NextRequest) {
       todayAppointments,
       emergencyCases,
       lastUpdated: new Date().toISOString()
-    })
+    }
+    cache = payload
+    cacheAt = Date.now()
+    return NextResponse.json(payload)
     
   } catch (error) {
+    // @ts-ignore
+    if (error?.code === 'ER_USER_LIMIT_REACHED' && cache) {
+      return NextResponse.json(cache)
+    }
     console.error('Error fetching real-time dashboard stats:', error)
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch real-time dashboard stats',
-        doctorsOnDuty: 0,
-        staffOnDuty: 0,
-        availableRooms: 0,
-        shiftChanges: 0,
-        totalPatients: 0,
-        todayAppointments: 0,
-        emergencyCases: 0,
-        lastUpdated: new Date().toISOString()
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      doctorsOnDuty: 0,
+      staffOnDuty: 0,
+      availableRooms: 0,
+      shiftChanges: 0,
+      totalPatients: 0,
+      todayAppointments: 0,
+      emergencyCases: 0,
+      lastUpdated: new Date().toISOString()
+    }, { status: 200 })
   }
 }

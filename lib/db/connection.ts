@@ -45,10 +45,18 @@ export function getConnection() {
   return pool;
 }
 
-export async function executeQuery(query: string, params: any[] = []) {
-  // During build time, return empty results to prevent build failures
-  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_STATIC_BUILD === 'true') {
-    console.log('Build time detected, returning empty results for query:', query.substring(0, 50) + '...');
+export async function executeQuery(
+  query: string,
+  params: any[] = [],
+  options: { allowDuringBuild?: boolean } = {}
+) {
+  const { allowDuringBuild = false } = options;
+  // During build time, return empty results to prevent build failures unless explicitly allowed
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_STATIC_BUILD === 'true';
+  if (!allowDuringBuild && isBuildPhase) {
+    if (process.env.SHOW_DB_BUILD_LOGS === 'true') {
+      console.log('Build time detected, returning empty results for query:', query.substring(0, 50) + '...');
+    }
     return [];
   }
 

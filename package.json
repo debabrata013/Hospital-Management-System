@@ -19,6 +19,7 @@
     "create-sample-appointments": "node scripts/create-sample-appointments.js",
     "create-doctor-profiles": "node scripts/create-doctor-staff-profile.js",
     "setup-admin": "npm run setup-appointments && npm run create-doctor-profiles && npm run create-sample-appointments && npm run setup-room-management",
+    "seed-realtime": "node scripts/seed-realtime-data.js",
     "migrate": "node scripts/migrate-add-diagnosis-column.js"
   },
   "dependencies": {

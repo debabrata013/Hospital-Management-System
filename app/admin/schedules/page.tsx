@@ -22,106 +22,105 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
-// Mock schedule data
-const mockSchedules = [
-  {
-    id: "SCH001",
-    doctorName: "Dr. Priya Sharma",
-    department: "Cardiology",
-    specialization: "Cardiologist",
-    shift: "Morning",
-    startTime: "08:00 AM",
-    endTime: "02:00 PM",
-    room: "Room 101",
-    status: "available",
-    patientsScheduled: 8,
-    maxPatients: 12,
-    date: "2024-01-09"
-  },
-  {
-    id: "SCH002",
-    doctorName: "Dr. Amit Patel",
-    department: "Gynecology",
-    specialization: "Gynecologist",
-    shift: "Full Day",
-    startTime: "08:00 AM",
-    endTime: "06:00 PM",
-    room: "Room 205",
-    status: "busy",
-    patientsScheduled: 15,
-    maxPatients: 15,
-    date: "2024-01-09"
-  },
-  {
-    id: "SCH003",
-    doctorName: "Dr. Sarah Johnson",
-    department: "Internal Medicine",
-    specialization: "Internal Medicine",
-    shift: "Evening",
-    startTime: "02:00 PM",
-    endTime: "10:00 PM",
-    room: "Room 302",
-    status: "on_leave",
-    patientsScheduled: 0,
-    maxPatients: 10,
-    date: "2024-01-09"
-  },
-  {
-    id: "SCH004",
-    doctorName: "Dr. Michael Brown",
-    department: "Orthopedics",
-    specialization: "Orthopedic Surgeon",
-    shift: "Morning",
-    startTime: "09:00 AM",
-    endTime: "01:00 PM",
-    room: "OT-1",
-    status: "in_surgery",
-    patientsScheduled: 3,
-    maxPatients: 4,
-    date: "2024-01-09"
-  }
-]
+type DoctorSchedule = {
+  id: string
+  doctorName: string
+  department: string
+  specialization: string
+  shift: string
+  startTime: string
+  endTime: string
+  room: string
+  status: string
+  patientsScheduled: number
+  maxPatients: number
+}
 
-// Mock staff schedule data
-const mockStaffSchedules = [
-  {
-    id: "STAFF001",
-    name: "Nurse Ravi Kumar",
-    role: "Senior Nurse",
-    department: "Emergency",
-    shift: "Day Shift",
-    startTime: "08:00 AM",
-    endTime: "08:00 PM",
-    status: "on_duty",
-    assignedWard: "Emergency Ward"
-  },
-  {
-    id: "STAFF002",
-    name: "Meera Patel",
-    role: "Receptionist",
-    department: "Front Desk",
-    shift: "Morning Shift",
-    startTime: "07:00 AM",
-    endTime: "03:00 PM",
-    status: "on_duty",
-    assignedWard: "Reception"
-  },
-  {
-    id: "STAFF003",
-    name: "Suresh Gupta",
-    role: "Lab Technician",
-    department: "Laboratory",
-    shift: "Night Shift",
-    startTime: "10:00 PM",
-    endTime: "06:00 AM",
-    status: "off_duty",
-    assignedWard: "Lab"
-  }
-]
+type StaffDuty = {
+  id: string
+  name: string
+  role: string
+  department: string
+  shift: string
+  startTime: string
+  endTime: string
+  status: string
+  assignedWard: string
+}
 
 export default function AdminSchedulesPage() {
   const { stats, loading, error, refresh } = useRealtimeDashboard(30000) // Refresh every 30 seconds
+  const [doctorSchedules, setDoctorSchedules] = useState<DoctorSchedule[]>([])
+  const [staffDuty, setStaffDuty] = useState<StaffDuty[]>([])
+  const [loadingSchedules, setLoadingSchedules] = useState(true)
+  const [loadingStaff, setLoadingStaff] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoadingSchedules(true)
+        const res = await fetch('/api/admin/doctor-schedules', { cache: 'no-store' })
+        const data = await res.json()
+        setDoctorSchedules(data.schedules || [])
+      } catch (_) {}
+      finally {
+        setLoadingSchedules(false)
+      }
+    }
+    const loadStaff = async () => {
+      try {
+        setLoadingStaff(true)
+        const res = await fetch('/api/admin/staff-duty', { cache: 'no-store' })
+        const data = await res.json()
+        setStaffDuty(data.staff || [])
+      } catch (_) {}
+      finally {
+        setLoadingStaff(false)
+      }
+    }
+    load()
+    loadStaff()
+    const t = setInterval(() => { load(); loadStaff(); }, 30000)
+    return () => clearInterval(t)
+  }, [])
+
+  const handleViewSchedule = (schedule: DoctorSchedule) => {
+    toast.info(`Viewing ${schedule.doctorName}'s schedule`)
+  }
+
+  const handleEditSchedule = (schedule: DoctorSchedule) => {
+    toast.success(`Editing ${schedule.doctorName}'s schedule`)
+  }
+
+  const handleCloseSchedule = (schedule: DoctorSchedule) => {
+    setDoctorSchedules(prev => prev.filter(s => s.id !== schedule.id))
+    toast.message(`Dismissed ${schedule.doctorName}`)
+  }
+
+  const handleViewStaff = (staff: StaffDuty) => {
+    toast.info(`Viewing ${staff.name} (${staff.role})`)
+  }
+
+  const handleEditStaff = (staff: StaffDuty) => {
+    toast.success(`Editing duty for ${staff.name}`)
+  }
+
+  const handleCloseStaff = (staff: StaffDuty) => {
+    setStaffDuty(prev => prev.filter(s => s.id !== staff.id))
+    toast.message(`Dismissed ${staff.name}`)
+  }
+
+  const handleCreateSchedule = () => {
+    toast.info('Create Schedule clicked')
+    console.log('Create Schedule: open schedule creation flow/modal here')
+    // Example next steps:
+    // 1) Open a modal to collect: doctor, date, start/end, room
+    // 2) POST to /api/admin/schedules to save
+    // 3) Refresh lists
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -188,7 +187,7 @@ export default function AdminSchedulesPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto flex items-center justify-center gap-2">
+          <Button onClick={handleCreateSchedule} className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto flex items-center justify-center gap-2">
             <Plus className="h-4 w-4" />
             Create Schedule
           </Button>
@@ -305,7 +304,7 @@ export default function AdminSchedulesPage() {
           <CardTitle>Doctor Schedules</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {mockSchedules.map((schedule) => (
+          {(loadingSchedules ? [] : doctorSchedules).map((schedule) => (
             <div key={schedule.id} className="p-4 sm:p-5 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row gap-4 sm:gap-6">
               <div className="flex-shrink-0 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-16 w-16 flex items-center justify-center font-bold">
                 <Stethoscope className="h-8 w-8" />
@@ -348,15 +347,7 @@ export default function AdminSchedulesPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-2 sm:mt-0 sm:flex-col">
-                <div>{getStatusIcon(schedule.status)}</div>
-                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* Actions removed as requested */}
             </div>
           ))}
         </CardContent>
@@ -368,7 +359,7 @@ export default function AdminSchedulesPage() {
           <CardTitle>Staff Duty Assignments</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {mockStaffSchedules.map((staff) => (
+          {(loadingStaff ? [] : staffDuty).map((staff) => (
             <div key={staff.id} className="p-4 sm:p-5 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row gap-4 sm:gap-6">
               <div className="flex-shrink-0 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg h-14 w-14 flex items-center justify-center font-bold">
                 <User className="h-7 w-7" />
@@ -407,15 +398,7 @@ export default function AdminSchedulesPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-2 sm:mt-0 sm:flex-col">
-                <div>{getStatusIcon(staff.status)}</div>
-                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* Actions removed as requested */}
             </div>
           ))}
         </CardContent>
