@@ -107,6 +107,7 @@ const useProvideAuth = (): AuthContextType => {
       
       // Force redirect using window.location for immediate navigation
       const redirectPath = getRedirectPath(user.role);
+      console.log('Redirecting user with role:', user.role, 'to path:', redirectPath);
       window.location.href = redirectPath;
 
     } catch (error: any) {

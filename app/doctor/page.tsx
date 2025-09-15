@@ -468,6 +468,13 @@ export default function DoctorDashboard() {
                     </Button>
                   </Link>
                   
+                  <Link href="/doctor/opd-patients">
+                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
+                      <Stethoscope className="h-5 w-5" />
+                      <span className="text-sm">OPD Patients</span>
+                    </Button>
+                  </Link>
+                  
                   <Link href="/doctor/ai-tools">
                     <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
                       <Brain className="h-5 w-5" />
@@ -601,6 +608,9 @@ export default function DoctorDashboard() {
                           <div>
                             <p className="font-semibold text-gray-900">{patient.firstName} {patient.lastName} ({patient.age}y)</p>
                             <p className="text-sm text-gray-600">Last Visit: {new Date(patient.lastVisit).toLocaleDateString()}</p>
+                            {patient.totalAppointments && (
+                              <p className="text-xs text-blue-600">{patient.totalAppointments} appointments</p>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
