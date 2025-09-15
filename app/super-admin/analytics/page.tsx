@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,8 +13,7 @@ import {
   RefreshCw,
   CreditCard,
   Banknote,
-  DollarSign,
-  BarChart3
+  DollarSign
 } from 'lucide-react'
 
 interface BillingAnalytics {
@@ -22,8 +21,6 @@ interface BillingAnalytics {
   onlineCollection: number
   totalCollection: number
 }
-
-const COLORS = ['#ec4899', '#10b981', '#3b82f6', '#f59e0b']
 
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<BillingAnalytics | null>(null)
@@ -104,7 +101,7 @@ export default function AnalyticsPage() {
               Analytics Dashboard
             </h1>
             <p className="text-gray-600 mt-2 text-sm sm:text-base">
-              Daily billing analytics and payment insights
+              Daily billing collections
             </p>
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -161,91 +158,55 @@ export default function AnalyticsPage() {
           <p>Loading analytics...</p>
         </div>
       ) : analytics && (
-        <>
-          {/* Analytics */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <Calendar className="h-5 w-5 mr-2 text-pink-500" />
-              Billing Analytics - {new Date(selectedDate).toLocaleDateString()}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <Card className="border-green-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Cash Collection</p>
-                      <p className="text-2xl font-bold text-green-700">{formatCurrency(analytics.todayCashCollection)}</p>
-                      
-                    </div>
-                    <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
-                      <Banknote className="h-8 w-8 text-white" />
-                    </div>
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+            <Calendar className="h-5 w-5 mr-2 text-pink-500" />
+            Billing Collections - {new Date(selectedDate).toLocaleDateString()}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <Card className="border-green-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Cash Collection</p>
+                    <p className="text-3xl font-bold text-green-700">{formatCurrency(analytics.cashCollection)}</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-blue-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Online Collection</p>
-                      <p className="text-2xl font-bold text-blue-700">{formatCurrency(analytics.todayOnlineCollection)}</p>
-                      
-                    </div>
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
-                      <CreditCard className="h-8 w-8 text-white" />
-                    </div>
+                  <div className="bg-gradient-to-r from-green-400 to-green-500 p-3 rounded-xl">
+                    <Banknote className="h-8 w-8 text-white" />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-purple-100 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Collection</p>
-                      <p className="text-2xl font-bold text-purple-700">{formatCurrency(analytics.todayTotalCollection)}</p>
-                     
-                    </div>
-                    <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-3 rounded-xl">
-                      Rs
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-            
-            </div>
-          </div>
-
-          {/* Payment Method Breakdown */}
-          {analytics.paymentMethodBreakdown.length > 0 && (
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle>Payment Method Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {analytics.paymentMethodBreakdown.map((method, index) => (
-                    <div key={method.method} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <span className="font-medium">{method.method}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold">{formatCurrency(method.amount)}</div>
-                        <div className="text-sm text-gray-600">{method.percentage.toFixed(1)}%</div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </CardContent>
             </Card>
-          )}
-        </>
+
+            <Card className="border-blue-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Online Collection</p>
+                    <p className="text-3xl font-bold text-blue-700">{formatCurrency(analytics.onlineCollection)}</p>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-400 to-blue-500 p-3 rounded-xl">
+                    <CreditCard className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-100 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Collection</p>
+                    <p className="text-3xl font-bold text-purple-700">{formatCurrency(analytics.totalCollection)}</p>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-3 rounded-xl">
+                    <DollarSign className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -14,20 +14,6 @@ const dbConfig = {
 };
 
 export async function GET(request: NextRequest) {
-  // Handle static builds
-  if (isStaticBuild()) {
-    return NextResponse.json({
-      todayCashCollection: 1500,
-      todayOnlineCollection: 2500,
-      todayTotalCollection: 4000,
-      todayTransactions: 8,
-      paymentMethodBreakdown: [
-        { method: 'Cash', amount: 1500, percentage: 37.5 },
-        { method: 'Online Payment', amount: 2500, percentage: 62.5 }
-      ]
-    });
-  }
-
   let connection;
   
   try {
@@ -42,50 +28,18 @@ export async function GET(request: NextRequest) {
       SELECT 
         SUM(CASE WHEN payment_method = 'cash' THEN final_amount ELSE 0 END) as cash,
         SUM(CASE WHEN payment_method = 'razorpay' THEN final_amount ELSE 0 END) as online,
-        SUM(final_amount) as total,
-        COUNT(*) as transactions
+        SUM(final_amount) as total
       FROM bills 
       WHERE DATE(created_at) = ? 
         AND payment_status = 'paid'
-    `, [selectedDate]);
-    
-    // Get payment method breakdown for selected date
-    const [paymentBreakdown] = await connection.execute(`
-      SELECT 
-        CASE 
-          WHEN payment_method = 'cash' THEN 'Cash'
-          WHEN payment_method = 'razorpay' THEN 'Online Payment'
-          ELSE 'Other'
-        END as method,
-        SUM(final_amount) as amount
-      FROM bills 
-      WHERE DATE(created_at) = ? 
-        AND payment_status = 'paid'
-      GROUP BY 
-        CASE 
-          WHEN payment_method = 'cash' THEN 'Cash'
-          WHEN payment_method = 'razorpay' THEN 'Online Payment'
-          ELSE 'Other'
-        END
-      ORDER BY amount DESC
     `, [selectedDate]);
     
     const dayData = dayCollections as any[];
-    const totalAmount = dayData[0]?.total || 0;
-    
-    // Calculate percentages for payment breakdown
-    const paymentMethodBreakdown = (paymentBreakdown as any[]).map(item => ({
-      method: item.method,
-      amount: parseFloat(item.amount) || 0,
-      percentage: totalAmount > 0 ? ((parseFloat(item.amount) / parseFloat(totalAmount)) * 100) : 0
-    }));
     
     const analytics = {
-      todayCashCollection: parseFloat(dayData[0]?.cash) || 0,
-      todayOnlineCollection: parseFloat(dayData[0]?.online) || 0,
-      todayTotalCollection: parseFloat(totalAmount) || 0,
-      todayTransactions: parseInt(dayData[0]?.transactions) || 0,
-      paymentMethodBreakdown
+      cashCollection: parseFloat(dayData[0]?.cash) || 0,
+      onlineCollection: parseFloat(dayData[0]?.online) || 0,
+      totalCollection: parseFloat(dayData[0]?.total) || 0
     };
     
     return NextResponse.json(analytics);
