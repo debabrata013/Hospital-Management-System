@@ -80,11 +80,19 @@ export async function middleware(request: NextRequest) {
 
   console.log(`[MIDDLEWARE] Checking protected route: ${pathname}`)
 
-  // Get token from cookies
-  const token = request.cookies.get('auth-token')?.value
+  // Get token from cookies - try primary first, then backup
+  let token = request.cookies.get('auth-token')?.value
+  if (!token) {
+    token = request.cookies.get('auth-backup')?.value
+  }
+  
+  const allCookies = request.cookies.getAll()
+  console.log(`[MIDDLEWARE] All cookies:`, allCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`))
+  console.log(`[MIDDLEWARE] Primary token found:`, !!request.cookies.get('auth-token')?.value)
+  console.log(`[MIDDLEWARE] Backup token found:`, !!request.cookies.get('auth-backup')?.value)
 
   if (!token) {
-    console.log(`[MIDDLEWARE] No token found, redirecting to login`)
+    console.log(`[MIDDLEWARE] No auth tokens found, redirecting to login`)
     // Redirect to login with return URL
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('message', 'unauthorized')
@@ -98,16 +106,25 @@ export async function middleware(request: NextRequest) {
     // Verify JWT token
     const { payload } = await jwtVerify(token, JWT_SECRET)
     const userRole = payload.role as string
+    
+    console.log(`[MIDDLEWARE] JWT verified successfully`)
+    console.log(`[MIDDLEWARE] User role: ${userRole}`)
+    console.log(`[MIDDLEWARE] Protected route: ${protectedRoute}`)
 
     // Check if user has required role for this route
     const requiredRoles = PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES]
+    console.log(`[MIDDLEWARE] Required roles: ${requiredRoles}`)
     
     if (!requiredRoles.includes(userRole)) {
+      console.log(`[MIDDLEWARE] Role ${userRole} not in required roles ${requiredRoles}`)
       // Redirect to appropriate dashboard based on user role
       const redirectUrl = getRoleBasedRedirect(userRole)
+      console.log(`[MIDDLEWARE] Redirecting to: ${redirectUrl}`)
       return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
 
+    console.log(`[MIDDLEWARE] Access granted for ${userRole} to ${pathname}`)
+    
     // Add user info to headers for API routes
     const response = NextResponse.next()
     response.headers.set('x-user-id', payload.userId as string)
@@ -117,6 +134,7 @@ export async function middleware(request: NextRequest) {
     return response
 
   } catch (error) {
+    console.log(`[MIDDLEWARE] JWT verification failed:`, error)
     // Invalid token - redirect to login
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('message', 'session-expired')
@@ -124,6 +142,7 @@ export async function middleware(request: NextRequest) {
     // Clear invalid token
     const response = NextResponse.redirect(loginUrl)
     response.cookies.delete('auth-token')
+    response.cookies.delete('auth-backup')
     
     return response
   }

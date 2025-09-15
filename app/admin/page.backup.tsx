@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/useAuth"
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
@@ -94,7 +94,8 @@ interface Appointment {
 
 export default function AdminDashboard() {
   const router = useRouter();   // ✅ correctly initialized router
-  const { user, isLoading, logout } = useAuth();
+  const { authState, logout } = useAuth();
+  const user = authState.user;
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

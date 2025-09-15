@@ -4,6 +4,7 @@ interface User {
   id: string
   name: string
   email: string
+  mobile?: string
   role: string
   department?: string
 }
@@ -53,5 +54,29 @@ export function useAuth() {
     checkAuth()
   }, [])
 
-  return authState
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      setAuthState({
+        user: null,
+        isLoading: false,
+        isAuthenticated: false
+      })
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Force logout anyway
+      setAuthState({
+        user: null,
+        isLoading: false,
+        isAuthenticated: false
+      })
+      window.location.href = '/login'
+    }
+  }
+
+  return {
+    ...authState,
+    logout
+  }
 }

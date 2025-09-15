@@ -7,13 +7,19 @@ export async function POST(request: NextRequest) {
       message: 'Logout successful'
     })
 
-    // Clear the auth token cookie
-    response.cookies.set('auth-token', '', {
+    // Clear both auth cookies
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: false,
+      sameSite: 'lax' as const,
       maxAge: 0, // Expire immediately
       path: '/'
+    }
+    
+    response.cookies.set('auth-token', '', cookieOptions)
+    response.cookies.set('auth-backup', '', {
+      ...cookieOptions,
+      httpOnly: false
     })
 
     return response

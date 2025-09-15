@@ -105,12 +105,29 @@ export async function POST(request: NextRequest) {
       user: userData
     })
 
-    response.cookies.set('auth-token', token, {
+    // Set multiple cookie variations to ensure compatibility
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60
+      secure: false,
+      sameSite: 'lax' as const,
+      maxAge: 24 * 60 * 60,
+      path: '/'
+    }
+    
+    // Set primary cookie
+    response.cookies.set('auth-token', token, cookieOptions)
+    
+    // Set backup cookie without httpOnly for client-side access if needed
+    response.cookies.set('auth-backup', token, {
+      ...cookieOptions,
+      httpOnly: false
     })
+    
+    // Add token to response headers as well
+    response.headers.set('X-Auth-Token', token)
+    
+    console.log('[LOGIN] Cookies set successfully for user:', userData.email)
+    console.log('[LOGIN] Cookie options:', cookieOptions)
 
     return response
 

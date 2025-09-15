@@ -7,7 +7,7 @@ import Image from "next/image";
 
 
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -379,7 +379,7 @@ export default function SuperAdminDashboard() {
                               cx="50%"
                               cy="50%"
                               labelLine={false}
-                              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                              label={(entry: any) => `${entry.name} (${((entry.value / (stats?.totalUsers || 1)) * 100).toFixed(0)}%)`}
                               outerRadius={80}
                               fill="#8884d8"
                               dataKey="value"

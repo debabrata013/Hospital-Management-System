@@ -8,7 +8,7 @@
     "build:static": "cross-env NEXT_STATIC_BUILD=true next build",
     "build:standard": "next build",
     "build:simple": "cross-env NEXT_STATIC_BUILD=true STATIC_BUILD=true NODE_ENV=production next build",
-    "start": "next start",
+    "start": "next start -p 3500 -H 0.0.0.0",
     "lint": "next lint",
     "init-db": "node scripts/init-db.js",
     "setup-pharmacy": "node scripts/setup-pharmacy-db.js",
