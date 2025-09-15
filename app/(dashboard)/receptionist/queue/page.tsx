@@ -74,7 +74,7 @@ export default function PatientQueue() {
   const [selectedPatient, setSelectedPatient] = useState<QueuePatient | null>(null)
   const [showPatientDialog, setShowPatientDialog] = useState(false)
   const [showStatusDialog, setShowStatusDialog] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   
@@ -106,18 +106,23 @@ export default function PatientQueue() {
   const updatePatientStatus = async (appointmentId: string, status: string, notes?: string) => {
     try {
       setIsUpdating(true)
+      console.log('Updating status:', { appointmentId, status, notes })
+      
       const response = await fetch('/api/receptionist/queue', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appointmentId, status, notes })
       })
       
+      const result = await response.json()
+      console.log('Update response:', result)
+      
       if (response.ok) {
         await fetchQueueData() // Refresh data
         alert('Status updated successfully!')
       } else {
-        const error = await response.json()
-        alert(error.message || 'Failed to update status')
+        console.error('Update failed:', result)
+        alert(result.message || 'Failed to update status')
       }
     } catch (error) {
       console.error('Failed to update patient status:', error)
@@ -129,7 +134,22 @@ export default function PatientQueue() {
 
   // Handle status update with notes
   const handleStatusUpdate = async () => {
-    if (!selectedPatient) return
+    if (!selectedPatient) {
+      alert('No patient selected')
+      return
+    }
+    
+    if (!statusForm.status) {
+      alert('Please select a status')
+      return
+    }
+    
+    console.log('Handling status update:', {
+      patient: selectedPatient.name,
+      appointmentId: selectedPatient.appointment_id,
+      newStatus: statusForm.status,
+      notes: statusForm.notes
+    })
     
     await updatePatientStatus(selectedPatient.appointment_id, statusForm.status, statusForm.notes)
     setShowStatusDialog(false)
@@ -148,8 +168,11 @@ export default function PatientQueue() {
     return () => clearInterval(interval)
   }, [])
 
-  // Update current time every minute
+  // Update current time every minute (client-side only)
   useEffect(() => {
+    // Set initial time on client
+    setCurrentTime(new Date())
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 60000)
@@ -253,7 +276,7 @@ export default function PatientQueue() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Patient Queue</h1>
               <p className="text-sm text-gray-600">
-                Manage today's patient appointments and consultations • Last updated: {currentTime.toLocaleTimeString()}
+                Manage today's patient appointments and consultations • Last updated: {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}
               </p>
             </div>
           </div>

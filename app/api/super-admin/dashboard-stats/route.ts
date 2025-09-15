@@ -37,17 +37,17 @@ export async function GET(request: NextRequest) {
     )
     const todayAppointments = (appointmentsResult as any)[0].total
     
-    // Get total admissions today
+    // Get total admissions today (new appointments)
     let todayAdmissions = 0
     try {
       const [admissionsResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM admissions WHERE DATE(admission_date) = ? AND status = "admitted"',
+        'SELECT COUNT(*) as total FROM appointments WHERE DATE(appointment_date) = ? AND status IN ("scheduled", "confirmed", "in-progress")',
         [today]
       )
       todayAdmissions = (admissionsResult as any)[0].total
     } catch (error) {
-      // admissions table might not exist, use mock data
-      todayAdmissions = Math.floor(Math.random() * 15) + 5 // Mock: 5-20 admissions
+      console.error('Error fetching today admissions:', error)
+      todayAdmissions = 0
     }
     
     // Get system health metrics (calculated based on system status)
@@ -82,12 +82,14 @@ export async function GET(request: NextRequest) {
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
       
       try {
+        // Get new appointments (admissions) for this day
         const [admissions] = await connection.execute(
-          'SELECT COUNT(*) as count FROM admissions WHERE DATE(admission_date) = ?',
+          'SELECT COUNT(*) as count FROM appointments WHERE DATE(appointment_date) = ? AND status IN ("scheduled", "confirmed")',
           [dateStr]
         )
+        // Get completed appointments (discharges) for this day
         const [discharges] = await connection.execute(
-          'SELECT COUNT(*) as count FROM admissions WHERE DATE(discharge_date) = ?',
+          'SELECT COUNT(*) as count FROM appointments WHERE DATE(updated_at) = ? AND status = "completed"',
           [dateStr]
         )
         
@@ -97,11 +99,12 @@ export async function GET(request: NextRequest) {
           discharges: (discharges as any)[0].count
         })
       } catch (error) {
-        // Mock data if admissions table doesn't exist
+        console.error('Error fetching admission data for', dateStr, error)
+        // Use zero data instead of mock data
         admissionData.push({
           date: dayName,
-          admissions: Math.floor(Math.random() * 20) + 5,
-          discharges: Math.floor(Math.random() * 15) + 3
+          admissions: 0,
+          discharges: 0
         })
       }
     }
@@ -110,15 +113,15 @@ export async function GET(request: NextRequest) {
     let appointmentData = []
     
     try {
-      // Get total OPD appointments today
+      // Get total OPD appointments today (scheduled/confirmed appointments)
       const [opdTotal] = await connection.execute(
-        'SELECT COUNT(*) as count FROM appointments WHERE DATE(appointment_date) = ? AND status = "scheduled"',
+        'SELECT COUNT(*) as count FROM appointments WHERE DATE(appointment_date) = ? AND status IN ("scheduled", "confirmed", "in-progress")',
         [today]
       )
       
       // Get total admitted patients today
       const [admittedTotal] = await connection.execute(
-        'SELECT COUNT(*) as count FROM admissions WHERE DATE(admission_date) = ? AND status = "admitted"',
+        'SELECT COUNT(*) as count FROM appointments WHERE DATE(appointment_date) = ? AND status = "completed"',
         [today]
       )
       
@@ -127,10 +130,11 @@ export async function GET(request: NextRequest) {
         { name: 'Admitted Patients', value: (admittedTotal as any)[0].count }
       ]
     } catch (error) {
-      // Mock data if tables don't exist
+      console.error('Error fetching appointment data:', error)
+      // Fallback to empty data instead of mock data
       appointmentData = [
-        { name: 'OPD Patients', value: Math.floor(Math.random() * 50) + 30 }, // 30-80 OPD patients
-        { name: 'Admitted Patients', value: Math.floor(Math.random() * 20) + 10 } // 10-30 admitted patients
+        { name: 'OPD Patients', value: 0 },
+        { name: 'Admitted Patients', value: 0 }
       ]
     }
     

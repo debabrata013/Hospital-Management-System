@@ -104,13 +104,9 @@ export async function PUT(request: NextRequest) {
 
     connection = await getConnection();
     
-    // Update appointment status and add consultation start/end times
-    const updateQuery = status === 'in-progress' 
-      ? 'UPDATE appointments SET status = ?, consultation_start_time = NOW(), notes = ?, updated_at = NOW() WHERE appointment_id = ?'
-      : status === 'completed'
-      ? 'UPDATE appointments SET status = ?, consultation_end_time = NOW(), notes = ?, updated_at = NOW() WHERE appointment_id = ?'
-      : 'UPDATE appointments SET status = ?, notes = ?, updated_at = NOW() WHERE appointment_id = ?';
-
+    // Update appointment status - use only existing columns
+    const updateQuery = 'UPDATE appointments SET status = ?, notes = ?, updated_at = NOW() WHERE appointment_id = ?';
+    
     await connection.execute(updateQuery, [status, notes || '', appointmentId]);
 
     return NextResponse.json({
