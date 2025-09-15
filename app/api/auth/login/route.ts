@@ -55,13 +55,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If multiple users found, prioritize by role order: super-admin > admin > doctor > staff > others
-    const roleOrder = ['super-admin', 'admin', 'doctor', 'staff', 'receptionist', 'pharmacy'];
-    const user = userArray.sort((a, b) => {
-      const aIndex = roleOrder.indexOf(a.role);
-      const bIndex = roleOrder.indexOf(b.role);
-      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-    })[0];
+    // If multiple users found, use the first one (most recently created)
+    // This prevents role confusion when users share contact numbers
+    const user = userArray[0];
 
     // Compare password with hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash)
