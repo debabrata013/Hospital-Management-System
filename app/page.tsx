@@ -520,7 +520,7 @@ export default function LandingPage() {
       availabilityTimes: {
         morning: '8:00 AM - 2:00 PM',
         break: '2:00 PM - 5:00 PM',
-        evening: '5:00 PM - 7:00 PM'
+        evening: 'Not available'
       },
       languages: ['Hindi', 'English'],
       about: 'Dr. G K Nayak is the founder of NMSC and a renowned orthopedic surgeon with over 40 years of experience in joint replacement and trauma surgery. He has successfully treated over 700,000 patients.',
@@ -609,11 +609,11 @@ export default function LandingPage() {
         evening: '5:00 PM - 7:00 PM'
       },
       languages: ['Hindi', 'English', 'Odia'],
-      about: 'Dr. Punit Mohanty specializes in orthopedic surgery with particular expertise in spine and joint treatments.'
+      about: 'Dr. Punit Mohanty specializes in orthopedic surgery with  spine and joint treatments.'
     },
     {
       id: 7,
-      name: 'Dr Niharika Nayak - MBBS DGO FMAS',
+      name: 'Dr Niharika Nayak - MBBS DGO FMAS and FMR',
       specialization: 'Gynecology',
       qualification: '',
       experience: '10+ Years',
@@ -632,17 +632,19 @@ export default function LandingPage() {
   ];
 
   const departments = [
-    "Orthopedic Surgery",
-    "General Surgery", 
+    "Hydrocelectomy",
+    "Vasectomy",
+    "Varicocelectomy",
+    "Testicular Biopsy",
+    "Orchiectomy",
     "Gynecological Surgery",
     "Laparoscopic Surgery",
-    "Joint Replacement Surgery",
     "Trauma Surgery",
     "Minimally Invasive Surgery",
     "Arthroscopic Surgery",
     "Spine Surgery",
     "Fracture Surgery",
-    "Emergency Surgery"
+   
   ];
 
   const timeSlots = [
@@ -1554,16 +1556,16 @@ export default function LandingPage() {
                 
                 {/* Google Maps Embed */}
                 <div className="relative rounded-2xl overflow-hidden shadow-lg mb-6">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3502.2396328147944!2d77.21975931508236!3d28.63576098240235!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cfd0683d1e6c3%3A0x8b5b2b1b1b1b1b1b!2sConnaught%20Place%2C%20New%20Delhi%2C%20Delhi!5e0!3m2!1sen!2sin!4v1642678901234!5m2!1sen!2sin"
-                    width="100%"
-                    height="300"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="rounded-2xl"
-                  ></iframe>
+               <iframe
+src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3736.211081498026!2d82.64218777521762!3d22.35461914104062!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a289989d2b7c9b3%3A0x6d3f9cbd648c5f9f!2sNayak%20Maternity%20and%20Surgical%20Centre!5e0!3m2!1sen!2sin!4v1726400000000!5m2!1sen!2sin"
+width="100%"
+height="300"
+style={{ border: 0 }}
+allowFullScreen
+loading="lazy"
+referrerPolicy="no-referrer-when-downgrade"
+className="rounded-2xl"
+/>
                   
                   {/* Map Overlay */}
                   <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
