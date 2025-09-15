@@ -47,6 +47,7 @@ interface DashboardStats {
   totalAdmins: number
   totalPatients: number
   todayAppointments: number
+  todayAdmissions: number
   systemHealth: number
 }
 
@@ -54,6 +55,17 @@ interface MonthlyData {
   month: string
   users: number
   doctors: number
+}
+
+interface AdmissionData {
+  date: string
+  admissions: number
+  discharges: number
+}
+
+interface AppointmentData {
+  time: string
+  appointments: number
 }
 
 // Navigation items (removed hospital management)
@@ -79,6 +91,8 @@ export default function SuperAdminDashboard() {
   const [notifications] = useState(5)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
+  const [admissionData, setAdmissionData] = useState<AdmissionData[]>([])
+  const [appointmentData, setAppointmentData] = useState<AppointmentData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -100,6 +114,8 @@ export default function SuperAdminDashboard() {
       const data = await response.json()
       setStats(data.stats)
       setMonthlyData(data.monthlyData || [])
+      setAdmissionData(data.admissionData || [])
+      setAppointmentData(data.appointmentData || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
@@ -263,7 +279,7 @@ export default function SuperAdminDashboard() {
             ) : (
               <>
                 {/* Key Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                   <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -322,15 +338,33 @@ export default function SuperAdminDashboard() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-600">System Health</p>
-                          <p className="text-3xl font-bold text-gray-900">{stats?.systemHealth || 0}%</p>
-                          <p className="text-sm text-green-600 flex items-center mt-1">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            All systems operational
+                          <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
+                          <p className="text-3xl font-bold text-gray-900">{(stats?.todayAppointments || 0).toLocaleString()}</p>
+                          <p className="text-sm text-orange-600 flex items-center mt-1">
+                            <Clock className="h-4 w-4 mr-1" />
+                            Scheduled today
                           </p>
                         </div>
-                        <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
-                          <Shield className="h-8 w-8 text-white" />
+                        <div className="bg-gradient-to-r from-orange-400 to-orange-500 p-3 rounded-xl">
+                          <Clock className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Today's Admissions</p>
+                          <p className="text-3xl font-bold text-gray-900">{(stats?.todayAdmissions || 0).toLocaleString()}</p>
+                          <p className="text-sm text-red-600 flex items-center mt-1">
+                            <Activity className="h-4 w-4 mr-1" />
+                            Admitted today
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-red-400 to-red-500 p-3 rounded-xl">
+                          <Activity className="h-8 w-8 text-white" />
                         </div>
                       </div>
                     </CardContent>
@@ -338,6 +372,63 @@ export default function SuperAdminDashboard() {
                 </div>
 
                 {/* Charts Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Patient Admissions Chart */}
+                  <Card className="border-pink-100">
+                    <CardHeader>
+                      <CardTitle className="text-gray-900">Patient Admissions</CardTitle>
+                      <CardDescription>Daily admissions and discharges over the last 7 days</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={admissionData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="admissions" fill="#ef4444" name="Admissions" />
+                            <Bar dataKey="discharges" fill="#10b981" name="Discharges" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Today's Appointments Chart */}
+                  <Card className="border-pink-100">
+                    <CardHeader>
+                      <CardTitle className="text-gray-900">Today's Appointments</CardTitle>
+                      <CardDescription>OPD patients vs admitted patients today</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={appointmentData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={(entry: any) => `${entry.name}: ${entry.value}`}
+                              outerRadius={100}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              <Cell fill="#f97316" />
+                              <Cell fill="#3b82f6" />
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Additional Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card className="border-pink-100">
                     <CardHeader>

@@ -197,8 +197,8 @@ const navigationItems = [
   {
     title: "Patient Management",
     items: [
-     
       { title: "Appointments", icon: Calendar, url: "/receptionist/appointments" },
+      { title: "Surgery Appointments", icon: Stethoscope, url: "/receptionist/surgery-appointments" },
       { title: "Admissions", icon: Bed, url: "/receptionist/admissions" },
     ]
   },
