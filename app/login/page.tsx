@@ -128,6 +128,7 @@ function LoginForm() {
   useEffect(() => {
     if (authState.isAuthenticated && authState.user) {
       const redirectPath = getRedirectPath(authState.user.role)
+      console.log('Login page redirect - User role:', authState.user.role, 'Redirect path:', redirectPath)
       router.push(redirectPath)
     }
   }, [authState.isAuthenticated, authState.user, router])
