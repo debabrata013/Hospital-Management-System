@@ -1,5 +1,7 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import type { RowDataPacket, OkPacket } from 'mysql2/promise';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -29,7 +31,6 @@ export async function POST(request: NextRequest) {
   try {
     const { firstName, lastName, age, gender, phone, address, emergencyContact } = await request.json();
 
-    // Validate required fields
     if (!firstName || !lastName || !age || !gender || !phone) {
       return NextResponse.json(
         { message: 'Missing required fields: firstName, lastName, age, gender, phone' },
@@ -39,13 +40,13 @@ export async function POST(request: NextRequest) {
 
     connection = await getConnection();
     
-    // Check if patient with phone already exists
-    const [existingPatient] = await connection.execute(
+    // CORRECTED: Explicitly type the result of the SELECT query
+    const [existingPatientRows] = await connection.execute<RowDataPacket[]>(
       'SELECT id FROM patients WHERE contact_number = ?',
       [phone]
     );
 
-    if (existingPatient.length > 0) {
+    if (existingPatientRows.length > 0) {
       return NextResponse.json(
         { message: 'Patient with this phone number already exists' },
         { status: 409 }
@@ -54,8 +55,8 @@ export async function POST(request: NextRequest) {
 
     const patientId = generatePatientId();
     
-    // Insert new patient
-    const [result] = await connection.execute(
+    // CORRECTED: Explicitly type the result of the INSERT query
+    const [result] = await connection.execute<OkPacket>(
       `INSERT INTO patients (
         patient_id, name, age, gender, 
         contact_number, address, emergency_contact_name, 
@@ -101,7 +102,8 @@ export async function GET(request: NextRequest) {
   try {
     connection = await getConnection();
     
-    const [patients] = await connection.execute(
+    // Type the result for better safety
+    const [patients] = await connection.execute<RowDataPacket[]>(
       `SELECT 
         id, patient_id, name, age, gender,
         contact_number, address, emergency_contact_name, registration_date, is_active
