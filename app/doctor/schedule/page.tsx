@@ -122,6 +122,8 @@ const weeklySchedule = [
 export default function DoctorSchedulePage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedPatient, setSelectedPatient] = useState<any>(null)
+  const [showPatientModal, setShowPatientModal] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
@@ -223,22 +225,41 @@ export default function DoctorSchedulePage() {
     }
   }
 
+  const handleViewPatient = async (appointment: any) => {
+    try {
+      // Fetch detailed patient information
+      const response = await fetch(`/api/admin/patients/${appointment.Patient?.id}`)
+      if (response.ok) {
+        const patientData = await response.json()
+        setSelectedPatient({
+          ...appointment,
+          Patient: patientData
+        })
+      } else {
+        setSelectedPatient(appointment)
+      }
+    } catch (error) {
+      console.error('Error fetching patient details:', error)
+      setSelectedPatient(appointment)
+    }
+    setShowPatientModal(true)
+  }
+
+  const closePatientModal = () => {
+    setShowPatientModal(false)
+    setSelectedPatient(null)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-8 w-8 mr-3 text-pink-500" />
-              My Schedule
-            </h1>
-            <p className="text-gray-600 mt-2">View and manage your appointments and schedule</p>
-          </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
-            <Plus className="h-4 w-4 mr-2" />
-            Request Schedule Change
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            <Calendar className="h-8 w-8 mr-3 text-pink-500" />
+            My Schedule
+          </h1>
+          <p className="text-gray-600 mt-2">View and manage your appointments and schedule</p>
         </div>
       </div>
 
@@ -380,7 +401,12 @@ export default function DoctorSchedulePage() {
                     <div className="flex items-center mr-4">
                       {getStatusIcon(appointment.status)}
                     </div>
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                      onClick={() => handleViewPatient(appointment)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                     {appointment.status === 'waiting' && (
@@ -463,6 +489,119 @@ export default function DoctorSchedulePage() {
           <span className="font-medium">Advanced Scheduling Features Coming Soon</span>
         </div>
       </div>
+
+      {/* Patient Details Modal */}
+      {showPatientModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Patient Details</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={closePatientModal}
+                  className="border-gray-300"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Patient Information */}
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="bg-gradient-to-r from-pink-50 to-white p-4 rounded-lg border border-pink-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Patient Name</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedPatient.Patient ? `${selectedPatient.Patient.firstName} ${selectedPatient.Patient.lastName}` : 'Unknown Patient'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Patient ID</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.Patient?.id || selectedPatient.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Age</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.Patient?.age || 'N/A'} years</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Gender</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.Patient?.gender || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Contact Number</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.Patient?.contactNumber || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appointment Details */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Appointment Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Appointment ID</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.appointmentId || selectedPatient.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Date & Time</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedPatient.appointmentDate ? new Date(selectedPatient.appointmentDate).toLocaleDateString() : 'N/A'} at{' '}
+                        {selectedPatient.appointmentTime ? selectedPatient.appointmentTime : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Type</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.appointmentType || 'Consultation'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Status</p>
+                      <div className="mt-1">
+                        {getStatusBadge(selectedPatient.status)}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Consultation Fee</p>
+                      <p className="font-medium text-gray-900">₹{selectedPatient.consultationFee || '500'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Room</p>
+                      <p className="font-medium text-gray-900">Room 101</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medical Information */}
+                <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Medical Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-600">Chief Complaint / Reason for Visit</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.reason || 'General consultation'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Notes</p>
+                      <p className="font-medium text-gray-900">{selectedPatient.notes || selectedPatient.reason || 'No additional notes'}</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                <Button variant="outline" onClick={closePatientModal}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

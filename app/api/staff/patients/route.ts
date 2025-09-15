@@ -30,16 +30,18 @@ export async function GET(request: NextRequest) {
     const { user } = authResult;
     console.log(`✅ User authenticated: ${user.role}`);
 
-    console.log('Executing query to fetch patients with prescriptions...');
-    // CORRECTED QUERY: Removed the join on the non-existent 'patient_assignments' table.
+    console.log('Executing query to fetch all active patients...');
     const [patients] = await connection.execute(
-      `SELECT DISTINCT
-        p.patient_id AS id,
-        p.name
+      `SELECT 
+        p.id,
+        p.patient_id,
+        p.name,
+        p.contact_number,
+        p.age,
+        p.gender,
+        p.blood_group
       FROM 
-        prescriptions pr
-      JOIN 
-        patients p ON pr.patient_id = p.id
+        patients p
       WHERE 
         p.is_active = TRUE
       ORDER BY 

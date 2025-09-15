@@ -35,7 +35,12 @@ import {
 // Define types for our data for better type safety
 interface Patient {
   id: string;
+  patient_id?: string;
   name: string;
+  contact_number?: string;
+  age?: number;
+  gender?: string;
+  blood_group?: string;
 }
 
 interface VitalRecord {
@@ -92,11 +97,18 @@ export default function StaffVitalsPage() {
         setError(null);
         try {
             const response = await fetch('/api/staff/patients');
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || `API Error: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
-            setPatients(data.patients || []);
+            const data = await response.json();
+            console.log("Patients API response:", data);
+            if (data.success && data.patients) {
+                console.log("Setting patients:", data.patients);
+                setPatients(data.patients);
+            } else {
+                console.log("No patients found or API error:", data);
+                setPatients([]);
+            }
         } catch (err: any) {
             console.error("Fetch error:", err);
             setError(err.message || 'An unexpected error occurred while fetching data.');
@@ -106,7 +118,31 @@ export default function StaffVitalsPage() {
         }
     };
 
+    const fetchVitalsHistory = async () => {
+        try {
+            const response = await fetch('/api/staff/vitals');
+            if (response.ok) {
+                const text = await response.text();
+                try {
+                    const data = JSON.parse(text);
+                    setVitalsHistory(data || []);
+                } catch (parseError) {
+                    console.error("JSON parse error:", parseError);
+                    console.error("Response text:", text);
+                    setVitalsHistory([]);
+                }
+            } else {
+                console.error("API response not ok:", response.status, response.statusText);
+                setVitalsHistory([]);
+            }
+        } catch (err) {
+            console.error("Error fetching vitals history:", err);
+            setVitalsHistory([]);
+        }
+    };
+
     fetchPatients();
+    fetchVitalsHistory();
     setPendingVitals([]); // Initialize pending vitals as empty
   }, []);
 
@@ -119,39 +155,51 @@ export default function StaffVitalsPage() {
     setFormState(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSaveVitals = () => {
+  const handleSaveVitals = async () => {
     if (!formState.patientId) {
       alert("Please select a patient.");
       return;
     }
 
     const patientDetails = patients.find(p => p.id === formState.patientId);
-    const newVital: VitalRecord = {
-      id: `V${Date.now()}`,
-      patientId: formState.patientId,
-      patientName: patientDetails?.name || "Unknown Patient",
-      recordedAt: new Date().toISOString(),
-      recordedBy: "Staff Nurse",
-      vitals: {
-        bloodPressure: formState.bloodPressure,
-        pulse: formState.pulse,
-        temperature: formState.temperature,
-        oxygenSaturation: formState.oxygenSaturation,
-        respiratoryRate: formState.respiratoryRate,
-        weight: formState.weight,
-        height: "170"
-      },
-      status: formState.status || 'Normal',
-      notes: formState.notes
-    };
+    
+    try {
+      const response = await fetch('/api/staff/vitals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: formState.patientId,
+          patientName: patientDetails?.name || "Unknown Patient",
+          bloodPressure: formState.bloodPressure,
+          pulse: formState.pulse,
+          temperature: formState.temperature,
+          oxygenSaturation: formState.oxygenSaturation,
+          respiratoryRate: formState.respiratoryRate,
+          weight: formState.weight,
+          status: formState.status || 'Normal',
+          notes: formState.notes
+        }),
+      });
 
-    setVitalsHistory(prev => [newVital, ...prev]);
-    setNewVitalsDialog(false);
-    setFormState(initialFormState);
+      if (response.ok) {
+        const savedVital = await response.json();
+        setVitalsHistory(prev => [savedVital, ...prev]);
+        setNewVitalsDialog(false);
+        setFormState(initialFormState);
+        alert("Vitals saved successfully!");
+      } else {
+        throw new Error('Failed to save vitals');
+      }
+    } catch (error) {
+      console.error('Error saving vitals:', error);
+      alert("Error saving vitals. Please try again.");
+    }
   };
 
   const openNewVitalsDialog = (patient: any = null) => {
-    setFormState({ ...initialFormState, patientId: patient ? patient.patientId : '' });
+    setFormState({ ...initialFormState, patientId: patient ? patient.id.toString() : '' });
     setNewVitalsDialog(true);
   }
 
@@ -186,9 +234,13 @@ export default function StaffVitalsPage() {
       return searchMatch && statusMatch;
   });
 
+  const filteredPatients = patients.filter(patient => {
+      return patient.name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
-      <header className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white">
+      <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
         <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center space-x-4">
                 <Button variant="ghost" size="sm" asChild>
@@ -200,23 +252,22 @@ export default function StaffVitalsPage() {
                     <p className="text-sm text-gray-500">Record and monitor patient vital signs</p>
                 </div>
             </div>
-            <Button size="sm" className="bg-green-500 hover:bg-green-600" onClick={() => openNewVitalsDialog()}>
+            <Button size="sm" className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600" onClick={() => openNewVitalsDialog()}>
                 <Plus className="h-4 w-4 mr-2" />Record Vitals
             </Button>
         </div>
       </header>
 
       <main className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-            <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Pending Vitals</p><p className="text-3xl font-bold">{loading ? '...' : pendingVitals.length}</p></div><div className="bg-green-100 p-3 rounded-xl"><Clock className="h-8 w-8 text-green-600" /></div></div></CardContent></Card>
-            <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Recorded Today</p><p className="text-3xl font-bold">{vitalsHistory.length}</p></div><div className="bg-blue-100 p-3 rounded-xl"><Activity className="h-8 w-8 text-blue-600" /></div></div></CardContent></Card>
-            <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Critical Alerts</p><p className="text-3xl font-bold">{vitalsHistory.filter(v => v.status === 'Critical').length}</p></div><div className="bg-red-100 p-3 rounded-xl"><AlertTriangle className="h-8 w-8 text-red-600" /></div></div></CardContent></Card>
-            <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Normal Status</p><p className="text-3xl font-bold">{vitalsHistory.filter(v => v.status === 'Normal' || v.status === 'Good').length}</p></div><div className="bg-yellow-100 p-3 rounded-xl"><CheckCircle className="h-8 w-8 text-yellow-600" /></div></div></CardContent></Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card className="border-pink-100"><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Recorded Today</p><p className="text-3xl font-bold">{vitalsHistory.length}</p></div><div className="bg-blue-100 p-3 rounded-xl"><Activity className="h-8 w-8 text-blue-600" /></div></div></CardContent></Card>
+            <Card className="border-pink-100"><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Critical Alerts</p><p className="text-3xl font-bold">{vitalsHistory.filter(v => v.status === 'Critical').length}</p></div><div className="bg-red-100 p-3 rounded-xl"><AlertTriangle className="h-8 w-8 text-red-600" /></div></div></CardContent></Card>
+            <Card className="border-pink-100"><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Normal Status</p><p className="text-3xl font-bold">{vitalsHistory.filter(v => v.status === 'Normal' || v.status === 'Good').length}</p></div><div className="bg-green-100 p-3 rounded-xl"><CheckCircle className="h-8 w-8 text-green-600" /></div></div></CardContent></Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex items-center justify-between">
-            <TabsList><TabsTrigger value="history">Vitals History</TabsTrigger><TabsTrigger value="pending">Pending Vitals</TabsTrigger></TabsList>
+            <TabsList><TabsTrigger value="history">Vitals History</TabsTrigger><TabsTrigger value="pending">Patient List</TabsTrigger></TabsList>
             <div className="flex items-center gap-2">
               <div className="relative w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" /><Input placeholder="Search patients..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10"/></div>
               <Popover>
@@ -261,7 +312,50 @@ export default function StaffVitalsPage() {
           </TabsContent>
 
           <TabsContent value="pending">
-              <Card><CardHeader><CardTitle>Pending Vitals</CardTitle><CardDescription>This feature is not yet implemented.</CardDescription></CardHeader><CardContent><p className="text-center text-gray-500 py-8">No pending vitals to show.</p></CardContent></Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Available Patients</CardTitle>
+                  <CardDescription>Showing {filteredPatients.length} of {patients.length} patients</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <p className="text-center text-gray-500 py-8">Loading patients...</p>
+                  ) : error ? (
+                    <p className="text-center text-red-500 py-8">{error}</p>
+                  ) : filteredPatients.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">{searchQuery ? 'No patients match your search.' : 'No patients found in the database.'}</p>
+                  ) : (
+                    <div className="grid gap-4">
+                      {filteredPatients.map((patient) => (
+                        <Card key={patient.id} className="border-pink-100">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold">{patient.name}</h3>
+                                <p className="text-sm text-gray-600">
+                                  ID: {patient.patient_id || patient.id} • 
+                                  {patient.age && ` Age: ${patient.age} •`}
+                                  {patient.gender && ` ${patient.gender}`}
+                                </p>
+                                {patient.contact_number && (
+                                  <p className="text-sm text-gray-500">Contact: {patient.contact_number}</p>
+                                )}
+                              </div>
+                              <Button 
+                                size="sm" 
+                                className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600"
+                                onClick={() => openNewVitalsDialog(patient)}
+                              >
+                                Record Vitals
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
           </TabsContent>
         </Tabs>
       </main>
@@ -270,7 +364,7 @@ export default function StaffVitalsPage() {
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader><DialogTitle>Record Patient Vitals</DialogTitle><DialogDescription>Enter vital signs for the selected patient.</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="patientId">Patient</Label><Select value={formState.patientId} onValueChange={(v) => handleSelectChange('patientId', v)}><SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="time">Time</Label><Input id="time" type="time" value={formState.time} onChange={handleInputChange} /></div></div>
+            <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="patientId">Patient ({patients.length} available)</Label><Select value={formState.patientId} onValueChange={(v) => handleSelectChange('patientId', v)}><SelectTrigger><SelectValue placeholder={patients.length > 0 ? "Select patient" : "No patients available"} /></SelectTrigger><SelectContent>{patients.length > 0 ? patients.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>) : <SelectItem value="none" disabled>No patients found</SelectItem>}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="time">Time</Label><Input id="time" type="time" value={formState.time} onChange={handleInputChange} /></div></div>
             <div className="grid grid-cols-3 gap-4"><div className="space-y-2"><Label htmlFor="bloodPressure">Blood Pressure</Label><Input id="bloodPressure" placeholder="120/80" value={formState.bloodPressure} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="pulse">Pulse</Label><Input id="pulse" placeholder="72" value={formState.pulse} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="temperature">Temperature</Label><Input id="temperature" placeholder="98.6" value={formState.temperature} onChange={handleInputChange} /></div></div>
             <div className="grid grid-cols-3 gap-4"><div className="space-y-2"><Label htmlFor="oxygenSaturation">Oxygen Sat.</Label><Input id="oxygenSaturation" placeholder="98" value={formState.oxygenSaturation} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="respiratoryRate">Resp. Rate</Label><Input id="respiratoryRate" placeholder="16" value={formState.respiratoryRate} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="weight">Weight (kg)</Label><Input id="weight" placeholder="70" value={formState.weight} onChange={handleInputChange} /></div></div>
             <div className="space-y-2"><Label htmlFor="status">Status</Label><Select value={formState.status} onValueChange={(v) => handleSelectChange('status', v)}><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger><SelectContent>{statusOptions.slice(1).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>

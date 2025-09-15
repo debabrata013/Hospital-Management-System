@@ -59,6 +59,11 @@ export async function GET(request: NextRequest) {
     
     await connection.end()
     
+    // For vitals page, return simple array format
+    if (searchParams.get('simple') === 'true') {
+      return NextResponse.json(patients)
+    }
+    
     return NextResponse.json({
       patients,
       pagination: {
