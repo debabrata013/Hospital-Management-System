@@ -1,54 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { name, phone, email, department, doctor, date, time, reason } = body;
-
-    // Validate required fields
-    if (!name || !phone || !department || !doctor || !date || !time) {
-      return NextResponse.json(
-        { success: false, message: 'Please fill in all required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Validate phone number format (basic validation)
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-      return NextResponse.json(
-        { success: false, message: 'Please enter a valid phone number' },
-        { status: 400 }
-      );
-    }
-
-    // Validate email format if provided
-    if (email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return NextResponse.json(
-          { success: false, message: 'Please enter a valid email address' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Validate date is not in the past
-    const appointmentDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const body = await request.json()
     
-    if (appointmentDate < today) {
-      return NextResponse.json(
-        { success: false, message: 'Surgery date cannot be in the past' },
-        { status: 400 }
-      );
-    }
-
-    // Here you would typically save to database
-    // For now, we'll simulate a successful booking
-    const appointmentData = {
-      id: `SURG-${Date.now()}`, // Generate unique surgery appointment ID
+    const {
       name,
       phone,
       email,
@@ -56,39 +12,53 @@ export async function POST(request: NextRequest) {
       doctor,
       date,
       time,
-      reason,
-      type: 'surgery',
+      reason
+    } = body
+
+    // Validate required fields
+    if (!name || !phone || !department || !doctor || !date || !time) {
+      return NextResponse.json(
+        { success: false, message: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Here you would typically save to database
+    // For now, we'll just simulate success
+    const appointmentData = {
+      id: `SA${Date.now()}`,
+      name,
+      phone,
+      email: email || null,
+      department,
+      doctor,
+      date,
+      time,
+      surgeryType: reason || '',
       status: 'pending',
+      isNewPatient: true, // Assume new patient from website
       createdAt: new Date().toISOString(),
-    };
+      source: 'website'
+    }
 
-    // In a real application, you would:
+    // In a real app, you would:
     // 1. Save to database
-    // 2. Send confirmation SMS/Email
-    // 3. Notify the hospital staff
-    // 4. Create calendar entries
-
-    console.log('Surgery Appointment Booked:', appointmentData);
+    // 2. Send confirmation SMS/email
+    // 3. Notify receptionist
+    
+    console.log('New surgery appointment request:', appointmentData)
 
     return NextResponse.json({
       success: true,
-      message: 'Surgery appointment booked successfully! You will receive a confirmation call within 24 hours.',
-      appointmentId: appointmentData.id,
-      data: appointmentData
-    });
+      message: 'Surgery appointment request submitted successfully! Our receptionist will contact you soon.',
+      appointmentId: appointmentData.id
+    })
 
   } catch (error) {
-    console.error('Surgery appointment booking error:', error);
+    console.error('Error processing appointment request:', error)
     return NextResponse.json(
-      { success: false, message: 'Internal server error. Please try again later.' },
+      { success: false, message: 'Failed to process appointment request. Please try again.' },
       { status: 500 }
-    );
+    )
   }
-}
-
-export async function GET() {
-  return NextResponse.json(
-    { message: 'Surgery appointment booking API is running' },
-    { status: 200 }
-  );
 }

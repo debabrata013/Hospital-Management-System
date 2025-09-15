@@ -485,7 +485,7 @@ export default function LandingPage() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setSubmitMessage(' ' + result.message);
+        setSubmitMessage('SUCCESS: ' + result.message);
         setAppointmentForm({
           name: '',
           phone: '',
@@ -497,10 +497,10 @@ export default function LandingPage() {
           reason: '',
         });
       } else {
-        setSubmitMessage(` ${result.message || 'An unexpected error occurred.'}`);
+        setSubmitMessage(`ERROR: ${result.message || 'An unexpected error occurred.'}`);
       }
     } catch (error) {
-      setSubmitMessage(' Failed to book appointment. Please try again.')
+      setSubmitMessage('ERROR: Failed to book appointment. Please try again.')
       console.error('Appointment booking error:', error)
     } finally {
       setIsSubmitting(false)
@@ -1174,11 +1174,11 @@ export default function LandingPage() {
                 
                 {submitMessage && (
                   <div className={`p-4 rounded-lg text-center font-medium ${
-                    submitMessage.includes(' ') 
+                    submitMessage.includes('SUCCESS:') 
                       ? 'bg-green-50 text-green-700 border border-green-200' 
                       : 'bg-red-50 text-red-700 border border-red-200'
                   }`}>
-                    {submitMessage}
+                    {submitMessage.replace('SUCCESS:', '').replace('ERROR:', '')}
                   </div>
                 )}
                 
