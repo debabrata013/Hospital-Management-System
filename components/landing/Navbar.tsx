@@ -23,11 +23,12 @@ interface NavbarProps {
   };
   language: string;
   toggleLanguage: () => void;
-  authState: AuthState;
+  user: any;
+  isAuthenticated: boolean;
   logout: () => void;
 }
 
-export const Navbar = ({ t, language, toggleLanguage, authState, logout }: NavbarProps) => {
+export const Navbar = ({ t, language, toggleLanguage, user, isAuthenticated, logout }: NavbarProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -73,9 +74,9 @@ export const Navbar = ({ t, language, toggleLanguage, authState, logout }: Navba
               <Globe className="h-4 w-4 mr-2" />
               {language === 'hindi' ? 'English' : 'हिंदी'}
             </Button>
-            {authState.isAuthenticated && authState.user ? (
+            {isAuthenticated && user ? (
               <div className="flex items-center space-x-4">
-                <Link href={`/${authState.user.role}`}>
+                <Link href={`/${user.role}`}>
                   <Button variant="outline" className="rounded-full border-pink-200 text-pink-600 hover:bg-pink-50">
                     <UserIcon className="w-4 h-4 mr-2" />
                     Dashboard
@@ -152,9 +153,9 @@ export const Navbar = ({ t, language, toggleLanguage, authState, logout }: Navba
 
               {/* Authentication Section for Mobile */}
               <div className="px-3 py-2 border-t border-pink-100 pt-4">
-                {authState.isAuthenticated && authState.user ? (
+                {isAuthenticated && user ? (
                   <div className="space-y-3">
-                    <Link href={`/${authState.user.role}`} onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href={`/${user.role}`} onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full rounded-full border-pink-200 text-pink-600 hover:bg-pink-50">
                         <UserIcon className="w-4 h-4 mr-2" />
                         Dashboard

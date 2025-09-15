@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -438,7 +438,7 @@ type ContentType = typeof content;
 type Language = keyof ContentType;
 
 export default function LandingPage() {
-  const { authState, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [language, setLanguage] = useState<Language>('english');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -657,7 +657,8 @@ export default function LandingPage() {
         t={t}
         language={language}
         toggleLanguage={toggleLanguage}
-        authState={authState}
+        user={user}
+        isAuthenticated={isAuthenticated}
         logout={logout}
       />
 
