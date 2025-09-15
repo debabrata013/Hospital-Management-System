@@ -159,8 +159,8 @@ export async function POST(request: NextRequest) {
       `INSERT INTO bills (
         bill_id, patient_id, appointment_id, bill_type, total_amount, 
         discount_amount, tax_amount, final_amount, payment_status, 
-        payment_method, is_offline, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        payment_method, is_offline, notes, created_by, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         billId, 
         patientId, 

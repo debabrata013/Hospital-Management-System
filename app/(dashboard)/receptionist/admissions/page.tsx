@@ -68,10 +68,12 @@ interface Room {
 
 interface Patient {
   id: number
+  patient_id: string
   name: string
   age: number
   gender: string
   contact_number: string
+  address?: string
 }
 
 interface Doctor {
@@ -84,6 +86,8 @@ export default function AdmissionsPage() {
   const [admissions, setAdmissions] = useState<Admission[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
+  const [allPatients, setAllPatients] = useState<Patient[]>([])
+  const [patientSearchQuery, setPatientSearchQuery] = useState('')
   const [doctors, setDoctors] = useState<Doctor[]>([])
   
   // Search and filters
@@ -132,6 +136,7 @@ export default function AdmissionsPage() {
     fetchAdmissions()
     fetchRooms()
     fetchDoctors()
+    fetchAllPatients()
   }, [searchQuery, statusFilter, roomTypeFilter, doctorFilter])
 
   const fetchAdmissions = async () => {
@@ -176,16 +181,46 @@ export default function AdmissionsPage() {
     }
   }
 
+  const fetchAllPatients = async () => {
+    try {
+      const response = await fetch('/api/receptionist/patients')
+      const data = await response.json()
+      setAllPatients(data.patients || [])
+      setPatients(data.patients?.slice(0, 20) || []) // Show first 20 initially
+    } catch (error) {
+      console.error('Failed to fetch patients:', error)
+    }
+  }
+
   const searchPatients = async (query: string) => {
+    setPatientSearchQuery(query)
+    
     if (query.length < 2) {
-      setPatients([])
+      setPatients(allPatients.slice(0, 20)) // Show first 20 when no search
       return
     }
     
+    // Filter from all patients first (instant search)
+    const filtered = allPatients.filter(patient => 
+      patient.name.toLowerCase().includes(query.toLowerCase()) ||
+      patient.contact_number.includes(query) ||
+      (patient.patient_id && patient.patient_id.toLowerCase().includes(query.toLowerCase()))
+    )
+    
+    setPatients(filtered.slice(0, 20))
+    
+    // Also search from API for more results
     try {
       const response = await fetch(`/api/receptionist/patients/search?q=${encodeURIComponent(query)}`)
       const data = await response.json()
-      setPatients(data.patients || [])
+      if (data.patients && data.patients.length > 0) {
+        // Merge and deduplicate results
+        const merged = [...filtered, ...data.patients]
+        const unique = merged.filter((patient, index, self) => 
+          index === self.findIndex(p => p.patient_id === patient.patient_id)
+        )
+        setPatients(unique.slice(0, 20))
+      }
     } catch (error) {
       console.error('Failed to search patients:', error)
     }
@@ -374,7 +409,26 @@ export default function AdmissionsPage() {
         </div>
         <Button 
           className="bg-pink-500 hover:bg-pink-600"
-          onClick={() => setShowNewAdmissionDialog(true)}
+          onClick={() => {
+            setShowNewAdmissionDialog(true)
+            setPatientSearchQuery('')
+            setAdmissionForm({
+              patientId: '',
+              roomId: '',
+              doctorId: '',
+              admissionType: 'planned',
+              chiefComplaint: '',
+              diagnosis: '',
+              estimatedStayDays: '',
+              emergencyContactName: '',
+              emergencyContactPhone: '',
+              emergencyContactRelation: ''
+            })
+            // Load initial patients when dialog opens
+            if (allPatients.length > 0) {
+              setPatients(allPatients.slice(0, 20))
+            }
+          }}
         >
           <Plus className="h-4 w-4 mr-2" />
           New Admission
@@ -646,28 +700,51 @@ export default function AdmissionsPage() {
               <Label>Search Patient *</Label>
               <Input
                 placeholder="Search by name, phone, or patient ID..."
+                value={patientSearchQuery}
                 onChange={(e) => {
                   searchPatients(e.target.value)
                   if (!e.target.value) setAdmissionForm(prev => ({ ...prev, patientId: '' }))
                 }}
               />
               {patients.length > 0 && (
-                <div className="mt-2 max-h-40 overflow-y-auto border rounded-lg">
+                <div className="mt-2 max-h-60 overflow-y-auto border rounded-lg">
+                  <div className="p-2 bg-gray-50 text-sm text-gray-600 border-b">
+                    {patientSearchQuery ? `Found ${patients.length} patients` : `Showing ${patients.length} recent patients`}
+                  </div>
                   {patients.map(patient => (
                     <div
                       key={patient.id}
-                      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                      className={`p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 ${
+                        admissionForm.patientId === patient.id.toString() ? 'bg-blue-50 border-blue-200' : ''
+                      }`}
                       onClick={() => {
                         setAdmissionForm(prev => ({ ...prev, patientId: patient.id.toString() }))
-                        setPatients([])
                       }}
                     >
                       <div className="font-medium">{patient.name}</div>
                       <div className="text-sm text-gray-600">
-                        {patient.contact_number} • {patient.age}Y {patient.gender}
+                        📞 {patient.contact_number} • {patient.age}Y {patient.gender}
+                        {patient.patient_id && ` • ID: ${patient.patient_id}`}
                       </div>
+                      {patient.address && (
+                        <div className="text-xs text-gray-500 mt-1">📍 {patient.address}</div>
+                      )}
                     </div>
                   ))}
+                </div>
+              )}
+              {admissionForm.patientId && (
+                <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-sm font-medium text-green-800">Selected Patient:</div>
+                  <div className="text-sm text-green-700">
+                    {patients.find(p => p.id.toString() === admissionForm.patientId)?.name || 'Patient selected'}
+                  </div>
+                </div>
+              )}
+              {patients.length === 0 && patientSearchQuery.length >= 2 && (
+                <div className="mt-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-center">
+                  <div className="text-sm text-yellow-800">No patients found matching "{patientSearchQuery}"</div>
+                  <div className="text-xs text-yellow-600 mt-1">Try searching by name, phone number, or patient ID</div>
                 </div>
               )}
             </div>

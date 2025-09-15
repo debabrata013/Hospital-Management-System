@@ -102,7 +102,7 @@ export default function BillingPage() {
   const [showPatientSearchDialog, setShowPatientSearchDialog] = useState(false)
   const [showBillDetailsDialog, setShowBillDetailsDialog] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-  
+   const [allPatients, setAllPatients] = useState<Patient[]>([])
   // Form states
   const [patientSearchQuery, setPatientSearchQuery] = useState('')
   const [billItems, setBillItems] = useState<BillItem[]>([])
@@ -141,6 +141,16 @@ export default function BillingPage() {
     }
   }
 
+  const fetchAllPatients = async () => {
+    try {
+      const response = await fetch('/api/receptionist/patients')
+      const data = await response.json()
+      setPatients(data.patients || [])
+      // setPatients(data.patients?.slice(0, 20) || []) // Show first 20 initially
+    } catch (error) {
+      console.error('Failed to fetch patients:', error)
+    }
+  }
   const fetchTemplates = async () => {
     try {
       const response = await fetch('/api/receptionist/billing?action=templates')
@@ -151,16 +161,49 @@ export default function BillingPage() {
     }
   }
 
-  const searchPatients = async (query: string) => {
+  // const searchPatients = async (query: string) => {
+  //   if (query.length < 2) {
+  //     setPatients([])
+  //     return
+  //   }
+    
+  //   try {
+  //     const response = await fetch(`/api/receptionist/billing/patients?q=${encodeURIComponent(query)}`)
+  //     const data = await response.json()
+  //     setPatients(data.patients || [])
+  //   } catch (error) {
+  //     console.error('Failed to search patients:', error)
+  //   }
+  // }
+   const searchPatients = async (query: string) => {
+    setPatientSearchQuery(query)
+    
     if (query.length < 2) {
-      setPatients([])
+      setPatients(allPatients.slice(0, 20)) // Show first 20 when no search
       return
     }
     
+    // Filter from all patients first (instant search)
+    const filtered = allPatients.filter(patient => 
+      patient.name.toLowerCase().includes(query.toLowerCase()) ||
+      patient.contact_number.includes(query) ||
+      patient.patient_id.toLowerCase().includes(query.toLowerCase())
+    )
+    
+    setPatients(filtered.slice(0, 20))
+    
+    // Also search from API for more results
     try {
-      const response = await fetch(`/api/receptionist/billing/patients?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/receptionist/patients/search?q=${encodeURIComponent(query)}`)
       const data = await response.json()
-      setPatients(data.patients || [])
+      if (data.patients && data.patients.length > 0) {
+        // Merge and deduplicate results
+        const merged = [...filtered, ...data.patients]
+        const unique = merged.filter((patient, index, self) => 
+          index === self.findIndex(p => p.patient_id === patient.patient_id)
+        )
+        setPatients(unique.slice(0, 20))
+      }
     } catch (error) {
       console.error('Failed to search patients:', error)
     }

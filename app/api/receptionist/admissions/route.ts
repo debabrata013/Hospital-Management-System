@@ -277,10 +277,10 @@ export async function PUT(request: NextRequest) {
       // Create bill record
       await connection.execute(
         `INSERT INTO bills (
-          bill_id, patient_id, patient_name, total_amount, status, 
+          bill_id, patient_id, total_amount, final_amount, payment_status, 
           bill_type, created_by, created_at
-        ) VALUES (?, ?, ?, ?, 'pending', 'discharge', ?, NOW())`,
-        [billId, admission.patient_id, admission.patient_name, totalAmount, dischargedBy || 1]
+        ) VALUES (?, ?, ?, ?, 'pending', 'admission', ?, NOW())`,
+        [billId, admission.patient_id, totalAmount, totalAmount, dischargedBy || 1]
       );
       
       const [billResult] = await connection.execute('SELECT LAST_INSERT_ID() as bill_db_id');

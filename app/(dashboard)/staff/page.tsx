@@ -84,6 +84,8 @@ const navigationItems = [
       { title: "Overview", icon: LayoutDashboard, url: "/staff", isActive: true },
       { title: "Tasks", icon: ClipboardList, url: "/staff/tasks" },
       { title: "Medicines", icon: Pill, url: "/staff/medicines" },
+      { title: "Vitals", icon: Activity, url: "/staff/vitals" },
+      
     ]
   },
   {
@@ -462,7 +464,7 @@ export default function StaffDashboard() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6">
                     <h3 className="font-medium text-gray-700 mb-2">Today's Schedule</h3>
                     <div className="space-y-2">
@@ -504,64 +506,7 @@ export default function StaffDashboard() {
               </Card>
             </div>
                         
-            {/* Quick Tasks Section */}
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold flex items-center">
-                  <ClipboardList className="h-6 w-6 mr-2 text-pink-500" />
-                  My Tasks
-                </CardTitle>
-                <CardDescription>Manage your daily tasks and assignments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Task List */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                        <div>
-                          <p className="font-medium">Complete equipment inventory</p>
-                          <p className="text-sm text-gray-500">Due by 11:00 AM</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Completed</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center">
-                        <AlertTriangle className="h-5 w-5 text-orange-500 mr-3" />
-                        <div>
-                          <p className="font-medium">Restock medication carts</p>
-                          <p className="text-sm text-gray-500">Due by 2:00 PM</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200">In Progress</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center">
-                        <Clock className="h-5 w-5 text-gray-400 mr-3" />
-                        <div>
-                          <p className="font-medium">Submit shift report</p>
-                          <p className="text-sm text-gray-500">Due by 4:00 PM</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">Pending</Badge>
-                    </div>
-                  </div>
-                  
-                  {/* Add New Task Button */}
-                  <div className="pt-2">
-                    <Button variant="outline" className="w-full border-dashed border-gray-300 text-gray-600 hover:border-pink-300 hover:text-pink-600">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add New Task
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
+      
             {/* Attendance Section */}
             <Card className="border-pink-100">
               <CardHeader>
