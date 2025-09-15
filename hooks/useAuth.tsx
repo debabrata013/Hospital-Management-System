@@ -104,7 +104,10 @@ const useProvideAuth = (): AuthContextType => {
       });
 
       toast.success('Login successful!');
-      router.push(getRedirectPath(user.role));
+      
+      // Force redirect using window.location for immediate navigation
+      const redirectPath = getRedirectPath(user.role);
+      window.location.href = redirectPath;
 
     } catch (error: any) {
       const errorMessage = error.message || 'An unexpected error occurred.';
