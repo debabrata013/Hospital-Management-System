@@ -61,76 +61,6 @@ interface MedicineDelivery {
   deliveredBy?: string;
 }
 
-// Mock data for medicine deliveries
-const initialMedicines: MedicineDelivery[] = [
-  {
-    id: "MED001",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    roomNumber: "101",
-    medicine: "Amlodipine 5mg",
-    dosage: "1 tablet",
-    route: "Oral",
-    frequency: "Once daily",
-    scheduledTime: "14:30",
-    scheduledDate: "2024-01-15",
-    status: "pending",
-    prescribedBy: "Dr. Anil Kumar",
-    notes: "Take with food",
-    priority: "normal",
-  },
-  {
-    id: "MED002",
-    patientId: "P003",
-    patientName: "Ajay Kumar",
-    roomNumber: "ICU-1",
-    medicine: "Morphine 10mg",
-    dosage: "1 injection",
-    route: "IV",
-    frequency: "Every 4 hours",
-    scheduledTime: "15:00",
-    scheduledDate: "2024-01-15",
-    status: "pending",
-    prescribedBy: "Dr. Rajesh Gupta",
-    notes: "Monitor for respiratory depression",
-    priority: "high",
-  },
-  {
-    id: "MED003",
-    patientId: "P002",
-    patientName: "Sunita Devi",
-    roomNumber: "205",
-    medicine: "Iron tablets",
-    dosage: "2 tablets",
-    route: "Oral",
-    frequency: "Twice daily",
-    scheduledTime: "15:30",
-    scheduledDate: "2024-01-15",
-    status: "pending",
-    prescribedBy: "Dr. Priya Singh",
-    notes: "Take on empty stomach",
-    priority: "normal",
-  },
-  {
-    id: "MED004",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    roomNumber: "101",
-    medicine: "Metformin 500mg",
-    dosage: "1 tablet",
-    route: "Oral",
-    frequency: "Twice daily",
-    scheduledTime: "13:00",
-    scheduledDate: "2024-01-15",
-    status: "delivered",
-    prescribedBy: "Dr. Anil Kumar",
-    notes: "Monitor blood glucose",
-    priority: "normal",
-    deliveredAt: "2024-01-15T13:05:00Z",
-    deliveredBy: "Staff Nurse",
-  },
-];
-
 export default function StaffMedicinesPage() {
   const [medicines, setMedicines] = useState<MedicineDelivery[]>([]);
   const [activeTab, setActiveTab] = useState("pending");
@@ -140,21 +70,30 @@ export default function StaffMedicinesPage() {
   const [deliveryDialog, setDeliveryDialog] = useState(false);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
-    try {
-      const savedMedicinesJSON = localStorage.getItem("medicineDeliveries");
-      if (savedMedicinesJSON) {
-        const savedMedicines = JSON.parse(savedMedicinesJSON) as MedicineDelivery[];
-        setMedicines(savedMedicines);
-      } else {
-        setMedicines(initialMedicines);
+    const fetchMedicines = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/staff/medicines');
+        if (!response.ok) {
+          throw new Error('Failed to fetch medicine data');
+        }
+        const data = await response.json();
+        setMedicines(data);
+        setError(null);
+      } catch (error: any) {
+        setError(error.message);
+        console.error("Failed to fetch medicines from API", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to parse medicines from localStorage", error);
-      setMedicines(initialMedicines);
-    }
+    };
+
+    fetchMedicines();
   }, []);
 
   const getStatusBadge = (status: string) => {
@@ -209,7 +148,7 @@ export default function StaffMedicinesPage() {
         activeTab === "all" ||
         (activeTab === "pending" && med.status === "pending") ||
         (activeTab === "delivered" && med.status === "delivered") ||
-        (activeTab === "overdue" && med.status === "missed");
+        (activeTab === "overdue" && (med.status === "missed" || med.status === "delayed"));
 
       const matchesFilter =
         filter.priority === "all" || med.priority === filter.priority;
@@ -221,20 +160,42 @@ export default function StaffMedicinesPage() {
   const pendingMedicines = medicines.filter((med) => med.status === "pending");
   const deliveredMedicines = medicines.filter((med) => med.status === "delivered");
 
-  const markAsDelivered = (medicineId: string) => {
-    const updatedMedicines: MedicineDelivery[] = medicines.map((med) => {
-      if (med.id === medicineId) {
-        return {
-          ...med,
-          status: "delivered",
-          deliveredAt: new Date().toISOString(),
-          deliveredBy: "Staff Nurse",
-        };
+  const markAsDelivered = async (medicineId: string) => {
+    try {
+      // Ideally, get the user's name from session/auth context
+      const deliveredByName = "Staff Nurse"; 
+
+      const response = await fetch(`/api/staff/medicines/${medicineId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ deliveredBy: deliveredByName }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update medicine status');
       }
-      return med;
-    });
-    setMedicines(updatedMedicines);
-    localStorage.setItem("medicineDeliveries", JSON.stringify(updatedMedicines));
+
+      // Update local state to reflect the change immediately
+      const updatedMedicines = medicines.map((med): MedicineDelivery => {
+        if (med.id === medicineId) {
+          return {
+            ...med,
+            status: "delivered",
+            deliveredAt: new Date().toISOString(),
+            deliveredBy: deliveredByName,
+          };
+        }
+        return med;
+      });
+      setMedicines(updatedMedicines);
+
+    } catch (error: any) {
+      console.error("Failed to mark medicine as delivered:", error);
+      // Here you could add a toast notification to inform the user
+      setError("Failed to update status. Please try again.");
+    }
   };
 
   const handleFilterChange = (type: string, value: string) => {
@@ -269,9 +230,13 @@ export default function StaffMedicinesPage() {
 
       {/* Main Content */}
       <div className="p-4 md:p-6">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <Card className="border-green-100">
+        {isLoading && <p>Loading medicines...</p>}
+        {error && <p className="text-red-500">{error}</p>}
+        {!isLoading && !error && (
+          <>
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
+              <Card className="border-green-100">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -315,55 +280,55 @@ export default function StaffMedicinesPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Tabs and Search */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <TabsList className="grid grid-cols-4 w-full md:w-auto">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="delivered">Delivered</TabsTrigger>
-              <TabsTrigger value="overdue">Overdue</TabsTrigger>
-            </TabsList>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-              <div className="relative flex-1 sm:flex-none">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search medicines..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
-                />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    <Filter className="h-4 w-4 mr-2" />Filter
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleFilterChange("priority", "all")}>All</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleFilterChange("priority", "high")}>High</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleFilterChange("priority", "normal")}>Normal</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleFilterChange("priority", "low")}>Low</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
-          </div>
-          <TabsContent value={activeTab} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Medicine Schedule</CardTitle>
-                <CardDescription>{filteredMedicines.length} medicines found</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredMedicines.map((medicine) => (
-                    <Card key={medicine.id} className="border hover:shadow-md transition-shadow">
-                      <CardContent className="p-4 md:p-6">
+
+            {/* Tabs and Search */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <TabsList className="grid grid-cols-4 w-full md:w-auto">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="pending">Pending</TabsTrigger>
+                  <TabsTrigger value="delivered">Delivered</TabsTrigger>
+                  <TabsTrigger value="overdue">Overdue</TabsTrigger>
+                </TabsList>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search medicines..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 w-full sm:w-64"
+                    />
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        <Filter className="h-4 w-4 mr-2" />Filter
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleFilterChange("priority", "all")}>All</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFilterChange("priority", "high")}>High</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFilterChange("priority", "normal")}>Normal</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFilterChange("priority", "low")}>Low</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              <TabsContent value={activeTab} className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Medicine Schedule</CardTitle>
+                    <CardDescription>{filteredMedicines.length} medicines found</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {filteredMedicines.map((medicine) => (
+                        <Card key={medicine.id} className="border hover:shadow-md transition-shadow">
+                          <CardContent className="p-4 md:p-6">
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                           <div className="flex items-start sm:items-center space-x-4">
                             {getRouteIcon(medicine.route)}
@@ -434,14 +399,16 @@ export default function StaffMedicinesPage() {
                             </div>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
 
       {/* Details Dialog */}
@@ -509,9 +476,9 @@ export default function StaffMedicinesPage() {
             <Button variant="outline" onClick={() => setDeliveryDialog(false)}>Cancel</Button>
             <Button
               className="bg-green-500 hover:bg-green-600"
-              onClick={() => {
+              onClick={async () => {
                 if (selectedMedicine) {
-                  markAsDelivered(selectedMedicine.id);
+                  await markAsDelivered(selectedMedicine.id);
                 }
                 setDeliveryDialog(false);
               }}

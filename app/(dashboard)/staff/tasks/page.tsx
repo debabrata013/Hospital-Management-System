@@ -62,95 +62,6 @@ interface Task {
   completedAt?: string;
 }
 
-// Mock data for tasks
-const initialTasks: Task[] = [
-  {
-    id: "T001",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    roomNumber: "101",
-    task: "Record vital signs",
-    description:
-      "Check blood pressure, pulse, temperature, and oxygen saturation",
-    priority: "normal",
-    dueTime: "14:00",
-    dueDate: "2024-01-15",
-    status: "pending",
-    assignedBy: "Dr. Anil Kumar",
-    assignedAt: "2024-01-15T10:00:00Z",
-    category: "vitals",
-    estimatedDuration: "15 minutes",
-  },
-  {
-    id: "T002",
-    patientId: "P003",
-    patientName: "Ajay Kumar",
-    roomNumber: "ICU-1",
-    task: "Administer medication",
-    description: "Give prescribed pain medication - Morphine 10mg IV",
-    priority: "high",
-    dueTime: "14:30",
-    dueDate: "2024-01-15",
-    status: "pending",
-    assignedBy: "Dr. Rajesh Gupta",
-    assignedAt: "2024-01-15T09:30:00Z",
-    category: "medication",
-    estimatedDuration: "10 minutes",
-  },
-  {
-    id: "T003",
-    patientId: "P002",
-    patientName: "Sunita Devi",
-    roomNumber: "205",
-    task: "Wound dressing change",
-    description:
-      "Change surgical wound dressing and check for signs of infection",
-    priority: "normal",
-    dueTime: "15:00",
-    dueDate: "2024-01-15",
-    status: "pending",
-    assignedBy: "Dr. Priya Singh",
-    assignedAt: "2024-01-15T11:00:00Z",
-    category: "care",
-    estimatedDuration: "20 minutes",
-  },
-  {
-    id: "T004",
-    patientId: "P001",
-    patientName: "Ram Sharma",
-    roomNumber: "101",
-    task: "Patient mobility assistance",
-    description:
-      "Help patient with walking exercises as per physiotherapy plan",
-    priority: "normal",
-    dueTime: "16:00",
-    dueDate: "2024-01-15",
-    status: "completed",
-    assignedBy: "Physiotherapist",
-    assignedAt: "2024-01-15T12:00:00Z",
-    category: "therapy",
-    estimatedDuration: "30 minutes",
-    completedAt: "2024-01-15T16:30:00Z",
-  },
-  {
-    id: "T005",
-    patientId: "P004",
-    patientName: "Geeta Sharma",
-    roomNumber: "102",
-    task: "Blood glucose monitoring",
-    description: "Check blood sugar levels and record in chart",
-    priority: "high",
-    dueTime: "13:30",
-    dueDate: "2024-01-15",
-    status: "completed",
-    assignedBy: "Dr. Anil Kumar",
-    assignedAt: "2024-01-15T08:00:00Z",
-    completedAt: "2024-01-15T13:25:00Z",
-    category: "monitoring",
-    estimatedDuration: "10 minutes",
-  },
-]
-
 const taskCategories = [
   {
     id: "vitals",
@@ -191,22 +102,31 @@ export default function StaffTasksPage() {
   const [filter, setFilter] = useState({ priority: "all", category: "all" })
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isClient, setIsClient] = useState(false)
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsClient(true)
-    try {
-      const savedTasksJSON = localStorage.getItem("staffTasks")
-      if (savedTasksJSON) {
-        const savedTasks = JSON.parse(savedTasksJSON) as Task[]
-        setTasks(savedTasks)
-      } else {
-        setTasks(initialTasks)
+    setIsClient(true);
+    const fetchTasks = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/staff/tasks');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tasks');
+        }
+        const data = await response.json();
+        setTasks(data);
+        setError(null);
+      } catch (error: any) {
+        setError(error.message);
+        console.error("Failed to fetch tasks from API", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to parse tasks from localStorage", error)
-      setTasks(initialTasks)
-    }
-  }, [])
+    };
+
+    fetchTasks();
+  }, []);
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
@@ -288,7 +208,6 @@ export default function StaffTasksPage() {
       return task
     })
     setTasks(updatedTasks)
-    localStorage.setItem("staffTasks", JSON.stringify(updatedTasks))
   }
 
   const handleFilterChange = (type: string, value: string) => {
@@ -331,6 +250,10 @@ export default function StaffTasksPage() {
 
       {/* Main Content */}
       <div className="p-4 md:p-6">
+        {isLoading && <p>Loading tasks...</p>}
+        {error && <p className="text-red-500">{error}</p>}
+        {!isLoading && !error && (
+        <>
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="border-green-100">
@@ -663,6 +586,7 @@ export default function StaffTasksPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </>)}
       </div>
       <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
           <DialogContent>
