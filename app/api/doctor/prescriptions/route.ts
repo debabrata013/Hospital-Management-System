@@ -82,11 +82,13 @@ export async function GET(request: NextRequest) {
         console.log('Could not find patient, using provided ID as fallback');
       }
 
-      // Query prescriptions for the specific patient
+      // Query prescriptions for the specific patient with doctor name
       const query = `
         SELECT 
-          p.*
+          p.*,
+          u.name as doctor_name
         FROM prescriptions p
+        LEFT JOIN users u ON p.doctor_id = u.id
         WHERE p.patient_id = ?
         ORDER BY p.prescription_date DESC, p.created_at DESC
       `
@@ -95,9 +97,44 @@ export async function GET(request: NextRequest) {
       const [prescriptions] = await connection.execute(query, [actualPatientId]) as any[]
       console.log('Found prescriptions:', prescriptions)
 
+      // Transform the data to match frontend expectations
+      const transformedPrescriptions = prescriptions.map((prescription: any) => {
+        let medicines = [];
+        try {
+          medicines = JSON.parse(prescription.medicines || '[]');
+        } catch (e) {
+          medicines = [];
+        }
+
+        // Create a formatted medications string
+        const medicationsText = medicines.map((med: any) => 
+          `${med.name} ${med.dosage} - ${med.frequency} for ${med.duration}`
+        ).join(', ');
+
+        return {
+          id: prescription.id,
+          patient_id: prescription.patient_id,
+          doctor_name: prescription.doctor_name || 'Unknown Doctor',
+          medications: medicationsText || 'No medications prescribed',
+          dosage: medicines.length > 0 ? medicines[0].dosage : '',
+          instructions: prescription.remarks || 'No specific instructions',
+          created_at: prescription.created_at,
+          prescription_date: prescription.prescription_date,
+          prescription_id: prescription.prescription_id,
+          vitals: {
+            blood_pressure: prescription.blood_pressure,
+            heart_rate: prescription.heart_rate,
+            temperature: prescription.temperature,
+            weight: prescription.weight,
+            height: prescription.height
+          },
+          medicines: medicines
+        };
+      });
+
       return NextResponse.json({
         success: true,
-        prescriptions: prescriptions || []
+        prescriptions: transformedPrescriptions || []
       })
 
     } finally {
