@@ -138,7 +138,7 @@ function LoginForm() {
       'super-admin': '/super-admin',
       'admin': '/admin',
       'doctor': '/doctor',
-      'staff': '/staff',
+      'nurse': '/nurse',
       'receptionist': '/receptionist',
       'patient': '/patient',
       'pharmacy': '/pharmacy'

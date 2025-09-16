@@ -13,12 +13,14 @@ const PROTECTED_ROUTES = {
   '/doctor': ['super-admin', 'doctor'],
   '/pharmacy': ['super-admin', 'pharmacy'],
   '/staff': ['super-admin', 'staff'],
+  '/nurse': ['super-admin', 'nurse'],
   '/receptionist': ['super-admin', 'receptionist'],
   '/api/admin': ['super-admin', 'admin'],
   '/api/doctor': ['super-admin', 'doctor'],
   '/api/pharmacy': ['super-admin', 'pharmacy'],
-  '/api/patients': ['super-admin', 'admin', 'doctor', 'staff', 'receptionist'],
+  '/api/patients': ['super-admin', 'admin', 'doctor', 'staff', 'nurse', 'receptionist'],
   '/api/staff': ['super-admin', 'staff'],
+  '/api/nurse': ['super-admin', 'nurse'],
   '/api/receptionist': ['super-admin', 'receptionist']
 }
 
@@ -150,6 +152,7 @@ function getRoleBasedRedirect(role: string): string {
     'doctor': '/doctor',
     'pharmacy': '/pharmacy',
     'staff': '/staff',
+    'nurse': '/nurse',
     'receptionist': '/receptionist'
   }
   
@@ -169,12 +172,14 @@ export const config = {
     '/doctor/:path*',
     '/pharmacy/:path*',
     '/staff/:path*',
+    '/nurse/:path*',
     '/receptionist/:path*',
     '/super-admin/:path*',
     '/api/admin/:path*',
     '/api/doctor/:path*',
     '/api/pharmacy/:path*',
     '/api/staff/:path*',
+    '/api/nurse/:path*',
     '/api/receptionist/:path*'
   ],
 }

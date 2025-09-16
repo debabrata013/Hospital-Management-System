@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       WHERE id = ?
     `
 
-    const patients = await executeQuery(query, [patientId])
+    const patients = await executeQuery(query, [patientId]) as any[]
 
     if (!patients || patients.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
