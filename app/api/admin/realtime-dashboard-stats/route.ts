@@ -65,14 +65,14 @@ export async function GET(request: NextRequest) {
       staffOnDuty = staffResult[0]?.total || 0
     }
     
-    // 3. Available Rooms - Count rooms that are not fully occupied
+    // 3. Available Rooms - Count rooms that are ready for patients
     let availableRooms = 0
     try {
       const roomsResult: any = await executeQuery(`
         SELECT COUNT(*) as total 
         FROM rooms 
         WHERE current_occupancy < capacity 
-        AND status = 'active'
+        AND status = 'Available'
       `, [], { allowDuringBuild: true })
       availableRooms = roomsResult[0]?.total || 0
     } catch (error) {
@@ -82,14 +82,27 @@ export async function GET(request: NextRequest) {
           SELECT COUNT(DISTINCT room_id) as total 
           FROM rooms r
           LEFT JOIN room_assignments ra ON r.id = ra.room_id AND ra.status = 'Active'
-          WHERE r.status = 'active'
-          GROUP BY r.id
-          HAVING COUNT(ra.id) < r.capacity
+          WHERE r.status = 'Available'
+          AND (
+            current_occupancy < capacity OR
+            NOT EXISTS (
+              SELECT 1 FROM room_assignments 
+              WHERE room_id = r.id AND status = 'Active'
+            )
+          )
         `, [], { allowDuringBuild: true })
-        availableRooms = (roomsResult as any)?.length || 0
+        availableRooms = roomsResult[0]?.total || 0
       } catch (error2) {
-        // Final fallback: assume some rooms are available
-        availableRooms = 8
+        // Final fallback: calculate based on total capacity
+        try {
+          const totalResult: any = await executeQuery(`
+            SELECT COUNT(*) as total FROM rooms 
+            WHERE status = 'Available'
+          `, [], { allowDuringBuild: true })
+          availableRooms = totalResult[0]?.total || 0
+        } catch (error3) {
+          availableRooms = 0 // If all queries fail, assume no rooms are available
+        }
       }
     }
     

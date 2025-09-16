@@ -10,7 +10,7 @@
     "build:simple": "cross-env NEXT_STATIC_BUILD=true STATIC_BUILD=true NODE_ENV=production next build",
     "start": "next start -p 3500 -H 0.0.0.0",
     "lint": "next lint",
-    "init-db": "node scripts/init-db.js",
+    "init-db": "node scripts/setup-complete-db.js",
     "setup-pharmacy": "node scripts/setup-pharmacy-db.js",
     "test-api": "node scripts/test-pharmacy-api.js",
     "clear-cache": "rimraf .next && npm run build",
