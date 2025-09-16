@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     const allAppointments: any = await executeQuery(allAppointmentsQuery, []);
     console.log('Sample appointments data:', allAppointments);
     
-    // Simple approach: get all patients who have appointments with any doctor
+    // Get patients who have appointments with the logged-in doctor
     const query = `
       SELECT DISTINCT
         p.id,
@@ -77,12 +77,13 @@ export async function GET(req: NextRequest) {
         a.status
       FROM patients p
       JOIN appointments a ON a.patient_id = p.id
+      WHERE a.doctor_id = ?
       ORDER BY a.appointment_date DESC
       LIMIT 10
     `;
     
-    console.log('Executing query to get all patients with appointments');
-    const patientsData: any = await executeQuery(query, []);
+    console.log('Executing query to get patients with appointments for doctor:', userId);
+    const patientsData: any = await executeQuery(query, [userId]);
 
     const patients = patientsData.map((p: any) => {
       const [firstName, ...lastNameParts] = (p.name || '').split(' ');

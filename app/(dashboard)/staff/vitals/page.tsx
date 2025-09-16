@@ -161,7 +161,10 @@ export default function StaffVitalsPage() {
       return;
     }
 
-    const patientDetails = patients.find(p => p.id === formState.patientId);
+    const patientDetails = patients.find(p => p.id.toString() === formState.patientId.toString());
+    console.log("Looking for patient ID:", formState.patientId);
+    console.log("Available patients:", patients.map(p => ({ id: p.id, name: p.name })));
+    console.log("Found patient:", patientDetails);
     
     try {
       const response = await fetch('/api/staff/vitals', {

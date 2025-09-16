@@ -135,6 +135,25 @@ export async function POST(request: NextRequest) {
       // Generate prescription ID
       const prescriptionId = `PRESC-${Date.now().toString(36)}${Math.random().toString(36).substr(2, 4)}`.toUpperCase();
 
+      // Check if appointment exists and get its actual database ID
+      let actualAppointmentId = null;
+      if (appointmentId) {
+        try {
+          const [appointmentRows] = await connection.execute(
+            'SELECT id FROM appointments WHERE appointment_id = ? OR id = ?', 
+            [appointmentId, appointmentId]
+          ) as any[]
+          if (appointmentRows.length > 0) {
+            actualAppointmentId = appointmentRows[0].id;
+            console.log('Found appointment ID:', actualAppointmentId, 'for appointment:', appointmentId);
+          } else {
+            console.log('Appointment not found, creating prescription without appointment reference');
+          }
+        } catch (e) {
+          console.log('Could not verify appointment, creating prescription without appointment reference');
+        }
+      }
+
       // Insert new prescription
       const insertQuery = `
         INSERT INTO prescriptions (
@@ -148,7 +167,7 @@ export async function POST(request: NextRequest) {
         prescriptionId,
         patientId,
         tokenResult.userId,
-        appointmentId || null,
+        actualAppointmentId,
         vitals?.bloodPressure || null,
         vitals?.heartRate || null,
         vitals?.temperature || null,

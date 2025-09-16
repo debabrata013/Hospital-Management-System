@@ -38,7 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit } from 'lucide-react'
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse } from 'lucide-react'
 
 
 // Mock data removed - using real API data from /api/doctor/appointments
@@ -87,18 +87,28 @@ export default function DoctorDashboard() {
   const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
-  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
-  const [pendingTasksLoading, setPendingTasksLoading] = useState(true);
+  
+  // Vitals modal states
+  const [vitalsDialog, setVitalsDialog] = useState(false);
+  const [selectedPatientForVitals, setSelectedPatientForVitals] = useState<any>(null);
+  const [vitalsData, setVitalsData] = useState<any[]>([]);
+  const [vitalsLoading, setVitalsLoading] = useState(false);
+  
+  // Appointment details modal states
+  const [appointmentDetailsDialog, setAppointmentDetailsDialog] = useState(false);
+  const [selectedAppointmentForDetails, setSelectedAppointmentForDetails] = useState<any>(null);
   
   // Prescription modal states
   const [prescriptionDialog, setPrescriptionDialog] = useState(false);
   const [selectedAppointmentForPrescription, setSelectedAppointmentForPrescription] = useState<any>(null);
   const [prescriptionForm, setPrescriptionForm] = useState({
-    bloodPressure: '',
-    heartRate: '',
-    temperature: '',
-    weight: '',
-    height: '',
+    vitals: {
+      bloodPressure: '',
+      heartRate: '',
+      temperature: '',
+      weight: '',
+      height: ''
+    },
     medicines: [{ name: '', dosage: '', frequency: '', duration: '' }],
     remarks: ''
   });
@@ -109,6 +119,18 @@ export default function DoctorDashboard() {
     }
   }, [user]);
 
+  const updateMedicine = (index: number, field: string, value: string) => {
+    const updatedMedicines = [...prescriptionForm.medicines];
+    updatedMedicines[index] = { ...updatedMedicines[index], [field]: value };
+    setPrescriptionForm(prev => ({ ...prev, medicines: updatedMedicines }));
+  };
+
+  const updateVitals = (field: string, value: string) => {
+    setPrescriptionForm(prev => ({
+      ...prev,
+      vitals: { ...prev.vitals, [field]: value }
+    }));
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -162,27 +184,11 @@ export default function DoctorDashboard() {
       }
     };
 
-    const fetchPendingTasks = async () => {
-      try {
-        setPendingTasksLoading(true);
-        const response = await fetch('/api/doctor/pending-tasks');
-        if (!response.ok) {
-          throw new Error('Failed to fetch pending tasks');
-        }
-        const data = await response.json();
-        setPendingTasks(data);
-      } catch (error) {
-        console.error("Error fetching pending tasks:", error);
-      } finally {
-        setPendingTasksLoading(false);
-      }
-    };
 
     if (user) {
       fetchStats();
       fetchAppointments();
       fetchRecentPatients();
-      fetchPendingTasks();
     }
   }, [user]);
 
@@ -487,7 +493,7 @@ export default function DoctorDashboard() {
             </Card>
 
             {/* Main Dashboard Widgets */}
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="w-full">
               {/* Appointments */}
               <Card className="border-pink-100">
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -551,9 +557,41 @@ export default function DoctorDashboard() {
                               </div>
                             </div>
                             <div className="flex flex-col space-y-2 flex-shrink-0 w-24">
-                              <Button variant="outline" size="sm" className="h-8 w-full text-xs">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 w-full text-xs"
+                                onClick={() => {
+                                  setSelectedAppointmentForDetails(appointment);
+                                  setAppointmentDetailsDialog(true);
+                                }}
+                              >
                                 <Eye className="h-3 w-3 mr-1" />
                                 View
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                onClick={async () => {
+                                  setSelectedPatientForVitals(appointment);
+                                  setVitalsLoading(true);
+                                  setVitalsDialog(true);
+                                  
+                                  try {
+                                    const response = await fetch(`/api/doctor/vitals?patientId=${appointment.patient_id || appointment.Patient?.id}`);
+                                    const data = await response.json();
+                                    setVitalsData(data.vitals || []);
+                                  } catch (error) {
+                                    console.error('Error fetching vitals:', error);
+                                    setVitalsData([]);
+                                  } finally {
+                                    setVitalsLoading(false);
+                                  }
+                                }}
+                              >
+                                <HeartPulse className="h-3 w-3 mr-1" />
+                                Vitals
                               </Button>
                               <Button 
                                 variant="outline" 
@@ -581,106 +619,8 @@ export default function DoctorDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Recent Patients */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-gray-900">Recent Patients</CardTitle>
-                    <CardDescription>Recently consulted patients</CardDescription>
-                  </div>
-                  <Link href="/doctor/patients">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentPatientsLoading ? (
-                      <p>Loading recent patients...</p>
-                    ) : recentPatients.length > 0 ? (
-                      recentPatients.map((patient) => (
-                      <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <User className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{patient.firstName} {patient.lastName} ({patient.age}y)</p>
-                            <p className="text-sm text-gray-600">Last Visit: {new Date(patient.lastVisit).toLocaleDateString()}</p>
-                            {patient.totalAppointments && (
-                              <p className="text-xs text-blue-600">{patient.totalAppointments} appointments</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          {getStatusBadge(patient.status)}
-                           <Link href={`/doctor/patients/${patient.id}`} passHref>
-                             <Button variant="outline" size="sm" className="h-8 mt-1">
-                               <Eye className="h-4 w-4 mr-1" />
-                               View
-                             </Button>
-                           </Link>
-                        </div>
-                      </div>
-                    ))
-                    ) : (
-                      <p>No recent patients found.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
-            {/* Pending Tasks */}
-            <Card className="border-pink-100">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-gray-900">Pending Tasks</CardTitle>
-                  <CardDescription>Items requiring your attention</CardDescription>
-                </div>
-                <Badge className="bg-red-100 text-red-700">
-                  {pendingTasksLoading ? '...' : pendingTasks.length} pending
-                </Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {pendingTasksLoading ? (
-                    <p>Loading tasks...</p>
-                  ) : pendingTasks.length > 0 ? (
-                    pendingTasks.map((task: any) => (
-                      <div 
-                        key={task.id} 
-                        className={`p-4 rounded-xl border ${getPriorityColor(task.priority)} cursor-pointer hover:shadow-md transition-all duration-200`}
-                        onClick={() => handleTaskClick(task)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            {getTaskIcon(task.type)}
-                            <div>
-                              <p className="font-semibold">{task.Patient.firstName} {task.Patient.lastName}</p>
-                              <p className="text-sm opacity-75">{task.description}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge className={`${getPriorityColor(task.priority)} border-0`}>
-                              {task.priority}
-                            </Badge>
-                            <p className="text-xs opacity-75 mt-1">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
-                            <Button variant="outline" size="sm" className="h-8 mt-1">
-                              <Eye className="h-4 w-4 mr-1" />
-                              Review
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p>No pending tasks.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </main>
         </SidebarInset>
       </div>
@@ -704,40 +644,40 @@ export default function DoctorDashboard() {
                   <Label>Blood Pressure</Label>
                   <Input
                     placeholder="120/80"
-                    value={prescriptionForm.bloodPressure}
-                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, bloodPressure: e.target.value }))}
+                    value={prescriptionForm.vitals.bloodPressure}
+                    onChange={(e) => updateVitals('bloodPressure', e.target.value)}
                   />
                 </div>
                 <div>
                   <Label>Heart Rate (bpm)</Label>
                   <Input
                     placeholder="72"
-                    value={prescriptionForm.heartRate}
-                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, heartRate: e.target.value }))}
+                    value={prescriptionForm.vitals.heartRate}
+                    onChange={(e) => updateVitals('heartRate', e.target.value)}
                   />
                 </div>
                 <div>
                   <Label>Temperature (°F)</Label>
                   <Input
                     placeholder="98.6"
-                    value={prescriptionForm.temperature}
-                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, temperature: e.target.value }))}
+                    value={prescriptionForm.vitals.temperature}
+                    onChange={(e) => updateVitals('temperature', e.target.value)}
                   />
                 </div>
                 <div>
                   <Label>Weight (kg)</Label>
                   <Input
                     placeholder="70"
-                    value={prescriptionForm.weight}
-                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, weight: e.target.value }))}
+                    value={prescriptionForm.vitals.weight}
+                    onChange={(e) => updateVitals('weight', e.target.value)}
                   />
                 </div>
                 <div>
                   <Label>Height (cm)</Label>
                   <Input
                     placeholder="170"
-                    value={prescriptionForm.height}
-                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, height: e.target.value }))}
+                    value={prescriptionForm.vitals.height}
+                    onChange={(e) => updateVitals('height', e.target.value)}
                   />
                 </div>
               </div>
@@ -771,11 +711,7 @@ export default function DoctorDashboard() {
                       <Input
                         placeholder="Medicine name"
                         value={medicine.name}
-                        onChange={(e) => {
-                          const newMedicines = [...prescriptionForm.medicines];
-                          newMedicines[index].name = e.target.value;
-                          setPrescriptionForm(prev => ({ ...prev, medicines: newMedicines }));
-                        }}
+                        onChange={(e) => updateMedicine(index, 'name', e.target.value)}
                       />
                     </div>
                     <div>
@@ -860,13 +796,7 @@ export default function DoctorDashboard() {
                     body: JSON.stringify({
                       appointmentId: selectedAppointmentForPrescription?.id,
                       patientId: selectedAppointmentForPrescription?.Patient?.id,
-                      vitals: {
-                        bloodPressure: prescriptionForm.bloodPressure,
-                        heartRate: prescriptionForm.heartRate,
-                        temperature: prescriptionForm.temperature,
-                        weight: prescriptionForm.weight,
-                        height: prescriptionForm.height
-                      },
+                      vitals: prescriptionForm.vitals,
                       medicines: prescriptionForm.medicines.filter(med => med.name.trim() !== ''),
                       remarks: prescriptionForm.remarks
                     })
@@ -875,11 +805,13 @@ export default function DoctorDashboard() {
                   if (response.ok) {
                     setPrescriptionDialog(false);
                     setPrescriptionForm({
-                      bloodPressure: '',
-                      heartRate: '',
-                      temperature: '',
-                      weight: '',
-                      height: '',
+                      vitals: {
+                        bloodPressure: '',
+                        heartRate: '',
+                        temperature: '',
+                        weight: '',
+                        height: ''
+                      },
                       medicines: [{ name: '', dosage: '', frequency: '', duration: '' }],
                       remarks: ''
                     });
@@ -892,6 +824,218 @@ export default function DoctorDashboard() {
                   console.error('Error creating prescription:', error);
                   alert('Failed to create prescription');
                 }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <FileEdit className="h-4 w-4 mr-1" />
+              Create Prescription
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vitals Dialog */}
+      <Dialog open={vitalsDialog} onOpenChange={setVitalsDialog}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Patient Vitals</DialogTitle>
+            <DialogDescription>
+              {selectedPatientForVitals && (
+                <>Vitals history for {selectedPatientForVitals.Patient?.firstName || selectedPatientForVitals.name} {selectedPatientForVitals.Patient?.lastName || ''}</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {vitalsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-gray-500">Loading vitals...</div>
+              </div>
+            ) : vitalsData.length > 0 ? (
+              <div className="space-y-4">
+                {vitalsData.map((vital: any, index: number) => (
+                  <Card key={vital.id || index} className="border-gray-200">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium">
+                          {new Date(vital.recorded_at).toLocaleDateString()} at {new Date(vital.recorded_at).toLocaleTimeString()}
+                        </CardTitle>
+                        <Badge variant={vital.status === 'Normal' ? 'default' : 'destructive'}>
+                          {vital.status || 'Normal'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-500">Recorded by: {vital.recorded_by || 'Staff'}</p>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {vital.blood_pressure && (
+                          <div>
+                            <span className="font-medium text-gray-600">Blood Pressure:</span>
+                            <p>{vital.blood_pressure}</p>
+                          </div>
+                        )}
+                        {vital.pulse && (
+                          <div>
+                            <span className="font-medium text-gray-600">Pulse:</span>
+                            <p>{vital.pulse} bpm</p>
+                          </div>
+                        )}
+                        {vital.temperature && (
+                          <div>
+                            <span className="font-medium text-gray-600">Temperature:</span>
+                            <p>{vital.temperature}°F</p>
+                          </div>
+                        )}
+                        {vital.oxygen_saturation && (
+                          <div>
+                            <span className="font-medium text-gray-600">Oxygen Saturation:</span>
+                            <p>{vital.oxygen_saturation}%</p>
+                          </div>
+                        )}
+                        {vital.respiratory_rate && (
+                          <div>
+                            <span className="font-medium text-gray-600">Respiratory Rate:</span>
+                            <p>{vital.respiratory_rate}/min</p>
+                          </div>
+                        )}
+                        {vital.weight && (
+                          <div>
+                            <span className="font-medium text-gray-600">Weight:</span>
+                            <p>{vital.weight} kg</p>
+                          </div>
+                        )}
+                        {vital.height && (
+                          <div>
+                            <span className="font-medium text-gray-600">Height:</span>
+                            <p>{vital.height} cm</p>
+                          </div>
+                        )}
+                      </div>
+                      {vital.notes && (
+                        <div className="mt-3 pt-3 border-t">
+                          <span className="font-medium text-gray-600">Notes:</span>
+                          <p className="text-sm mt-1">{vital.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <HeartPulse className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>No vitals recorded for this patient</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVitalsDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Appointment Details Dialog */}
+      <Dialog open={appointmentDetailsDialog} onOpenChange={setAppointmentDetailsDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+            <DialogDescription>
+              View complete appointment information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAppointmentForDetails && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-semibold">
+                    {selectedAppointmentForDetails.name ? selectedAppointmentForDetails.name.charAt(0).toUpperCase() : 'P'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    {selectedAppointmentForDetails.Patient?.firstName && selectedAppointmentForDetails.Patient?.lastName 
+                      ? `${selectedAppointmentForDetails.Patient.firstName} ${selectedAppointmentForDetails.Patient.lastName}`
+                      : selectedAppointmentForDetails.name || 'Unknown Patient'
+                    }
+                  </h3>
+                  {getStatusBadge(selectedAppointmentForDetails.status)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Date</Label>
+                    <p className="text-sm">{new Date(selectedAppointmentForDetails.appointmentDate).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Time</Label>
+                    <p className="text-sm">
+                      {selectedAppointmentForDetails.appointmentTime 
+                        ? new Date(`2000-01-01T${selectedAppointmentForDetails.appointmentTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : '12:00'
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Status</Label>
+                    <p className="text-sm capitalize">{selectedAppointmentForDetails.status}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Type</Label>
+                    <p className="text-sm capitalize">
+                      {selectedAppointmentForDetails.appointmentType?.replace('-', ' ') || 'Consultation'}
+                    </p>
+                  </div>
+                  {selectedAppointmentForDetails.Patient?.contactNumber && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Contact</Label>
+                      <p className="text-sm">{selectedAppointmentForDetails.Patient.contactNumber}</p>
+                    </div>
+                  )}
+                  {selectedAppointmentForDetails.Patient?.age && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Age</Label>
+                      <p className="text-sm">{selectedAppointmentForDetails.Patient.age} years</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Reason for Visit</Label>
+                <p className="text-sm mt-1 p-3 bg-gray-50 rounded-lg">
+                  {selectedAppointmentForDetails.reason || 'General Consultation'}
+                </p>
+              </div>
+
+              {(selectedAppointmentForDetails.createdBy?.name || selectedAppointmentForDetails.createdByName) && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Scheduled By</Label>
+                  <p className="text-sm mt-1">
+                    {selectedAppointmentForDetails.createdBy?.name || selectedAppointmentForDetails.createdByName}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAppointmentDetailsDialog(false)}>
+              Close
+            </Button>
+            <Button 
+              onClick={() => {
+                setAppointmentDetailsDialog(false);
+                setSelectedAppointmentForPrescription(selectedAppointmentForDetails);
+                setPrescriptionDialog(true);
               }}
               className="bg-green-600 hover:bg-green-700"
             >

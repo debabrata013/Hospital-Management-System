@@ -5,10 +5,14 @@ import { executeQuery } from '../../../../lib/db/connection'
 export async function GET(req: NextRequest) {
   try {
     // Simplified authentication - just check if token exists
-    const token = req.cookies.get('auth-token')?.value
+    const token = req.cookies.get('auth-token')?.value || req.cookies.get('auth-backup')?.value
     if (!token) {
-      return NextResponse.json([]) // Return empty array instead of error for now
+      return NextResponse.json({ success: false, vitals: [] })
     }
+
+    // Get patientId from query parameters
+    const { searchParams } = new URL(req.url)
+    const patientId = searchParams.get('patientId')
 
     // First, ensure the vitals table exists
     const createTableQuery = `
@@ -17,15 +21,18 @@ export async function GET(req: NextRequest) {
         patient_id INT NOT NULL,
         patient_name VARCHAR(255) NOT NULL,
         blood_pressure VARCHAR(20),
+        heart_rate VARCHAR(10),
         pulse VARCHAR(10),
         temperature VARCHAR(10),
         oxygen_saturation VARCHAR(10),
         respiratory_rate VARCHAR(10),
         weight VARCHAR(10),
         height VARCHAR(10),
+        bmi VARCHAR(10),
         status VARCHAR(20) DEFAULT 'Normal',
         notes TEXT,
         recorded_by VARCHAR(255) DEFAULT 'Staff Nurse',
+        recorded_by_name VARCHAR(255) DEFAULT 'Staff',
         recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -36,49 +43,44 @@ export async function GET(req: NextRequest) {
 
     await executeQuery(createTableQuery)
 
-    const query = `
+    // Build query based on whether patientId is provided
+    let query = `
       SELECT 
         v.id,
         v.patient_id as patientId,
         v.patient_name as patientName,
-        v.blood_pressure as bloodPressure,
+        v.blood_pressure,
+        v.heart_rate,
         v.pulse,
         v.temperature,
-        v.oxygen_saturation as oxygenSaturation,
-        v.respiratory_rate as respiratoryRate,
+        v.oxygen_saturation,
+        v.respiratory_rate,
         v.weight,
         v.height,
+        v.bmi,
         v.status,
         v.notes,
         v.recorded_by as recordedBy,
-        v.recorded_at as recordedAt
+        v.recorded_by_name,
+        v.recorded_at
       FROM vitals v
-      ORDER BY v.recorded_at DESC
     `
+    
+    let queryParams = []
+    if (patientId) {
+      query += ` WHERE v.patient_id = ?`
+      queryParams.push(patientId)
+    }
+    
+    query += ` ORDER BY v.recorded_at DESC`
 
-    const vitals = await executeQuery(query) as any[]
+    const vitals = await executeQuery(query, queryParams) as any[]
 
-    // Format the data to match the frontend structure
-    const formattedVitals = (vitals || []).map((vital: any) => ({
-      id: vital.id.toString(),
-      patientId: vital.patientId.toString(),
-      patientName: vital.patientName,
-      recordedAt: vital.recordedAt,
-      recordedBy: vital.recordedBy,
-      vitals: {
-        bloodPressure: vital.bloodPressure || '',
-        pulse: vital.pulse || '',
-        temperature: vital.temperature || '',
-        oxygenSaturation: vital.oxygenSaturation || '',
-        respiratoryRate: vital.respiratoryRate || '',
-        weight: vital.weight || '',
-        height: vital.height || ''
-      },
-      status: vital.status || 'Normal',
-      notes: vital.notes || ''
-    }))
-
-    return NextResponse.json(formattedVitals)
+    // Return data in the format expected by the doctor dashboard
+    return NextResponse.json({
+      success: true,
+      vitals: vitals || []
+    })
 
   } catch (error) {
     console.error('Error fetching vitals:', error)
@@ -150,9 +152,16 @@ export async function POST(req: NextRequest) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
 
+    // Get the actual patient name from the database to ensure accuracy
+    const patientQuery = `SELECT name FROM patients WHERE id = ?`
+    const patientResult = await executeQuery(patientQuery, [patientId]) as any[]
+    const actualPatientName = patientResult.length > 0 ? patientResult[0].name : patientName
+
+    console.log("Patient lookup - ID:", patientId, "Name from frontend:", patientName, "Name from DB:", actualPatientName)
+
     const result = await executeQuery(insertQuery, [
       patientId,
-      patientName,
+      actualPatientName,
       bloodPressure || null,
       pulse || null,
       temperature || null,
@@ -168,7 +177,7 @@ export async function POST(req: NextRequest) {
     const newVital = {
       id: (result as any).insertId.toString(),
       patientId: patientId.toString(),
-      patientName: patientName,
+      patientName: actualPatientName,
       recordedAt: new Date().toISOString(),
       recordedBy: 'Staff Nurse',
       vitals: {

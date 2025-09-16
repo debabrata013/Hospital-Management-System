@@ -26,7 +26,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Plus
+  Plus,
+  Heart,
+  Pill
 } from 'lucide-react'
 
 interface OPDPatient {
@@ -75,6 +77,21 @@ export default function OPDPatientsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedPatient, setSelectedPatient] = useState<OPDPatient | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  const [isVitalsDialogOpen, setIsVitalsDialogOpen] = useState(false)
+  const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false)
+  const [patientVitals, setPatientVitals] = useState<any[]>([])
+  const [prescriptionForm, setPrescriptionForm] = useState({
+    vitals: {
+      bloodPressure: '',
+      heartRate: '',
+      temperature: '',
+      weight: '',
+      height: ''
+    },
+    medicines: [{ name: '', dosage: '', frequency: '', duration: '', instructions: '' }],
+    remarks: ''
+  })
+  const [savingPrescription, setSavingPrescription] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
 
   useEffect(() => {
@@ -159,6 +176,136 @@ export default function OPDPatientsPage() {
   const handleViewPatient = (patient: OPDPatient) => {
     setSelectedPatient(patient)
     setIsDetailsDialogOpen(true)
+  }
+
+  const handleViewVitals = async (patient: OPDPatient) => {
+    try {
+      setSelectedPatient(patient)
+      const response = await fetch(`/api/doctor/vitals?patientId=${patient.Patient.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPatientVitals(data.vitals || [])
+      } else {
+        setPatientVitals([])
+        toast({
+          title: "Info",
+          description: "No vitals found for this patient",
+        })
+      }
+      setIsVitalsDialogOpen(true)
+    } catch (error) {
+      console.error('Error fetching vitals:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch patient vitals",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleCreatePrescription = (patient: OPDPatient) => {
+    setSelectedPatient(patient)
+    // Reset form when opening
+    setPrescriptionForm({
+      vitals: {
+        bloodPressure: '',
+        heartRate: '',
+        temperature: '',
+        weight: '',
+        height: ''
+      },
+      medicines: [{ name: '', dosage: '', frequency: '', duration: '', instructions: '' }],
+      remarks: ''
+    })
+    setIsPrescriptionDialogOpen(true)
+  }
+
+  const addMedicine = () => {
+    setPrescriptionForm(prev => ({
+      ...prev,
+      medicines: [...prev.medicines, { name: '', dosage: '', frequency: '', duration: '', instructions: '' }]
+    }))
+  }
+
+  const removeMedicine = (index: number) => {
+    setPrescriptionForm(prev => ({
+      ...prev,
+      medicines: prev.medicines.filter((_, i) => i !== index)
+    }))
+  }
+
+  const updateMedicine = (index: number, field: string, value: string) => {
+    setPrescriptionForm(prev => ({
+      ...prev,
+      medicines: prev.medicines.map((med, i) => 
+        i === index ? { ...med, [field]: value } : med
+      )
+    }))
+  }
+
+  const updateVitals = (field: string, value: string) => {
+    setPrescriptionForm(prev => ({
+      ...prev,
+      vitals: { ...prev.vitals, [field]: value }
+    }))
+  }
+
+  const savePrescription = async () => {
+    if (!selectedPatient) return
+
+    try {
+      setSavingPrescription(true)
+      
+      // Validate required fields
+      const validMedicines = prescriptionForm.medicines.filter(med => med.name.trim())
+      if (validMedicines.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please add at least one medicine",
+          variant: "destructive"
+        })
+        return
+      }
+
+      const response = await fetch('/api/doctor/prescriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointmentId: selectedPatient.appointmentId,
+          patientId: selectedPatient.Patient.id,
+          vitals: prescriptionForm.vitals,
+          medicines: validMedicines,
+          remarks: prescriptionForm.remarks
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: "Success",
+          description: `Prescription created successfully (ID: ${data.prescriptionId})`,
+        })
+        setIsPrescriptionDialogOpen(false)
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to create prescription",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error saving prescription:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save prescription",
+        variant: "destructive"
+      })
+    } finally {
+      setSavingPrescription(false)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -424,6 +571,24 @@ export default function OPDPatientsPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
+                          className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleViewVitals(patient)}
+                          title="View Patient Vitals"
+                        >
+                          <Heart className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-green-200 text-green-600 hover:bg-green-50"
+                          onClick={() => handleCreatePrescription(patient)}
+                          title="Create Prescription"
+                        >
+                          <Pill className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
                           className="border-pink-200 text-pink-600 hover:bg-pink-50"
                           onClick={() => handleViewPatient(patient)}
                           title="View Patient Details"
@@ -539,6 +704,353 @@ export default function OPDPatientsPage() {
                 <Button onClick={() => router.push(`/doctor/patients/${selectedPatient.Patient.id}`)}>
                   <FileText className="h-4 w-4 mr-2" />
                   View Full Records
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Vitals Dialog */}
+      <Dialog open={isVitalsDialogOpen} onOpenChange={setIsVitalsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-3">
+              <Heart className="h-6 w-6 text-red-500" />
+              <div>
+                <h2 className="text-xl font-bold">Patient Vitals</h2>
+                <p className="text-sm text-gray-500">
+                  {selectedPatient ? `${selectedPatient.Patient.firstName} ${selectedPatient.Patient.lastName}`.trim() : 'Unknown Patient'}
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPatient && (
+            <div className="space-y-6">
+              {patientVitals.length === 0 ? (
+                <div className="text-center py-12">
+                  <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No vitals recorded for this patient</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {patientVitals.map((vital, index) => (
+                    <Card key={index} className="border-blue-100">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center justify-between">
+                          <span>Vitals Record #{patientVitals.length - index}</span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(vital.recorded_at).toLocaleDateString()} at {new Date(vital.recorded_at).toLocaleTimeString()}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {vital.blood_pressure && (
+                            <div className="p-3 bg-red-50 rounded-lg">
+                              <p className="text-sm font-medium text-red-700">Blood Pressure</p>
+                              <p className="text-lg font-bold text-red-800">{vital.blood_pressure}</p>
+                            </div>
+                          )}
+                          {vital.heart_rate && (
+                            <div className="p-3 bg-pink-50 rounded-lg">
+                              <p className="text-sm font-medium text-pink-700">Heart Rate</p>
+                              <p className="text-lg font-bold text-pink-800">{vital.heart_rate} bpm</p>
+                            </div>
+                          )}
+                          {vital.temperature && (
+                            <div className="p-3 bg-orange-50 rounded-lg">
+                              <p className="text-sm font-medium text-orange-700">Temperature</p>
+                              <p className="text-lg font-bold text-orange-800">{vital.temperature}°F</p>
+                            </div>
+                          )}
+                          {vital.respiratory_rate && (
+                            <div className="p-3 bg-blue-50 rounded-lg">
+                              <p className="text-sm font-medium text-blue-700">Respiratory Rate</p>
+                              <p className="text-lg font-bold text-blue-800">{vital.respiratory_rate} /min</p>
+                            </div>
+                          )}
+                          {vital.oxygen_saturation && (
+                            <div className="p-3 bg-green-50 rounded-lg">
+                              <p className="text-sm font-medium text-green-700">Oxygen Saturation</p>
+                              <p className="text-lg font-bold text-green-800">{vital.oxygen_saturation}%</p>
+                            </div>
+                          )}
+                          {vital.weight && (
+                            <div className="p-3 bg-purple-50 rounded-lg">
+                              <p className="text-sm font-medium text-purple-700">Weight</p>
+                              <p className="text-lg font-bold text-purple-800">{vital.weight} kg</p>
+                            </div>
+                          )}
+                          {vital.height && (
+                            <div className="p-3 bg-indigo-50 rounded-lg">
+                              <p className="text-sm font-medium text-indigo-700">Height</p>
+                              <p className="text-lg font-bold text-indigo-800">{vital.height} cm</p>
+                            </div>
+                          )}
+                          {vital.bmi && (
+                            <div className="p-3 bg-yellow-50 rounded-lg">
+                              <p className="text-sm font-medium text-yellow-700">BMI</p>
+                              <p className="text-lg font-bold text-yellow-800">{vital.bmi}</p>
+                            </div>
+                          )}
+                        </div>
+                        {vital.notes && (
+                          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm font-medium text-gray-700 mb-1">Notes:</p>
+                            <p className="text-gray-600">{vital.notes}</p>
+                          </div>
+                        )}
+                        <div className="mt-3 text-xs text-gray-500">
+                          Recorded by: {vital.recorded_by_name || 'Staff'}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setIsVitalsDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Prescription Dialog */}
+      <Dialog open={isPrescriptionDialogOpen} onOpenChange={setIsPrescriptionDialogOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-3">
+              <Pill className="h-6 w-6 text-green-500" />
+              <div>
+                <h2 className="text-xl font-bold">Create Prescription</h2>
+                <p className="text-sm text-gray-500">
+                  {selectedPatient ? `${selectedPatient.Patient.firstName} ${selectedPatient.Patient.lastName}`.trim() : 'Unknown Patient'}
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPatient && (
+            <div className="space-y-6">
+              {/* Patient Info */}
+              <Card className="border-green-100">
+                <CardHeader>
+                  <CardTitle className="text-lg">Patient Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Age</p>
+                      <p className="text-lg">{selectedPatient.Patient.age} years</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Gender</p>
+                      <p className="text-lg">{selectedPatient.Patient.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Contact</p>
+                      <p className="text-lg">{selectedPatient.Patient.contactNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Appointment ID</p>
+                      <p className="text-lg">{selectedPatient.appointmentId}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Vitals Section */}
+              <Card className="border-blue-100">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Heart className="h-5 w-5 mr-2 text-red-500" />
+                    Vitals (Optional)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Blood Pressure</label>
+                      <Input
+                        placeholder="120/80"
+                        value={prescriptionForm.vitals.bloodPressure}
+                        onChange={(e) => updateVitals('bloodPressure', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Heart Rate</label>
+                      <Input
+                        placeholder="72 bpm"
+                        value={prescriptionForm.vitals.heartRate}
+                        onChange={(e) => updateVitals('heartRate', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Temperature</label>
+                      <Input
+                        placeholder="98.6°F"
+                        value={prescriptionForm.vitals.temperature}
+                        onChange={(e) => updateVitals('temperature', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Weight</label>
+                      <Input
+                        placeholder="70 kg"
+                        value={prescriptionForm.vitals.weight}
+                        onChange={(e) => updateVitals('weight', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Height</label>
+                      <Input
+                        placeholder="170 cm"
+                        value={prescriptionForm.vitals.height}
+                        onChange={(e) => updateVitals('height', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Medicines Section */}
+              <Card className="border-green-100">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Pill className="h-5 w-5 mr-2 text-green-500" />
+                      Medicines
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={addMedicine}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Medicine
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {prescriptionForm.medicines.map((medicine, index) => (
+                      <div key={index} className="p-4 border border-green-100 rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-gray-900">Medicine #{index + 1}</h4>
+                          {prescriptionForm.medicines.length > 1 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => removeMedicine(index)}
+                              className="text-red-600 border-red-200 hover:bg-red-50"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Medicine Name *</label>
+                            <Input
+                              placeholder="e.g., Paracetamol"
+                              value={medicine.name}
+                              onChange={(e) => updateMedicine(index, 'name', e.target.value)}
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Dosage</label>
+                            <Input
+                              placeholder="e.g., 500mg"
+                              value={medicine.dosage}
+                              onChange={(e) => updateMedicine(index, 'dosage', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Frequency</label>
+                            <Input
+                              placeholder="e.g., 3 times daily"
+                              value={medicine.frequency}
+                              onChange={(e) => updateMedicine(index, 'frequency', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Duration</label>
+                            <Input
+                              placeholder="e.g., 7 days"
+                              value={medicine.duration}
+                              onChange={(e) => updateMedicine(index, 'duration', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Instructions</label>
+                            <Input
+                              placeholder="e.g., After meals"
+                              value={medicine.instructions}
+                              onChange={(e) => updateMedicine(index, 'instructions', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Remarks Section */}
+              <Card className="border-gray-100">
+                <CardHeader>
+                  <CardTitle className="text-lg">Doctor's Remarks</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    placeholder="Additional notes, recommendations, or instructions for the patient..."
+                    value={prescriptionForm.remarks}
+                    onChange={(e) => setPrescriptionForm(prev => ({ ...prev, remarks: e.target.value }))}
+                    className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    rows={4}
+                  />
+                </CardContent>
+              </Card>
+              
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setIsPrescriptionDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={savePrescription}
+                  disabled={savingPrescription}
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  {savingPrescription ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Pill className="h-4 w-4 mr-2" />
+                      Save Prescription
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

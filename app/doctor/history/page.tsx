@@ -1,237 +1,233 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { 
-  FileText, 
   Search, 
-  Filter,
-  Eye,
-  User,
-  Calendar,
-  Clock,
-  Stethoscope,
-  Pill,
-  Activity,
-  Heart,
-  TrendingUp,
+  RefreshCw, 
+  User, 
+  Phone, 
+  Calendar, 
+  Eye, 
+  Heart, 
+  Activity, 
+  Stethoscope, 
+  FileText, 
   Download,
-  History
+  Brain,
+  Apple,
+  Pill
 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
-// Mock medical history data
-const mockPatientHistory = [
-  {
-    patientId: "P001",
-    patientName: "राजेश कुमार",
-    age: 45,
-    totalVisits: 8,
-    firstVisit: "2023-03-15",
-    lastVisit: "2024-01-09",
-    chronicConditions: ["Hypertension", "Type 2 Diabetes"],
-    allergies: ["Penicillin"],
-    bloodGroup: "B+",
-    consultations: [
-      {
-        date: "2024-01-09",
-        type: "Follow-up",
-        diagnosis: "Hypertensive heart disease - stable",
-        vitals: { bp: "140/90", temp: "98.6", pulse: "78" },
-        medications: ["Amlodipine 5mg", "Metoprolol 25mg"],
-        notes: "Patient reports improved symptoms. Continue current medications."
-      },
-      {
-        date: "2023-12-15",
-        type: "Regular Check-up",
-        diagnosis: "Hypertension with good control",
-        vitals: { bp: "135/85", temp: "98.4", pulse: "75" },
-        medications: ["Amlodipine 5mg", "Metoprolol 25mg"],
-        notes: "Blood pressure well controlled. Patient compliant with medications."
-      },
-      {
-        date: "2023-11-10",
-        type: "Follow-up",
-        diagnosis: "Hypertension - medication adjustment",
-        vitals: { bp: "150/95", temp: "98.8", pulse: "82" },
-        medications: ["Amlodipine 10mg", "Metoprolol 50mg"],
-        notes: "Increased medication dosage due to elevated BP readings."
-      }
-    ],
-    labResults: [
-      {
-        date: "2024-01-08",
-        test: "Lipid Profile",
-        results: "Total Cholesterol: 180 mg/dL, LDL: 110 mg/dL, HDL: 45 mg/dL",
-        status: "normal"
-      },
-      {
-        date: "2024-01-08",
-        test: "HbA1c",
-        results: "6.8%",
-        status: "elevated"
-      },
-      {
-        date: "2023-12-10",
-        test: "ECG",
-        results: "Normal sinus rhythm, no acute changes",
-        status: "normal"
-      }
-    ],
-    admissions: [
-      {
-        date: "2023-08-20",
-        reason: "Hypertensive crisis",
-        duration: "3 days",
-        outcome: "Stabilized and discharged"
-      }
-    ]
-  },
-  {
-    patientId: "P002",
-    patientName: "सुनीता देवी",
-    age: 38,
-    totalVisits: 3,
-    firstVisit: "2024-01-05",
-    lastVisit: "2024-01-09",
-    chronicConditions: ["None"],
-    allergies: ["None known"],
-    bloodGroup: "A+",
-    consultations: [
-      {
-        date: "2024-01-09",
-        type: "New Consultation",
-        diagnosis: "Chest pain - under investigation",
-        vitals: { bp: "130/85", temp: "99.1", pulse: "85" },
-        medications: ["Aspirin 75mg", "Atorvastatin 20mg"],
-        notes: "New patient with chest pain. ECG shows non-specific changes."
-      },
-      {
-        date: "2024-01-07",
-        type: "Emergency",
-        diagnosis: "Acute chest pain - rule out ACS",
-        vitals: { bp: "135/90", temp: "98.9", pulse: "88" },
-        medications: ["Aspirin 300mg", "Clopidogrel 75mg"],
-        notes: "Emergency presentation with chest pain. Cardiac enzymes ordered."
-      }
-    ],
-    labResults: [
-      {
-        date: "2024-01-07",
-        test: "Cardiac Enzymes",
-        results: "Troponin I: 0.02 ng/mL (Normal), CK-MB: 3.2 ng/mL",
-        status: "normal"
-      },
-      {
-        date: "2024-01-07",
-        test: "ECG",
-        results: "Non-specific T-wave changes in leads V4-V6",
-        status: "abnormal"
-      }
-    ],
-    admissions: []
-  }
-]
+interface Patient {
+  id: number
+  name: string
+  age: number
+  gender: string
+  contactNumber: string
+  totalVisits: number
+  lastVisit: string
+  firstVisit: string
+}
+
+interface PatientDetail {
+  patient: Patient
+  appointments: any[]
+  prescriptions: any[]
+  vitals: any[]
+  aiSummary?: string
+  dietPlan?: string
+}
 
 export default function DoctorHistoryPage() {
-  const [patientHistory, setPatientHistory] = useState<any[]>([])
+  const { toast } = useToast()
+  const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedPatient, setSelectedPatient] = useState<PatientDetail | null>(null)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [loadingDetail, setLoadingDetail] = useState<number | null>(null)
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    totalVisits: 0,
+    totalPrescriptions: 0,
+    totalVitals: 0
+  })
 
   useEffect(() => {
-    fetchPatientHistory()
+    fetchPatients()
   }, [])
 
-  const fetchPatientHistory = async () => {
+  const fetchPatients = async () => {
     try {
-      const response = await fetch('/api/doctor/consultations')
+      setLoading(true)
+      const response = await fetch('/api/doctor/patients')
       if (response.ok) {
-        const consultations = await response.json()
-        console.log('Consultations data:', consultations) // Debug log
-        
-        if (Array.isArray(consultations) && consultations.length > 0) {
-          // Group consultations by patient
-          const groupedHistory = groupConsultationsByPatient(consultations)
-          console.log('Grouped history:', groupedHistory) // Debug log
-          setPatientHistory(groupedHistory)
-        } else {
-          console.log('No consultations found, using mock data')
-          setPatientHistory(mockPatientHistory)
+        const data = await response.json()
+        if (data.patients) {
+          // Transform the data to include age and visit counts
+          const transformedPatients = data.patients.map((patient: any) => ({
+            ...patient,
+            age: patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A',
+            contactNumber: patient.contact_number,
+            totalVisits: 0, // Will be calculated separately if needed
+            lastVisit: null, // Will be fetched separately if needed
+            firstVisit: patient.registration_date
+          }))
+          
+          setPatients(transformedPatients)
+          // Calculate stats
+          setStats({
+            totalPatients: transformedPatients.length,
+            totalVisits: 0, // Will be updated when we fetch visit data
+            totalPrescriptions: 0, // Will be updated when we fetch prescriptions
+            totalVitals: 0 // Will be updated when we fetch vitals
+          })
         }
       } else {
-        console.error('Failed to fetch patient history')
-        setPatientHistory(mockPatientHistory) // Fallback to mock data
+        toast({
+          title: "Error",
+          description: "Failed to fetch patients",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error('Error fetching patient history:', error)
-      setPatientHistory(mockPatientHistory) // Fallback to mock data
+      console.error('Error fetching patients:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch patients",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const groupConsultationsByPatient = (consultations: any[]) => {
-    const grouped = consultations.reduce((acc: any, consultation: any) => {
-      const patientId = consultation.patientId
-      if (!acc[patientId]) {
-        acc[patientId] = {
-          patientId: consultation.patientId,
-          patientName: consultation.name || 'Unknown Patient',
-          age: consultation.age || 'N/A',
-          totalVisits: 0,
-          firstVisit: consultation.date,
-          lastVisit: consultation.date,
-          chronicConditions: [],
-          allergies: ['Not specified'],
-          bloodGroup: 'Not specified',
-          consultations: [],
-          labResults: [],
-          admissions: []
-        }
-      }
-      
-      acc[patientId].totalVisits += 1
-      acc[patientId].consultations.push({
-        date: consultation.date,
-        type: consultation.status === 'completed' ? 'Follow-up' : 'New Consultation',
-        diagnosis: consultation.diagnosis || 'Not specified',
-        vitals: parseVitals(consultation.notes),
-        medications: [],
-        notes: consultation.reason || consultation.notes || 'No notes available'
-      })
-      
-      // Update first and last visit dates
-      if (new Date(consultation.date) < new Date(acc[patientId].firstVisit)) {
-        acc[patientId].firstVisit = consultation.date
-      }
-      if (new Date(consultation.date) > new Date(acc[patientId].lastVisit)) {
-        acc[patientId].lastVisit = consultation.date
-      }
-      
-      return acc
-    }, {})
-    
-    return Object.values(grouped)
-  }
-
-  const parseVitals = (notes: string) => {
+  const fetchPatientDetail = async (patientId: number) => {
     try {
-      const vitalsMatch = notes?.match(/"vitals":\s*({[^}]+})/)
-      if (vitalsMatch) {
-        const vitals = JSON.parse(vitalsMatch[1])
-        return {
-          bp: vitals.bloodPressure || 'N/A',
-          temp: vitals.temperature || 'N/A',
-          pulse: vitals.heartRate || 'N/A'
-        }
+      setLoadingDetail(patientId)
+      
+      // Fetch patient prescriptions
+      const prescriptionsResponse = await fetch(`/api/doctor/prescriptions?patient_id=${patientId}`)
+      const prescriptions = prescriptionsResponse.ok ? (await prescriptionsResponse.json()).prescriptions || [] : []
+      
+      // Fetch patient vitals
+      const vitalsResponse = await fetch(`/api/doctor/vitals?patientId=${patientId}`)
+      const vitals = vitalsResponse.ok ? (await vitalsResponse.json()).vitals || [] : []
+      
+      // Fetch AI approvals from database
+      const aiApprovalsResponse = await fetch(`/api/doctor/ai-approvals?patientId=${patientId}`)
+      const aiApprovals = aiApprovalsResponse.ok ? (await aiApprovalsResponse.json()).approvals || [] : []
+      
+      // Find existing AI summary and diet plan
+      const aiSummary = aiApprovals.find((approval: any) => approval.type === 'patient_summary')?.content || null
+      const dietPlan = aiApprovals.find((approval: any) => approval.type === 'diet_plan')?.content || null
+      
+      const patient = patients.find(p => p.id === patientId)
+      if (patient) {
+        setSelectedPatient({
+          patient,
+          appointments: [], // Removed appointments
+          prescriptions,
+          vitals,
+          aiSummary,
+          dietPlan
+        })
+        setIsDetailDialogOpen(true)
       }
     } catch (error) {
-      // Ignore parsing errors
+      console.error('Error fetching patient detail:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch patient details",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingDetail(null)
     }
-    return { bp: 'N/A', temp: 'N/A', pulse: 'N/A' }
   }
+
+  const generateAISummary = async (patientId: number) => {
+    try {
+      const response = await fetch('/api/ai/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientData: {
+            appointments: selectedPatient?.appointments || [],
+            prescriptions: selectedPatient?.prescriptions || [],
+            vitals: selectedPatient?.vitals || []
+          }
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setSelectedPatient(prev => prev ? { ...prev, aiSummary: data.summary } : null)
+      }
+    } catch (error) {
+      console.error('Error generating AI summary:', error)
+    }
+  }
+  
+  const exportHistory = async () => {
+    try {
+      // Create CSV content
+      const csvHeaders = ['Patient ID', 'Name', 'Age', 'Gender', 'Contact', 'Total Visits', 'Registration Date']
+      const csvRows = patients.map(patient => [
+        patient.id,
+        patient.name || 'N/A',
+        patient.age || 'N/A',
+        patient.gender || 'N/A',
+        patient.contactNumber || 'N/A',
+        patient.totalVisits || 0,
+        patient.firstVisit ? new Date(patient.firstVisit).toLocaleDateString() : 'N/A'
+      ])
+      
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map(row => row.map(field => `"${field}"`).join(','))
+      ].join('\n')
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `medical_history_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast({
+        title: "Success",
+        description: "Medical history exported successfully",
+      })
+    } catch (error) {
+      console.error('Error exporting history:', error)
+      toast({
+        title: "Error",
+        description: "Failed to export medical history",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = 
+      patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.contactNumber?.includes(searchTerm) ||
+      patient.id.toString().includes(searchTerm)
+    
+    return matchesSearch
+  })
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'normal':
@@ -272,7 +268,10 @@ export default function DoctorHistoryPage() {
             </h1>
             <p className="text-gray-600 mt-2">Access complete medical history of patients</p>
           </div>
-          <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600">
+          <Button 
+            onClick={exportHistory}
+            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600"
+          >
             <Download className="h-4 w-4 mr-2" />
             Export History
           </Button>
@@ -285,10 +284,10 @@ export default function DoctorHistoryPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Records</p>
-                <p className="text-2xl font-bold text-gray-900">156</p>
+                <p className="text-sm font-medium text-gray-600">Total Patients</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalPatients}</p>
               </div>
-              <FileText className="h-8 w-8 text-pink-500" />
+              <User className="h-8 w-8 text-pink-500" />
             </div>
           </CardContent>
         </Card>
@@ -297,10 +296,10 @@ export default function DoctorHistoryPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Chronic Patients</p>
-                <p className="text-2xl font-bold text-blue-600">45</p>
+                <p className="text-sm font-medium text-gray-600">Total Visits</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.totalVisits}</p>
               </div>
-              <Activity className="h-8 w-8 text-blue-500" />
+              <Calendar className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -309,10 +308,10 @@ export default function DoctorHistoryPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Recent Updates</p>
-                <p className="text-2xl font-bold text-green-600">12</p>
+                <p className="text-sm font-medium text-gray-600">Prescriptions</p>
+                <p className="text-2xl font-bold text-green-600">{stats.totalPrescriptions}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+              <Pill className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -321,10 +320,10 @@ export default function DoctorHistoryPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Lab Reports</p>
-                <p className="text-2xl font-bold text-purple-600">89</p>
+                <p className="text-sm font-medium text-gray-600">Vitals Records</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.totalVitals}</p>
               </div>
-              <History className="h-8 w-8 text-purple-500" />
+              <Heart className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -338,214 +337,314 @@ export default function DoctorHistoryPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input 
-                  placeholder="Search patient history by name, ID, or condition..." 
+                  placeholder="Search patients by name, phone, or ID..." 
                   className="pl-10 border-pink-200 focus:border-pink-400"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            <Button variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter by Condition
+            <Button onClick={() => fetchPatients()} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Patient History Records */}
-      <div className="space-y-8">
-        {patientHistory.map((patient) => (
-          <Card key={patient.patientId} className="border-pink-100">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-full h-12 w-12 flex items-center justify-center font-bold">
-                    {patient.patientName ? patient.patientName.split(' ').map((n: string) => n[0]).join('') : 'N/A'}
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl">{patient.patientName || 'Unknown Patient'}</CardTitle>
-                    <p className="text-gray-600">
-                      {patient.age} years • {patient.bloodGroup} • {patient.totalVisits} visits
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="outline">{patient.patientId}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Patient Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-3">Patient Overview</h4>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium">First Visit:</span>
-                      <span className="ml-2 text-gray-600">{new Date(patient.firstVisit).toLocaleDateString()}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium">Last Visit:</span>
-                      <span className="ml-2 text-gray-600">{new Date(patient.lastVisit).toLocaleDateString()}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium">Total Visits:</span>
-                      <span className="ml-2 text-gray-600">{patient.totalVisits}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-red-50 rounded-lg">
-                  <h4 className="font-semibold text-red-900 mb-3">Chronic Conditions</h4>
-                  <div className="space-y-1">
-                    {patient.chronicConditions.map((condition: string, index: number) => (
-                      <Badge key={index} className="bg-red-100 text-red-700 mr-2 mb-1">
-                        {condition}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-yellow-50 rounded-lg">
-                  <h4 className="font-semibold text-yellow-900 mb-3">Allergies</h4>
-                  <div className="space-y-1">
-                    {patient.allergies.map((allergy: string, index: number) => (
-                      <Badge key={index} className="bg-yellow-100 text-yellow-700 mr-2 mb-1">
-                        {allergy}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Consultation History */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Stethoscope className="h-4 w-4 mr-2" />
-                  Consultation History
-                </h4>
-                <div className="space-y-4">
-                  {patient.consultations.map((consultation: any, index: number) => (
-                    <div key={index} className="p-4 border border-pink-100 rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <Badge className={getTypeColor(consultation.type)}>{consultation.type}</Badge>
-                          <span className="text-sm text-gray-600">{new Date(consultation.date).toLocaleDateString()}</span>
-                        </div>
-                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-2">Diagnosis & Notes</h5>
-                          <p className="text-sm text-gray-600 mb-2">{consultation.diagnosis}</p>
-                          <p className="text-sm text-gray-600">{consultation.notes}</p>
-                        </div>
-                        
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-2">Vitals & Medications</h5>
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Vitals:</span> BP: {consultation.vitals.bp}, 
-                            Temp: {consultation.vitals.temp}°F, Pulse: {consultation.vitals.pulse}
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {consultation.medications.map((med: string, medIndex: number) => (
-                              <Badge key={medIndex} className="bg-green-100 text-green-700 text-xs">
-                                {med}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Lab Results */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Activity className="h-4 w-4 mr-2" />
-                  Lab Results
-                </h4>
-                <div className="space-y-3">
-                  {patient.labResults.map((lab: any, index: number) => (
-                    <div key={index} className="p-3 border border-pink-100 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center space-x-3 mb-1">
-                            <span className="font-medium text-gray-900">{lab.test}</span>
-                            {getStatusBadge(lab.status)}
-                          </div>
-                          <p className="text-sm text-gray-600">{lab.results}</p>
-                        </div>
-                        <span className="text-sm text-gray-500">{new Date(lab.date).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Admission History */}
-              {patient.admissions.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <Heart className="h-4 w-4 mr-2" />
-                    Admission History
-                  </h4>
-                  <div className="space-y-3">
-                    {patient.admissions.map((admission: any, index: number) => (
-                      <div key={index} className="p-3 border border-pink-100 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-medium text-gray-900">{admission.reason}</span>
-                            <p className="text-sm text-gray-600">Duration: {admission.duration} • {admission.outcome}</p>
-                          </div>
-                          <span className="text-sm text-gray-500">{new Date(admission.date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="border-pink-100 mt-6">
+      {/* Patient List */}
+      <Card className="border-pink-100">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Patient Medical History</span>
+            <span className="text-sm text-gray-500">
+              {filteredPatients.length} patients
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Search className="h-6 w-6" />
-              <span>Search Records</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Activity className="h-6 w-6" />
-              <span>Lab Reports</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Heart className="h-6 w-6" />
-              <span>Chronic Patients</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Download className="h-6 w-6" />
-              <span>Export History</span>
-            </Button>
-          </div>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center space-x-4 p-6 animate-pulse">
+                  <div className="h-16 w-16 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredPatients.length === 0 ? (
+            <div className="text-center py-12">
+              <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No patients found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredPatients.map((patient) => (
+                <div key={patient.id} className="p-6 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4 flex-1">
+                      <Avatar className="h-16 w-16">
+                        <AvatarFallback className="bg-gradient-to-r from-pink-400 to-pink-500 text-white text-lg font-bold">
+                          {patient.name?.charAt(0) || 'P'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <h3 className="font-bold text-xl text-gray-900">
+                            {patient.name || 'Unknown Patient'}
+                          </h3>
+                          <Badge variant="outline">ID: {patient.id}</Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <User className="h-4 w-4" />
+                            <span>{patient.age} years • {patient.gender}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            <span>{patient.contactNumber}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <Calendar className="h-4 w-4" />
+                            <span>{patient.totalVisits || 0} visits</span>
+                          </div>
+                        </div>
+                        
+                        {patient.lastVisit && (
+                          <div className="p-3 bg-blue-50 rounded-lg mb-3">
+                            <h4 className="font-semibold text-blue-900 text-sm mb-1">Last Visit</h4>
+                            <p className="text-sm text-blue-700">{new Date(patient.lastVisit).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end space-y-2 ml-4">
+                      <Button 
+                        onClick={() => fetchPatientDetail(patient.id)}
+                        disabled={loadingDetail === patient.id}
+                        className="bg-pink-500 hover:bg-pink-600 text-white"
+                      >
+                        {loadingDetail === patient.id ? (
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Eye className="h-4 w-4 mr-2" />
+                        )}
+                        View History
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Coming Soon Notice */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex items-center px-6 py-3 bg-pink-100 text-pink-700 rounded-full">
-          <FileText className="h-5 w-5 mr-2" />
-          <span className="font-medium">Advanced Medical History Features Coming Soon</span>
-        </div>
-      </div>
+
+      {/* Patient Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-3">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-gradient-to-r from-pink-400 to-pink-500 text-white">
+                  {selectedPatient?.patient.name?.charAt(0) || 'P'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-xl font-bold">{selectedPatient?.patient.name || 'Unknown Patient'}</h2>
+                <p className="text-sm text-gray-500">
+                  {selectedPatient?.patient.age} years • {selectedPatient?.patient.gender} • ID: {selectedPatient?.patient.id}
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPatient && (
+            <div className="space-y-6">
+              {/* Patient Overview */}
+              <Card className="border-blue-100">
+                <CardHeader>
+                  <CardTitle className="text-lg">Patient Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Contact</p>
+                      <p className="text-lg">{selectedPatient.patient.contactNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Visits</p>
+                      <p className="text-lg">0</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Prescriptions</p>
+                      <p className="text-lg">{selectedPatient.prescriptions.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Vitals Records</p>
+                      <p className="text-lg">{selectedPatient.vitals.length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+
+              {/* Prescriptions */}
+              <Card className="border-purple-100">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Pill className="h-5 w-5 mr-2 text-purple-500" />
+                    Past Prescriptions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedPatient.prescriptions.length === 0 ? (
+                    <p className="text-gray-500">No prescriptions found</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedPatient.prescriptions.slice(0, 5).map((prescription, index) => (
+                        <div key={index} className="p-3 border border-purple-100 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium">Prescription #{prescription.prescription_id}</p>
+                            <p className="text-sm text-gray-500">{new Date(prescription.prescription_date).toLocaleDateString()}</p>
+                          </div>
+                          {prescription.medicines && (
+                            <div className="flex flex-wrap gap-1">
+                              {JSON.parse(prescription.medicines).map((med: any, medIndex: number) => (
+                                <Badge key={medIndex} className="bg-purple-100 text-purple-700 text-xs">
+                                  {med.name} - {med.dosage}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {prescription.remarks && (
+                            <p className="text-sm text-gray-600 mt-2">{prescription.remarks}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Vitals Records */}
+              <Card className="border-red-100">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Heart className="h-5 w-5 mr-2 text-red-500" />
+                    Vitals History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedPatient.vitals.length === 0 ? (
+                    <p className="text-gray-500">No vitals records found</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedPatient.vitals.slice(0, 3).map((vital, index) => (
+                        <div key={index} className="p-3 border border-red-100 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium">Vitals Record</p>
+                            <p className="text-sm text-gray-500">{new Date(vital.recorded_at).toLocaleDateString()}</p>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {vital.blood_pressure && (
+                              <div className="text-sm">
+                                <span className="font-medium">BP:</span> {vital.blood_pressure}
+                              </div>
+                            )}
+                            {vital.pulse && (
+                              <div className="text-sm">
+                                <span className="font-medium">Pulse:</span> {vital.pulse} bpm
+                              </div>
+                            )}
+                            {vital.temperature && (
+                              <div className="text-sm">
+                                <span className="font-medium">Temp:</span> {vital.temperature}°F
+                              </div>
+                            )}
+                            {vital.weight && (
+                              <div className="text-sm">
+                                <span className="font-medium">Weight:</span> {vital.weight} kg
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AI Generated Content */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* AI Patient Summary */}
+                <Card className="border-blue-100">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center justify-between">
+                      <span className="flex items-center">
+                        <Brain className="h-5 w-5 mr-2 text-blue-500" />
+                        AI Patient Summary
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedPatient.aiSummary ? (
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">{selectedPatient.aiSummary}</p>
+                        <div className="mt-2 text-xs text-blue-600">
+                          <span className="font-medium">Status:</span> Approved by Doctor
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">No content generated</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* AI Diet Plan */}
+                <Card className="border-green-100">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center justify-between">
+                      <span className="flex items-center">
+                        <Apple className="h-5 w-5 mr-2 text-green-500" />
+                        AI Diet Plan
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedPatient.dietPlan ? (
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <p className="text-sm text-green-800">{selectedPatient.dietPlan}</p>
+                        <div className="mt-2 text-xs text-green-600">
+                          <span className="font-medium">Status:</span> Approved by Doctor
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">No content generated</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
