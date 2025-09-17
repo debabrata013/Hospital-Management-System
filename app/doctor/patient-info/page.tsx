@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +30,8 @@ import {
   Eye,
   Download,
   Printer,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react'
 
 interface Patient {
@@ -756,6 +758,13 @@ export default function PatientInfoPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
+          <Link
+            href="/doctor"
+            className="inline-flex items-center text-gray-600 hover:text-blue-600 transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Patient Information Center</h1>
           <p className="text-gray-600">Comprehensive patient data management with prescriptions, AI summaries, and diet plans</p>
         </div>

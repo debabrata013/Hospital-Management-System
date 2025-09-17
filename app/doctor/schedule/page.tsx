@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +19,8 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
-  Plus
+  Plus,
+  ArrowLeft
 } from 'lucide-react'
 
 // Mock schedule data
@@ -254,6 +256,13 @@ export default function DoctorSchedulePage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
       <div className="mb-8">
+        <Link
+          href="/doctor"
+          className="inline-flex items-center text-gray-600 hover:text-pink-600 transition-colors mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Link>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Calendar className="h-8 w-8 mr-3 text-pink-500" />

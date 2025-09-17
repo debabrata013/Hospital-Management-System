@@ -90,8 +90,8 @@ export default function DoctorDashboard() {
     surgeriesToday: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  const [appointments, setAppointments] = useState([]);
-  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+  const [admittedPatients, setAdmittedPatients] = useState([]);
+  const [admittedPatientsLoading, setAdmittedPatientsLoading] = useState(true);
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
   const [assignedNurses, setAssignedNurses] = useState<any>({ opd: { count: 0, nurses: [] }, ward: { count: 0, nurses: [] } });
@@ -128,6 +128,21 @@ export default function DoctorDashboard() {
   const [doctorPatients, setDoctorPatients] = useState<any[]>([]);
   const [patientsLoading, setPatientsLoading] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+
+  // Admitted patient prescription modal states
+  const [admittedPatientPrescriptionDialog, setAdmittedPatientPrescriptionDialog] = useState(false);
+  const [selectedAdmittedPatient, setSelectedAdmittedPatient] = useState<any>(null);
+  const [admittedPatientPrescriptionForm, setAdmittedPatientPrescriptionForm] = useState({
+    vitals: {
+      bloodPressure: '',
+      heartRate: '',
+      temperature: '',
+      weight: '',
+      height: ''
+    },
+    medicines: [{ name: '', dosage: '', frequency: '', duration: '' }],
+    remarks: ''
+  });
 
   useEffect(() => {
     if (user) {
@@ -198,6 +213,105 @@ export default function DoctorDashboard() {
     }
   };
 
+  // Admitted patient prescription functions
+  const handleAdmittedPatientPrescription = (patient: any) => {
+    setSelectedAdmittedPatient(patient);
+    setAdmittedPatientPrescriptionDialog(true);
+    
+    // Reset form with empty vitals (since we show current vitals separately)
+    setAdmittedPatientPrescriptionForm({
+      vitals: {
+        bloodPressure: '',
+        heartRate: '',
+        temperature: '',
+        weight: '',
+        height: ''
+      },
+      medicines: [{ name: '', dosage: '', frequency: '', duration: '' }],
+      remarks: ''
+    });
+  };
+
+  const updateAdmittedPatientMedicine = (index: number, field: string, value: string) => {
+    const updatedMedicines = [...admittedPatientPrescriptionForm.medicines];
+    updatedMedicines[index] = { ...updatedMedicines[index], [field]: value };
+    setAdmittedPatientPrescriptionForm(prev => ({ ...prev, medicines: updatedMedicines }));
+  };
+
+  const addAdmittedPatientMedicine = () => {
+    setAdmittedPatientPrescriptionForm(prev => ({
+      ...prev,
+      medicines: [...prev.medicines, { name: '', dosage: '', frequency: '', duration: '' }]
+    }));
+  };
+
+  const removeAdmittedPatientMedicine = (index: number) => {
+    if (admittedPatientPrescriptionForm.medicines.length > 1) {
+      const updatedMedicines = admittedPatientPrescriptionForm.medicines.filter((_, i) => i !== index);
+      setAdmittedPatientPrescriptionForm(prev => ({ ...prev, medicines: updatedMedicines }));
+    }
+  };
+
+  const updateAdmittedPatientVitals = (field: string, value: string) => {
+    setAdmittedPatientPrescriptionForm(prev => ({
+      ...prev,
+      vitals: { ...prev.vitals, [field]: value }
+    }));
+  };
+
+  const saveAdmittedPatientPrescription = async () => {
+    if (!selectedAdmittedPatient) return;
+
+    try {
+      const response = await fetch('/api/doctor/save-prescription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: selectedAdmittedPatient.patient_id,
+          admissionId: selectedAdmittedPatient.admission_id,
+          vitals: admittedPatientPrescriptionForm.vitals,
+          medicines: admittedPatientPrescriptionForm.medicines,
+          remarks: admittedPatientPrescriptionForm.remarks,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Prescription saved successfully! ID: ${data.prescriptionId}`);
+        setAdmittedPatientPrescriptionDialog(false);
+        setSelectedAdmittedPatient(null);
+        // Refresh admitted patients to show updated data
+        fetchAdmittedPatients();
+      } else {
+        alert('Failed to save prescription. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving prescription:', error);
+      alert('Error saving prescription. Please try again.');
+    }
+  };
+
+  const fetchAdmittedPatients = async () => {
+    try {
+      setAdmittedPatientsLoading(true);
+      const response = await fetch('/api/doctor/admitted-patients');
+      if (!response.ok) {
+        throw new Error('Failed to fetch admitted patients');
+      }
+      const data = await response.json();
+      console.log('Admitted Patients API response:', data); // Debug log
+      setAdmittedPatients(data.patients || []);
+    } catch (error) {
+      console.error("Error fetching admitted patients:", error);
+      // Set empty array instead of leaving undefined
+      setAdmittedPatients([]);
+    } finally {
+      setAdmittedPatientsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -212,25 +326,6 @@ export default function DoctorDashboard() {
         console.error("Error fetching dashboard stats:", error);
       } finally {
         setStatsLoading(false);
-      }
-    };
-
-    const fetchAppointments = async () => {
-      try {
-        setAppointmentsLoading(true);
-        const response = await fetch('/api/doctor/appointments');
-        if (!response.ok) {
-          throw new Error('Failed to fetch appointments');
-        }
-        const data = await response.json();
-        console.log('Appointments API response:', data); // Debug log
-        setAppointments(data);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-        // Set empty array instead of leaving undefined
-        setAppointments([]);
-      } finally {
-        setAppointmentsLoading(false);
       }
     };
 
@@ -271,7 +366,7 @@ export default function DoctorDashboard() {
 
     if (user) {
       fetchStats();
-      fetchAppointments();
+      fetchAdmittedPatients();
       fetchRecentPatients();
       fetchAssignedNurses();
     }
@@ -427,6 +522,14 @@ export default function DoctorDashboard() {
           <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-50">
             <div className="flex items-center justify-between h-16 px-6">
               <div className="flex items-center space-x-4">
+                <Link
+                  href="/"
+                  className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Link>
+                <div className="h-6 w-px bg-gray-300"></div>
                 <SidebarTrigger className="text-gray-600 hover:text-pink-500" />
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">{user ? user.name : 'Doctor'}</h1>
@@ -438,16 +541,6 @@ export default function DoctorDashboard() {
               </div>
               
               <div className="flex items-center space-x-4">
-               {/* Back to Home Link */}
-<div className="mb-6">
-  <Link
-    href="/"
-    className="inline-flex items-center text-gray-600 hover:text-pink-500 transition-colors"
-  >
-    <ArrowLeft className="h-4 w-4 mr-2" />
-    Back to Home
-  </Link>
-</div>
    
 
                 
@@ -579,64 +672,73 @@ export default function DoctorDashboard() {
 
             {/* Main Dashboard Widgets */}
             <div className="w-full">
-              {/* Appointments */}
+              {/* Admitted Patients */}
               <Card className="border-pink-100">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-gray-900">Appointments</CardTitle>
-                    <CardDescription>Your scheduled appointments</CardDescription>
+                    <CardTitle className="text-gray-900">Admitted Patients</CardTitle>
+                    <CardDescription>Patients currently admitted under your care</CardDescription>
                   </div>
-                  <Link href="/doctor/schedule">
-                    <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
-                      View All
-                    </Button>
-                  </Link>
+                  <Badge variant="outline" className="text-pink-600 border-pink-200">
+                    {admittedPatients.length} Total
+                  </Badge>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {appointmentsLoading ? (
+                    {admittedPatientsLoading ? (
                       <div className="flex items-center justify-center py-8">
-                        <div className="text-gray-500">Loading appointments...</div>
+                        <div className="text-gray-500">Loading admitted patients...</div>
                       </div>
-                    ) : appointments.length > 0 ? (
-                      appointments.map((appointment: any) => (
-                        <div key={appointment.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                    ) : admittedPatients.length > 0 ? (
+                      admittedPatients.map((patient: any) => (
+                        <div key={patient.admission_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start space-x-3 flex-1 min-w-0">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                 <span className="text-blue-600 font-semibold text-sm">
-                                  {appointment.name ? appointment.name.charAt(0).toUpperCase() : 'P'}
+                                  {patient.patient_name ? patient.patient_name.charAt(0).toUpperCase() : 'P'}
                                 </span>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-2 mb-1">
                                   <h4 className="font-semibold text-gray-900 truncate">
-                                    {appointment.Patient?.firstName && appointment.Patient?.lastName 
-                                      ? `${appointment.Patient.firstName} ${appointment.Patient.lastName}`
-                                      : appointment.name || 'Unknown Patient'
-                                    }
+                                    {patient.patient_name}
                                   </h4>
-                                  {getStatusBadge(appointment.status)}
+                                  <Badge variant={patient.admission_type === 'emergency' ? 'destructive' : 'default'}>
+                                    {patient.admission_type}
+                                  </Badge>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-2">{appointment.reason || 'General Consultation'}</p>
+                                <p className="text-sm text-gray-600 mb-2">
+                                  Room: {patient.room_number || 'Not assigned'} • {patient.patient_code}
+                                </p>
                                 <div className="flex items-center space-x-4 text-xs text-gray-500">
                                   <div className="flex items-center space-x-1">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{appointment.appointmentTime ? new Date(`2000-01-01T${appointment.appointmentTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00'}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
                                     <Calendar className="h-3 w-3" />
-                                    <span>{new Date(appointment.appointmentDate).toLocaleDateString()}</span>
+                                    <span>Admitted: {new Date(patient.admission_date).toLocaleDateString()}</span>
                                   </div>
-                                  {appointment.appointmentType && (
+                                  {patient.vitals && patient.vitals.length > 0 && (
                                     <div className="flex items-center space-x-1">
-                                      <span className="capitalize">{appointment.appointmentType.replace('-', ' ')}</span>
+                                      <HeartPulse className="h-3 w-3" />
+                                      <span>Latest vitals: {new Date(patient.vitals[0].recorded_at).toLocaleDateString()}</span>
                                     </div>
                                   )}
                                 </div>
-                                {(appointment.createdBy?.name || appointment.createdByName) && (
-                                  <div className="mt-1 text-xs text-blue-600">
-                                    Scheduled by {appointment.createdBy?.name || appointment.createdByName}
+                                {patient.vitals && patient.vitals.length > 0 && (
+                                  <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {patient.vitals[0].blood_pressure && (
+                                        <span>BP: {patient.vitals[0].blood_pressure}</span>
+                                      )}
+                                      {patient.vitals[0].heart_rate && (
+                                        <span>HR: {patient.vitals[0].heart_rate} bpm</span>
+                                      )}
+                                      {patient.vitals[0].temperature && (
+                                        <span>Temp: {patient.vitals[0].temperature}°F</span>
+                                      )}
+                                      {patient.vitals[0].oxygen_saturation && (
+                                        <span>SpO2: {patient.vitals[0].oxygen_saturation}%</span>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -645,26 +747,14 @@ export default function DoctorDashboard() {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="h-8 w-full text-xs"
-                                onClick={() => {
-                                  setSelectedAppointmentForDetails(appointment);
-                                  setAppointmentDetailsDialog(true);
-                                }}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
                                 className="h-8 w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                                 onClick={async () => {
-                                  setSelectedPatientForVitals(appointment);
+                                  setSelectedPatientForVitals(patient);
                                   setVitalsLoading(true);
                                   setVitalsDialog(true);
                                   
                                   try {
-                                    const response = await fetch(`/api/doctor/vitals?patientId=${appointment.patient_id || appointment.Patient?.id}`);
+                                    const response = await fetch(`/api/doctor/vitals?patientId=${patient.patient_id}`);
                                     const data = await response.json();
                                     setVitalsData(data.vitals || []);
                                   } catch (error) {
@@ -682,10 +772,7 @@ export default function DoctorDashboard() {
                                 variant="outline" 
                                 size="sm" 
                                 className="h-8 w-full text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                                onClick={() => {
-                                  setSelectedAppointmentForPrescription(appointment);
-                                  setPrescriptionDialog(true);
-                                }}
+                                onClick={() => handleAdmittedPatientPrescription(patient)}
                               >
                                 <FileEdit className="h-3 w-3 mr-1" />
                                 Prescription
@@ -696,8 +783,8 @@ export default function DoctorDashboard() {
                       ))
                     ) : (
                       <div className="text-center py-8 text-gray-500">
-                        <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p>No appointments scheduled</p>
+                        <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p>No patients currently admitted</p>
                       </div>
                     )}
                   </div>
@@ -1314,6 +1401,236 @@ export default function DoctorDashboard() {
             >
               <Plus className="h-4 w-4 mr-1" />
               Assign Patient
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admitted Patient Prescription Dialog */}
+      <Dialog open={admittedPatientPrescriptionDialog} onOpenChange={setAdmittedPatientPrescriptionDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Prescription - {selectedAdmittedPatient?.patient_name}</DialogTitle>
+            <DialogDescription>
+              Room: {selectedAdmittedPatient?.room_number || 'Not assigned'} • Admission: {selectedAdmittedPatient?.admission_code}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Current Vitals Display (Read-only) */}
+            {selectedAdmittedPatient?.vitals && selectedAdmittedPatient.vitals.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Current Vitals</h3>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-blue-800">
+                      Latest recorded vitals - {new Date(selectedAdmittedPatient.vitals[0].recorded_at).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-blue-600">
+                      Recorded by: {selectedAdmittedPatient.vitals[0].recorded_by || 'System'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="text-center">
+                      <Label className="text-xs text-gray-600">Blood Pressure</Label>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {selectedAdmittedPatient.vitals[0].blood_pressure || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <Label className="text-xs text-gray-600">Heart Rate</Label>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {selectedAdmittedPatient.vitals[0].heart_rate ? `${selectedAdmittedPatient.vitals[0].heart_rate} bpm` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <Label className="text-xs text-gray-600">Temperature</Label>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {selectedAdmittedPatient.vitals[0].temperature ? `${selectedAdmittedPatient.vitals[0].temperature}°F` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <Label className="text-xs text-gray-600">Weight</Label>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {selectedAdmittedPatient.vitals[0].weight ? `${selectedAdmittedPatient.vitals[0].weight} kg` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <Label className="text-xs text-gray-600">SpO2</Label>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {selectedAdmittedPatient.vitals[0].oxygen_saturation ? `${selectedAdmittedPatient.vitals[0].oxygen_saturation}%` : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* New Vitals Input Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Record New Vitals (Optional)</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="bp">Blood Pressure</Label>
+                  <Input
+                    id="bp"
+                    placeholder="120/80"
+                    value={admittedPatientPrescriptionForm.vitals.bloodPressure}
+                    onChange={(e) => updateAdmittedPatientVitals('bloodPressure', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="hr">Heart Rate (bpm)</Label>
+                  <Input
+                    id="hr"
+                    placeholder="72"
+                    value={admittedPatientPrescriptionForm.vitals.heartRate}
+                    onChange={(e) => updateAdmittedPatientVitals('heartRate', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="temp">Temperature (°F)</Label>
+                  <Input
+                    id="temp"
+                    placeholder="98.6"
+                    value={admittedPatientPrescriptionForm.vitals.temperature}
+                    onChange={(e) => updateAdmittedPatientVitals('temperature', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weight">Weight (kg)</Label>
+                  <Input
+                    id="weight"
+                    placeholder="70"
+                    value={admittedPatientPrescriptionForm.vitals.weight}
+                    onChange={(e) => updateAdmittedPatientVitals('weight', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="height">Height (cm)</Label>
+                  <Input
+                    id="height"
+                    placeholder="170"
+                    value={admittedPatientPrescriptionForm.vitals.height}
+                    onChange={(e) => updateAdmittedPatientVitals('height', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Latest Vitals Display */}
+            {selectedAdmittedPatient?.vitals && selectedAdmittedPatient.vitals.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Recent Vitals History</h3>
+                <div className="space-y-2">
+                  {selectedAdmittedPatient.vitals.slice(0, 3).map((vital: any, index: number) => (
+                    <div key={vital.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">
+                          {new Date(vital.recorded_at).toLocaleString()}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Recorded by: {vital.recorded_by || 'System'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                        {vital.blood_pressure && <span>BP: {vital.blood_pressure}</span>}
+                        {vital.heart_rate && <span>HR: {vital.heart_rate} bpm</span>}
+                        {vital.temperature && <span>Temp: {vital.temperature}°F</span>}
+                        {vital.oxygen_saturation && <span>SpO2: {vital.oxygen_saturation}%</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Medicines Section */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold">Medications</h3>
+                <Button type="button" variant="outline" size="sm" onClick={addAdmittedPatientMedicine}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Medicine
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {admittedPatientPrescriptionForm.medicines.map((medicine, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border rounded-lg">
+                    <div>
+                      <Label htmlFor={`medicine-${index}`}>Medicine Name</Label>
+                      <Input
+                        id={`medicine-${index}`}
+                        placeholder="Medicine name"
+                        value={medicine.name}
+                        onChange={(e) => updateAdmittedPatientMedicine(index, 'name', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`dosage-${index}`}>Dosage</Label>
+                      <Input
+                        id={`dosage-${index}`}
+                        placeholder="500mg"
+                        value={medicine.dosage}
+                        onChange={(e) => updateAdmittedPatientMedicine(index, 'dosage', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`frequency-${index}`}>Frequency</Label>
+                      <Input
+                        id={`frequency-${index}`}
+                        placeholder="Twice daily"
+                        value={medicine.frequency}
+                        onChange={(e) => updateAdmittedPatientMedicine(index, 'frequency', e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label htmlFor={`duration-${index}`}>Duration</Label>
+                        <Input
+                          id={`duration-${index}`}
+                          placeholder="7 days"
+                          value={medicine.duration}
+                          onChange={(e) => updateAdmittedPatientMedicine(index, 'duration', e.target.value)}
+                        />
+                      </div>
+                      {admittedPatientPrescriptionForm.medicines.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeAdmittedPatientMedicine(index)}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Remarks Section */}
+            <div>
+              <Label htmlFor="remarks">Additional Remarks</Label>
+              <Textarea
+                id="remarks"
+                placeholder="Additional instructions or remarks..."
+                value={admittedPatientPrescriptionForm.remarks}
+                onChange={(e) => setAdmittedPatientPrescriptionForm(prev => ({ ...prev, remarks: e.target.value }))}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdmittedPatientPrescriptionDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveAdmittedPatientPrescription} className="bg-green-600 hover:bg-green-700">
+              <FileEdit className="h-4 w-4 mr-1" />
+              Save Prescription
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,7 +29,8 @@ import {
   AlertCircle,
   Plus,
   Heart,
-  Pill
+  Pill,
+  ArrowLeft
 } from 'lucide-react'
 
 interface OPDPatient {
@@ -379,6 +381,13 @@ export default function OPDPatientsPage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
       <div className="mb-8">
+        <Link
+          href="/doctor"
+          className="inline-flex items-center text-gray-600 hover:text-pink-600 transition-colors mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center">
