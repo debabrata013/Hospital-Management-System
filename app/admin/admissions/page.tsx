@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 import { 
   Bed, 
   Plus, 
@@ -224,6 +227,11 @@ export default function AdmissionsPage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       
       {/* Header */}
+      <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
+
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">

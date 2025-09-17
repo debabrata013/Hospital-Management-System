@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 import { 
   TrendingUp, 
   BarChart3, 
@@ -63,6 +66,10 @@ export default function AdminAnalyticsPage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 md:p-6">
       {/* Header */}
       <div className="mb-8">
+        <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Link>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
