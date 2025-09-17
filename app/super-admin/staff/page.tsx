@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Edit, Trash2, Phone, Mail, Users, Loader2, Pill, UserCheck, Stethoscope, Sparkles } from 'lucide-react'
 import { toast } from "sonner"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 
 interface Staff {
   id: number
@@ -213,6 +216,10 @@ export default function StaffPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+      <Link href="/super-admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">

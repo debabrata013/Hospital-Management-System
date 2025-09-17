@@ -13,6 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit, Trash2, Phone, Mail, User, Stethoscope, Loader2, UserCheck } from 'lucide-react'
 import { toast } from "sonner"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 
 interface Doctor {
   id: number
@@ -319,6 +322,10 @@ export default function DoctorsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
+       <Link href="/super-admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
