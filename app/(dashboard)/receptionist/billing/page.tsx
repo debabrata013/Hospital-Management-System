@@ -121,6 +121,11 @@ export default function BillingPage() {
     fetchTemplates()
   }, [searchQuery, statusFilter, dateFrom, dateTo])
 
+  // Load all patients on mount for search
+  useEffect(() => {
+    fetchAllPatients();
+  }, [])
+
   const fetchBills = async () => {
     try {
       setIsLoading(true)
@@ -141,12 +146,13 @@ export default function BillingPage() {
     }
   }
 
+  // Fetch all patients (initial load)
   const fetchAllPatients = async () => {
     try {
       const response = await fetch('/api/receptionist/patients')
       const data = await response.json()
-      setPatients(data.patients || [])
-      // setPatients(data.patients?.slice(0, 20) || []) // Show first 20 initially
+      setAllPatients(data.patients || [])
+      setPatients(data.patients?.slice(0, 20) || []) // Show first 20 initially
     } catch (error) {
       console.error('Failed to fetch patients:', error)
     }
@@ -175,37 +181,30 @@ export default function BillingPage() {
   //     console.error('Failed to search patients:', error)
   //   }
   // }
-   const searchPatients = async (query: string) => {
+  // Search patients by name, phone, or patient ID
+  const searchPatients = async (query: string) => {
     setPatientSearchQuery(query)
-    
     if (query.length < 2) {
-      setPatients(allPatients.slice(0, 20)) // Show first 20 when no search
+      setPatients(allPatients.slice(0, 20))
       return
     }
-    
-    // Filter from all patients first (instant search)
-    const filtered = allPatients.filter(patient => 
+    // Local filter
+    const filtered = allPatients.filter(patient =>
       patient.name.toLowerCase().includes(query.toLowerCase()) ||
       patient.contact_number.includes(query) ||
       patient.patient_id.toLowerCase().includes(query.toLowerCase())
     )
-    
-    setPatients(filtered.slice(0, 20))
-    
-    // Also search from API for more results
-    try {
-      const response = await fetch(`/api/receptionist/patients/search?q=${encodeURIComponent(query)}`)
-      const data = await response.json()
-      if (data.patients && data.patients.length > 0) {
-        // Merge and deduplicate results
-        const merged = [...filtered, ...data.patients]
-        const unique = merged.filter((patient, index, self) => 
-          index === self.findIndex(p => p.patient_id === patient.patient_id)
-        )
-        setPatients(unique.slice(0, 20))
+    if (filtered.length > 0) {
+      setPatients(filtered.slice(0, 20))
+    } else {
+      // If not found locally, search server-side
+      try {
+        const response = await fetch(`/api/receptionist/patients/search?q=${encodeURIComponent(query)}`)
+        const data = await response.json()
+        setPatients(data.patients?.slice(0, 20) || [])
+      } catch (error) {
+        console.error('Failed to search patients:', error)
       }
-    } catch (error) {
-      console.error('Failed to search patients:', error)
     }
   }
 
@@ -969,7 +968,27 @@ export default function BillingPage() {
             <Button variant="outline" onClick={() => setShowBillDetailsDialog(false)}>
               Close
             </Button>
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!selectedBill) return;
+                try {
+                  const res = await fetch(`/api/receptionist/billing/${selectedBill.bill_id}?format=pdf`);
+                  if (!res.ok) throw new Error('Failed to download PDF');
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Bill_${selectedBill.bill_id}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  window.URL.revokeObjectURL(url);
+                } catch (err) {
+                  alert('Failed to download PDF');
+                }
+              }}
+            >
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>

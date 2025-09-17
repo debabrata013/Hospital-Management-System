@@ -893,58 +893,7 @@ export default function ReceptionistDashboard() {
             </div>
 
             {/* Pending Bills & Messages Section */}
-            <div className="grid grid-cols-1 gap-4 lg:gap-6">
-              {/* Pending Bills */}
-              <Card className="border-purple-100">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base lg:text-lg font-semibold">Pending Bills & Payments</CardTitle>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/receptionist/billing">
-                        <CreditCard className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-                        <span className="hidden sm:inline">Manage Billing</span>
-                        <span className="sm:hidden">Billing</span>
-                      </Link>
-                    </Button>
-                  </div>
-                  <CardDescription className="text-xs lg:text-sm">Bills requiring payment processing</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 lg:space-y-4">
-                    {isLoading ? (
-                      <div className="text-center py-4">Loading bills...</div>
-                    ) : pendingBills.length === 0 ? (
-                      <div className="text-center py-4 text-gray-500 text-sm">No pending bills</div>
-                    ) : (
-                      pendingBills.map((bill) => (
-                        <div key={bill.id} className="flex items-center justify-between p-3 lg:p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
-                            <div className="bg-purple-100 p-2 rounded-lg flex-shrink-0">
-                              <FileText className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm lg:text-base truncate">{bill.patientName}</p>
-                              <p className="text-xs lg:text-sm text-gray-600 truncate">{bill.services?.join(', ')}</p>
-                              <p className="text-xs text-gray-500">Due: {bill.dueDate}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
-                            <div className="text-right">
-                              <p className="font-bold text-sm lg:text-lg">₹{bill.amount?.toLocaleString()}</p>
-                              {getStatusBadge(bill.status)}
-                            </div>
-                            <Button size="sm" className="bg-purple-500 hover:bg-purple-600 text-xs lg:text-sm px-2 lg:px-4">
-                              <span className="hidden sm:inline">Process Payment</span>
-                              <span className="sm:hidden">Pay</span>
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+           
           </main>
         </SidebarInset>
       </div>
