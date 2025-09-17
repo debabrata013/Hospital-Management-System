@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
 
     // Verify and decode the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const doctorId = decoded.id;
+    const doctorId = decoded.userId || decoded.id; // Try both userId and id for compatibility
 
     if (!doctorId) {
       return NextResponse.json(
-        { error: 'Invalid token' },
+        { error: 'Invalid token - no userId or id found' },
         { status: 401 }
       );
     }
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         u.id as nurse_id,
         u.name as nurse_name,
         u.email as nurse_email,
-        u.phone_number as nurse_mobile
+        u.contact_number as nurse_mobile
       FROM nurse_assignments na
       JOIN users u ON na.nurse_id = u.id
       WHERE na.doctor_id = ? AND na.is_active = 1

@@ -38,6 +38,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse } from 'lucide-react'
 
 
@@ -115,6 +122,13 @@ export default function DoctorDashboard() {
     remarks: ''
   });
 
+  // Patient assignment modal states
+  const [patientAssignmentDialog, setPatientAssignmentDialog] = useState(false);
+  const [selectedNurseForAssignment, setSelectedNurseForAssignment] = useState<any>(null);
+  const [doctorPatients, setDoctorPatients] = useState<any[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+
   useEffect(() => {
     if (user) {
       console.log('Auth User Object:', user);
@@ -132,6 +146,56 @@ export default function DoctorDashboard() {
       ...prev,
       vitals: { ...prev.vitals, [field]: value }
     }));
+  };
+
+  // Patient assignment functions
+  const handleAssignPatientClick = async (nurse: any) => {
+    setSelectedNurseForAssignment(nurse);
+    setPatientAssignmentDialog(true);
+    
+    // Fetch doctor's patients
+    try {
+      setPatientsLoading(true);
+      const response = await fetch('/api/doctor/patients');
+      if (response.ok) {
+        const data = await response.json();
+        setDoctorPatients(data.patients || []);
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setPatientsLoading(false);
+    }
+  };
+
+  const handlePatientAssignment = async () => {
+    if (!selectedPatientId || !selectedNurseForAssignment) return;
+
+    try {
+      const response = await fetch('/api/doctor/assign-patient-to-nurse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nurseId: selectedNurseForAssignment.nurse_id,
+          patientId: selectedPatientId,
+        }),
+      });
+
+      if (response.ok) {
+        // Show success message
+        alert('Patient assigned successfully!');
+        setPatientAssignmentDialog(false);
+        setSelectedPatientId('');
+        setSelectedNurseForAssignment(null);
+      } else {
+        alert('Failed to assign patient. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error assigning patient:', error);
+      alert('Error assigning patient. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -691,6 +755,16 @@ export default function DoctorDashboard() {
                                         Assigned: {new Date(nurse.assigned_date).toLocaleDateString()}
                                       </span>
                                     </div>
+                                    <div className="mt-3">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleAssignPatientClick(nurse)}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Assign Patient
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -736,6 +810,16 @@ export default function DoctorDashboard() {
                                       <span className="text-xs text-gray-500">
                                         Assigned: {new Date(nurse.assigned_date).toLocaleDateString()}
                                       </span>
+                                    </div>
+                                    <div className="mt-3">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleAssignPatientClick(nurse)}
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Assign Patient
+                                      </Button>
                                     </div>
                                   </div>
                                 </div>
@@ -1176,6 +1260,60 @@ export default function DoctorDashboard() {
             >
               <FileEdit className="h-4 w-4 mr-1" />
               Create Prescription
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Patient Assignment Dialog */}
+      <Dialog open={patientAssignmentDialog} onOpenChange={setPatientAssignmentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Patient to Nurse</DialogTitle>
+            <DialogDescription>
+              Assign a patient to {selectedNurseForAssignment?.nurse_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="patient-select">Select Patient</Label>
+              <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a patient..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {patientsLoading ? (
+                    <SelectItem value="loading" disabled>Loading patients...</SelectItem>
+                  ) : doctorPatients.length > 0 ? (
+                    doctorPatients.map((patient: any) => (
+                      <SelectItem key={patient.id} value={patient.id.toString()}>
+                        {patient.name} - {patient.contact_number}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-patients" disabled>No patients found</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setPatientAssignmentDialog(false);
+              setSelectedPatientId('');
+              setSelectedNurseForAssignment(null);
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePatientAssignment}
+              disabled={!selectedPatientId || patientsLoading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Assign Patient
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -104,6 +104,8 @@ export default function StaffDashboard() {
   const [allStaff, setAllStaff] = useState<any[]>([])
   const [attendanceData, setAttendanceData] = useState<any[]>([])
   const [attendanceLoading, setAttendanceLoading] = useState(true)
+  const [assignedPatients, setAssignedPatients] = useState<any[]>([])
+  const [patientsLoading, setPatientsLoading] = useState(true)
   const { authState } = useAuth()
   const user = authState?.user
 
@@ -147,9 +149,25 @@ export default function StaffDashboard() {
             { date: '2025-09-10', checkIn: '08:25:00', checkOut: '17:00:00', status: 'late' },
             { date: '2025-09-09', checkIn: null, checkOut: null, status: 'absent' }
           ])
-        } finally {
-          setAttendanceLoading(false)
         }
+
+        // Fetch assigned patients
+        try {
+          const patientsResponse = await fetch('/api/nurse/assigned-patients')
+          if (patientsResponse.ok) {
+            const patientsData = await patientsResponse.json()
+            if (patientsData.success) {
+              setAssignedPatients(patientsData.patients || [])
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching assigned patients:', error)
+          setAssignedPatients([])
+        } finally {
+          setPatientsLoading(false)
+        }
+        
+        setAttendanceLoading(false)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -505,6 +523,82 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Assigned Patients Section */}
+            <Card className="border-pink-100">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold flex items-center">
+                  <Users className="h-6 w-6 mr-2 text-pink-500" />
+                  Assigned Patients
+                </CardTitle>
+                <CardDescription>Patients assigned to you by doctors</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {patientsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading assigned patients...</p>
+                  </div>
+                ) : assignedPatients.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {assignedPatients.slice(0, 6).map((patient: any) => (
+                        <div key={patient.assignment_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                          <div className="flex items-start space-x-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-blue-100 text-blue-600">
+                                {patient.patient_name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 truncate">{patient.patient_name}</h4>
+                              <p className="text-sm text-gray-600 truncate">ID: {patient.patient_code}</p>
+                              {patient.patient_phone && (
+                                <div className="flex items-center space-x-1 mt-1">
+                                  <Phone className="h-3 w-3 text-gray-400" />
+                                  <span className="text-xs text-gray-500">{patient.patient_phone}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center space-x-1 mt-1">
+                                <Stethoscope className="h-3 w-3 text-gray-400" />
+                                <span className="text-xs text-gray-500">
+                                  Dr. {patient.doctor_name} ({patient.doctor_department})
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1 mt-1">
+                                <Calendar className="h-3 w-3 text-gray-400" />
+                                <span className="text-xs text-gray-500">
+                                  Assigned: {new Date(patient.assigned_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              {patient.blood_group && (
+                                <Badge variant="outline" className="mt-2 text-xs">
+                                  {patient.blood_group}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {assignedPatients.length > 6 && (
+                      <div className="text-center mt-4">
+                        <Button variant="outline" className="text-pink-600 border-pink-200 hover:bg-pink-50">
+                          View All {assignedPatients.length} Patients
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                    <Users className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No patients assigned yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Patients will appear here when doctors assign them to you</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
                         
       
             {/* Attendance Section */}
