@@ -87,6 +87,8 @@ export default function DoctorDashboard() {
   const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
+  const [assignedNurses, setAssignedNurses] = useState<any>({ opd: { count: 0, nurses: [] }, ward: { count: 0, nurses: [] } });
+  const [nursesLoading, setNursesLoading] = useState(true);
   
   // Vitals modal states
   const [vitalsDialog, setVitalsDialog] = useState(false);
@@ -184,11 +186,30 @@ export default function DoctorDashboard() {
       }
     };
 
+    const fetchAssignedNurses = async () => {
+      try {
+        setNursesLoading(true);
+        const response = await fetch('/api/doctor/assigned-nurses');
+        if (!response.ok) {
+          throw new Error('Failed to fetch assigned nurses');
+        }
+        const data = await response.json();
+        if (data.success) {
+          setAssignedNurses(data);
+        }
+      } catch (error) {
+        console.error("Error fetching assigned nurses:", error);
+      } finally {
+        setNursesLoading(false);
+      }
+    };
+
 
     if (user) {
       fetchStats();
       fetchAppointments();
       fetchRecentPatients();
+      fetchAssignedNurses();
     }
   }, [user]);
 
@@ -616,6 +637,120 @@ export default function DoctorDashboard() {
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Available Nurses */}
+              <Card className="border-pink-100 mt-6">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-gray-900">Available Nurses</CardTitle>
+                    <CardDescription>Nurses assigned to work with you</CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-pink-600 border-pink-200">
+                    {assignedNurses.opd.count + assignedNurses.ward.count} Total
+                  </Badge>
+                </CardHeader>
+                <CardContent>
+                  {nursesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-gray-500">Loading nurses...</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* OPD Nurses */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">OPD Nurses</h3>
+                          <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                            {assignedNurses.opd.count} nurses
+                          </Badge>
+                        </div>
+                        {assignedNurses.opd.nurses.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {assignedNurses.opd.nurses.map((nurse: any) => (
+                              <div key={nurse.nurse_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                                <div className="flex items-start space-x-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarFallback className="bg-blue-100 text-blue-600">
+                                      {nurse.nurse_name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-gray-900 truncate">{nurse.nurse_name}</h4>
+                                    <p className="text-sm text-gray-600 truncate">{nurse.nurse_email}</p>
+                                    {nurse.nurse_mobile && (
+                                      <div className="flex items-center space-x-1 mt-1">
+                                        <Phone className="h-3 w-3 text-gray-400" />
+                                        <span className="text-xs text-gray-500">{nurse.nurse_mobile}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center space-x-1 mt-1">
+                                      <CalendarDays className="h-3 w-3 text-gray-400" />
+                                      <span className="text-xs text-gray-500">
+                                        Assigned: {new Date(nurse.assigned_date).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+                            <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">No OPD nurses assigned</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Ward Nurses */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">Ward Nurses</h3>
+                          <Badge variant="secondary" className="bg-green-50 text-green-700">
+                            {assignedNurses.ward.count} nurses
+                          </Badge>
+                        </div>
+                        {assignedNurses.ward.nurses.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {assignedNurses.ward.nurses.map((nurse: any) => (
+                              <div key={nurse.nurse_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                                <div className="flex items-start space-x-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarFallback className="bg-green-100 text-green-600">
+                                      {nurse.nurse_name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-gray-900 truncate">{nurse.nurse_name}</h4>
+                                    <p className="text-sm text-gray-600 truncate">{nurse.nurse_email}</p>
+                                    {nurse.nurse_mobile && (
+                                      <div className="flex items-center space-x-1 mt-1">
+                                        <Phone className="h-3 w-3 text-gray-400" />
+                                        <span className="text-xs text-gray-500">{nurse.nurse_mobile}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center space-x-1 mt-1">
+                                      <CalendarDays className="h-3 w-3 text-gray-400" />
+                                      <span className="text-xs text-gray-500">
+                                        Assigned: {new Date(nurse.assigned_date).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+                            <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">No ward nurses assigned</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

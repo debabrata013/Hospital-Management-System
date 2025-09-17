@@ -75,12 +75,12 @@ interface StockAlert {
   category: string;
 }
 
-interface DoctorSchedule {
+interface Nurse {
   id: string;
   name: string;
-  department: string;
-  status: string;
-  shifts: { dayOfWeek: string; startTime: string; endTime: string }[];
+  email: string;
+  mobile: string;
+  created_at: string;
 }
 
 interface Appointment {
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [admittedPatients, setAdmittedPatients] = useState<AdmittedPatient[]>([]);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
-  const [doctorSchedules, setDoctorSchedules] = useState<DoctorSchedule[]>([]);
+  const [nurses, setNurses] = useState<Nurse[]>([]);
   const [notifications] = useState(7);
 
   // Feature flags to toggle visibility without removing code
@@ -116,12 +116,12 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [statsRes, appointmentsRes, admittedPatientsRes, stockAlertsRes, doctorSchedulesRes] = await Promise.all([
+        const [statsRes, appointmentsRes, admittedPatientsRes, stockAlertsRes, nursesRes] = await Promise.all([
           fetch('/api/admin/dashboard-stats'),
           fetch('/api/admin/appointments'),
           fetch('/api/admin/admitted-patients'),
           fetch('/api/admin/stock-alerts'),
-          fetch('/api/admin/doctor-schedules'),
+          fetch('/api/admin/nurses'),
         ]);
 
         if (!statsRes.ok) {
@@ -136,21 +136,21 @@ export default function AdminDashboard() {
         if (!stockAlertsRes.ok) {
           throw new Error('Failed to fetch stock alerts');
         }
-        if (!doctorSchedulesRes.ok) {
-          throw new Error('Failed to fetch doctor schedules');
+        if (!nursesRes.ok) {
+          throw new Error('Failed to fetch nurses');
         }
 
         const statsData = await statsRes.json();
         const appointmentsData = await appointmentsRes.json();
         const admittedPatientsData = await admittedPatientsRes.json();
         const stockAlertsData = await stockAlertsRes.json();
-        const doctorSchedulesData = await doctorSchedulesRes.json();
+        const nursesData = await nursesRes.json();
 
         setStats(statsData);
         setUpcomingAppointments(appointmentsData);
         setAdmittedPatients(admittedPatientsData);
         setStockAlerts(stockAlertsData);
-        setDoctorSchedules(doctorSchedulesData);
+        setNurses(nursesData);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -835,14 +835,14 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Doctor Schedules */}
+              {/* Manage Nurses */}
               <Card className="border-pink-100">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-gray-900">Doctor Schedules</CardTitle>
-                    <CardDescription>Current doctor availability and schedules</CardDescription>
+                    <CardTitle className="text-gray-900">Manage Nurses</CardTitle>
+                    <CardDescription>All registered nurses in the system</CardDescription>
                   </div>
-                  <Link href="/admin/schedules">
+                  <Link href="/admin/nurses">
                     <Button variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50">
                       View All
                     </Button>
@@ -863,35 +863,38 @@ export default function AdminDashboard() {
                         </div>
                       ))}
                     </div>
-                  ) : doctorSchedules && doctorSchedules.length > 0 ? (
+                  ) : nurses && nurses.length > 0 ? (
                     <div className="space-y-4">
-                      {doctorSchedules.map((doctor) => (
-                        <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      {nurses.slice(0, 5).map((nurse) => (
+                        <div key={nurse.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-pink-50 transition-colors">
                           <div className="flex items-center space-x-3">
                             <Avatar>
-                              <AvatarImage src={`/avatars/doctor-${doctor.id}.png`} />
-                              <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback className="bg-pink-100 text-pink-700">{nurse.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-semibold">{doctor.name}</p>
-                              <p className="text-sm opacity-75">{doctor.department}</p>
+                              <p className="font-semibold text-gray-900">{nurse.name}</p>
+                              <p className="text-sm text-gray-600">{nurse.email}</p>
+                              <p className="text-xs text-gray-500">{nurse.mobile || 'No contact'}</p>
                             </div>
                           </div>
-                          <div className="text-sm text-center">
-                            {doctor.shifts && doctor.shifts.length > 0 ? (
-                              <p>{doctor.shifts[0].dayOfWeek}: {formatTime(doctor.shifts[0].startTime)} - {formatTime(doctor.shifts[0].endTime)}</p>
-                            ) : (
-                              <p>No shift assigned</p>
-                            )}
+                          <div className="text-right">
+                            <Badge className="bg-green-100 text-green-700">Active</Badge>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Since {new Date(nurse.created_at).toLocaleDateString()}
+                            </p>
                           </div>
-                          <Badge variant={getDoctorStatusVariant(doctor.status)}>{doctor.status}</Badge>
                         </div>
                       ))}
+                      {nurses.length > 5 && (
+                        <div className="text-center pt-2">
+                          <p className="text-sm text-gray-500">+{nurses.length - 5} more nurses</p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <Stethoscope className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No doctor schedules available</p>
+                      <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No nurses registered in the system</p>
                     </div>
                   )}
                 </CardContent>
