@@ -11,12 +11,7 @@ export async function GET(request: NextRequest) {
         id,
         name,
         email,
-        specialization,
-        department,
-        qualification,
-        experience_years,
-        license_number,
-        employee_id,
+        role,
         is_active
       FROM users 
       WHERE role = 'doctor' 
@@ -31,12 +26,7 @@ export async function GET(request: NextRequest) {
         id: doctor.id,
         name: doctor.name,
         email: doctor.email,
-        specialization: doctor.specialization || 'General Medicine',
-        department: doctor.department || 'General',
-        qualification: doctor.qualification,
-        experience_years: doctor.experience_years,
-        license_number: doctor.license_number,
-        employee_id: doctor.employee_id,
+        role: doctor.role,
         is_active: doctor.is_active
       }))
     })
