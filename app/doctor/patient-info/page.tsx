@@ -309,6 +309,170 @@ export default function PatientInfoPage() {
     })
   }
 
+  const exportSinglePrescription = (prescription: Prescription) => {
+    if (!selectedPatient) {
+      alert('No patient selected')
+      return
+    }
+
+    // Create PDF content for single prescription
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      alert('Please allow pop-ups to export prescription')
+      return
+    }
+
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Prescription - ${selectedPatient.name}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #333;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #2563eb;
+              padding-bottom: 20px;
+            }
+            .hospital-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #2563eb;
+              margin-bottom: 5px;
+            }
+            .patient-info { 
+              background: #f8fafc; 
+              padding: 20px; 
+              margin-bottom: 30px; 
+              border-radius: 8px;
+              border-left: 4px solid #2563eb;
+            }
+            .prescription { 
+              border: 1px solid #e2e8f0;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+            }
+            .prescription h3 { 
+              color: #2563eb; 
+              border-bottom: 1px solid #e2e8f0; 
+              padding-bottom: 10px; 
+              margin-bottom: 15px;
+            }
+            .vitals { 
+              background: #f0f9ff; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 6px;
+            }
+            .medications { 
+              background: #fefce8; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 6px;
+              border-left: 4px solid #eab308;
+            }
+            .instructions { 
+              background: #f0fdf4; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 6px;
+              border-left: 4px solid #22c55e;
+            }
+            .grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 10px; 
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #64748b;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 20px;
+            }
+            @media print { 
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">NMSC Hospital</div>
+            <h1>Prescription</h1>
+            <p>Generated on: ${new Date().toLocaleDateString('en-IN', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}</p>
+          </div>
+          
+          <div class="patient-info">
+            <h2>Patient Information</h2>
+            <div class="grid">
+              <div><strong>Name:</strong> ${selectedPatient.name}</div>
+              <div><strong>Patient ID:</strong> ${selectedPatient.patient_id}</div>
+              <div><strong>Age:</strong> ${calculateAge(selectedPatient.date_of_birth)} years</div>
+              <div><strong>Gender:</strong> ${selectedPatient.gender}</div>
+              <div><strong>Contact:</strong> ${selectedPatient.contact_number}</div>
+              <div><strong>Blood Group:</strong> ${selectedPatient.blood_group || 'Not specified'}</div>
+            </div>
+          </div>
+
+          <div class="prescription">
+            <h3>Prescription - ${formatDate(prescription.created_at)}</h3>
+            
+            <div><strong>Doctor:</strong> ${prescription.doctor_name}</div>
+            <div><strong>Prescription ID:</strong> ${prescription.prescription_id || 'N/A'}</div>
+            
+            ${prescription.vitals && (prescription.vitals.blood_pressure || prescription.vitals.heart_rate || prescription.vitals.temperature) ? `
+              <div class="vitals">
+                <strong>Vitals:</strong><br>
+                ${prescription.vitals.blood_pressure ? `Blood Pressure: ${prescription.vitals.blood_pressure}<br>` : ''}
+                ${prescription.vitals.heart_rate ? `Heart Rate: ${prescription.vitals.heart_rate} bpm<br>` : ''}
+                ${prescription.vitals.temperature ? `Temperature: ${prescription.vitals.temperature}°F<br>` : ''}
+                ${prescription.vitals.weight ? `Weight: ${prescription.vitals.weight} kg<br>` : ''}
+                ${prescription.vitals.height ? `Height: ${prescription.vitals.height} cm<br>` : ''}
+              </div>
+            ` : ''}
+            
+            <div class="medications">
+              <strong>Medications:</strong><br>
+              ${prescription.medications || 'No medications prescribed'}
+            </div>
+            
+            ${prescription.instructions ? `
+              <div class="instructions">
+                <strong>Instructions:</strong><br>
+                ${prescription.instructions}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="footer">
+            <p>This is a computer-generated prescription.</p>
+            <p>For any queries, please contact the hospital administration.</p>
+          </div>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(pdfContent)
+    printWindow.document.close()
+    printWindow.focus()
+    
+    // Auto-trigger print dialog for PDF generation
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
+  }
+
   const exportPrescriptions = () => {
     if (!selectedPatient || prescriptions.length === 0) {
       alert('No prescriptions to export')
@@ -406,7 +570,7 @@ export default function PatientInfoPage() {
         </head>
         <body>
           <div class="header">
-            <div class="hospital-name">Hospital Management System</div>
+            <div class="hospital-name">NMSC Hospital</div>
             <h1>Prescription Report</h1>
             <p>Generated on: ${new Date().toLocaleDateString('en-IN', { 
               year: 'numeric', 
@@ -818,13 +982,24 @@ export default function PatientInfoPage() {
                             <Card key={prescription.id} className="border-l-4 border-l-blue-500">
                               <CardContent className="pt-4">
                                 <div className="flex justify-between items-start mb-3">
-                                  <div>
+                                  <div className="flex-1">
                                     <h4 className="font-semibold">{prescription.medications}</h4>
                                     <p className="text-sm text-gray-600">Dr. {prescription.doctor_name}</p>
                                   </div>
-                                  <div className="text-right">
-                                    <Badge variant="outline">{prescription.dosage}</Badge>
-                                    <p className="text-xs text-gray-500 mt-1">{formatDate(prescription.created_at)}</p>
+                                  <div className="flex items-center space-x-3">
+                                    <div className="text-right">
+                                      <Badge variant="outline">{prescription.dosage}</Badge>
+                                      <p className="text-xs text-gray-500 mt-1">{formatDate(prescription.created_at)}</p>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => exportSinglePrescription(prescription)}
+                                      className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                      <span className="text-xs">Export</span>
+                                    </Button>
                                   </div>
                                 </div>
                                 <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
