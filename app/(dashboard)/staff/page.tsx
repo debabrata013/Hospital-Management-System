@@ -270,7 +270,7 @@ export default function StaffDashboard() {
                   </Button>
                 </div> */}
                 
-{/* Back to Home Link */}
+{/* Back to Home Link
 <div className="mb-6">
   <Link
     href="/"
@@ -279,7 +279,7 @@ export default function StaffDashboard() {
     <ArrowLeft className="h-4 w-4 mr-2" />
     Back to Home
   </Link>
-</div>
+</div> */}
 
                 {/* Profile Dropdown */}
                 <DropdownMenu>

@@ -15,67 +15,38 @@ export const dynamic = 'force-dynamic';
 
 // GET - Fetch staff attendance data
 export async function GET(request: NextRequest) {
+  let connection;
   try {
     const session = await getServerSession(request)
-    if (!session) {
+    if (!session?.user?.userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Mock data for demonstration
-    // In a real implementation, this would fetch from the database
-    const today = new Date()
-    const mockAttendance = generateAttendanceData(session.user.userId, today)
+    connection = await mysql.createConnection(dbConfig)
+    
+    const [rows] = await connection.execute(
+      'SELECT id, user_id, date, status, check_in, check_out FROM attendance WHERE user_id = ? ORDER BY date DESC',
+      [session.user.userId]
+    );
+
+    await connection.end();
 
     return NextResponse.json({
       success: true,
-      data: mockAttendance
+      attendance: rows
     })
+
   } catch (error) {
     console.error('Error fetching attendance data:', error)
+    if (connection) {
+      await connection.end();
+    }
     return NextResponse.json(
       { success: false, error: 'Failed to fetch attendance data' },
       { status: 500 }
     )
   }
-}
-
-// Helper function to generate mock attendance data
-function generateAttendanceData(userId: string, today: Date) {
-  const records = []
-  
-  // Generate past 30 days of attendance
-  for (let i = 0; i < 30; i++) {
-    const date = new Date()
-    date.setDate(today.getDate() - i)
-    
-    // Skip weekends
-    if (date.getDay() === 0 || date.getDay() === 6) continue
-    
-    // Randomize status with realistic probability
-    const rand = Math.random()
-    let status = 'present'
-    let checkIn = `08:${Math.floor(Math.random() * 15).toString().padStart(2, '0')}:00`
-    let checkOut = `17:${Math.floor(Math.random() * 30).toString().padStart(2, '0')}:00`
-    
-    if (rand > 0.9) {
-      status = 'absent'
-      checkIn = ''
-      checkOut = ''
-    } else if (rand > 0.8) {
-      status = 'late'
-      checkIn = `08:${Math.floor(Math.random() * 30 + 15).toString().padStart(2, '0')}:00`
-    }
-    
-    records.push({
-      date: date.toISOString().split('T')[0],
-      checkIn,
-      checkOut,
-      status
-    })
-  }
-  
-  return records
 }
