@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -37,14 +38,14 @@ export async function GET(
   { params }: { params: { billId: string } }
 ) {
   let connection;
-  
   try {
     const { billId } = params;
-    
+    const url = new URL(request.url);
+    const isPdf = url.searchParams.get('format') === 'pdf';
+
     connection = await getConnection();
-    
     // Get bill details
-    const [bills] = await connection.execute(
+  const [billsRaw] = await connection.execute(
       `SELECT 
         b.*, 
         p.name as patient_name, p.contact_number as patient_phone,
@@ -60,28 +61,95 @@ export async function GET(
       WHERE b.bill_id = ?`,
       [billId]
     );
-    
-    if (bills.length === 0) {
+    // Type assertion for MySQL results
+    const bills = billsRaw as any[];
+    if (!Array.isArray(bills) || bills.length === 0) {
       return NextResponse.json(
         { message: 'Bill not found' },
         { status: 404 }
       );
     }
-    
     const bill = bills[0];
-    
     // Get bill items
-    const [items] = await connection.execute(
+    const [itemsRaw] = await connection.execute(
       `SELECT * FROM bill_items WHERE bill_id = ? ORDER BY id`,
       [bill.id]
     );
-    
+    const items = itemsRaw as any[];
     // Get payment history
-    const [payments] = await connection.execute(
+    const [paymentsRaw] = await connection.execute(
       `SELECT * FROM payments WHERE bill_id = ? ORDER BY created_at DESC`,
       [bill.id]
     );
-    
+    const payments = paymentsRaw as any[];
+
+    if (isPdf) {
+      // Generate PDF using pdf-lib (no external fonts/files needed)
+      const pdfDoc = await PDFDocument.create();
+      let page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      // Helvetica (WinAnsi) cannot render the Unicode rupee character (₹ U+20B9).
+      // Sanitize any text to replace it with an ASCII-safe representation.
+      const sanitize = (text: string) => (text ?? '').replace(/\u20B9/g, 'Rs. ');
+
+      const drawText = (text: string, x: number, y: number, size = 12) => {
+        page.drawText(sanitize(text), { x, y, size, font, color: rgb(0, 0, 0) });
+      };
+
+      let y = 800;
+      // Header
+      drawText('NMSC Hospital Bill', 200, y, 18);
+      y -= 30;
+      drawText(`Bill ID: ${bill.bill_id}`, 50, y);
+      y -= 18;
+      drawText(`Date: ${new Date(bill.created_at).toLocaleString()}`, 50, y);
+      y -= 18;
+      drawText(`Patient: ${bill.patient_name} (${bill.patient_code})`, 50, y);
+      y -= 18;
+      drawText(`Phone: ${bill.patient_phone}`, 50, y);
+      y -= 18;
+      drawText(`Age/Gender: ${bill.age} / ${bill.gender}`, 50, y);
+      y -= 18;
+      drawText(`Address: ${bill.address || ''}`, 50, y);
+      y -= 24;
+
+      drawText('Bill Items:', 50, y);
+      y -= 18;
+      items.forEach((item, idx) => {
+        const line = `${idx + 1}. ${item.item_name} (${item.item_type}) x${item.quantity} - Rs. ${item.unit_price}`;
+        drawText(line, 60, y);
+        y -= 16;
+        if (y < 80) {
+          // new page if needed
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = 800;
+        }
+      });
+      y -= 10;
+  drawText(`Subtotal: Rs. ${bill.total_amount}`, 50, y);
+      y -= 16;
+  drawText(`Discount: -Rs. ${bill.discount_amount}`, 50, y);
+      y -= 16;
+  drawText(`Tax: +Rs. ${bill.tax_amount}`, 50, y);
+      y -= 20;
+  drawText(`Final Amount: Rs. ${bill.final_amount}`, 50, y, 14);
+      y -= 20;
+      drawText(`Status: ${bill.payment_status}`, 50, y);
+      y -= 16;
+      drawText(`Created By: ${bill.created_by_name}`, 50, y);
+
+      const pdfBytes = await pdfDoc.save();
+      return new NextResponse(new Uint8Array(pdfBytes) as any, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment; filename="NMSC Hospital Bill.pdf"',
+        },
+      });
+    }
+
+    // Default: JSON
     return NextResponse.json({
       bill: {
         ...bill,
@@ -89,7 +157,6 @@ export async function GET(
         payments
       }
     });
-
   } catch (error) {
     console.error('Get bill details error:', error);
     return NextResponse.json(
@@ -116,31 +183,28 @@ export async function DELETE(
     connection = await getConnection();
     
     // Check if bill can be cancelled (not paid)
-    const [bills] = await connection.execute(
+    const [billsRaw] = await connection.execute(
       `SELECT payment_status FROM bills WHERE bill_id = ?`,
       [billId]
     );
-    
-    if (bills.length === 0) {
+    const bills = billsRaw as any[];
+    if (!Array.isArray(bills) || bills.length === 0) {
       return NextResponse.json(
         { message: 'Bill not found' },
         { status: 404 }
       );
     }
-    
     if (bills[0].payment_status === 'paid') {
       return NextResponse.json(
         { message: 'Cannot cancel paid bill' },
         { status: 400 }
       );
     }
-    
     // Update bill status to cancelled
     await connection.execute(
       `UPDATE bills SET payment_status = 'cancelled', updated_at = NOW() WHERE bill_id = ?`,
       [billId]
     );
-    
     return NextResponse.json({
       message: 'Bill cancelled successfully'
     });

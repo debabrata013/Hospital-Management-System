@@ -19,6 +19,7 @@ interface PrescriptionData {
 
 export function generatePrescriptionPDF(data: PrescriptionData): jsPDF {
   const doc = new jsPDF()
+  const sanitize = (text: string) => (text ?? '').replace(/\u20B9/g, 'Rs. ')
   
   // Header
   doc.setFontSize(20)
@@ -32,13 +33,13 @@ export function generatePrescriptionPDF(data: PrescriptionData): jsPDF {
   
   // Prescription details
   doc.setFontSize(10)
-  doc.text(`Prescription ID: ${data.prescription_id}`, 20, 50)
-  doc.text(`Date: ${new Date(data.prescription_date).toLocaleDateString()}`, 140, 50)
+  doc.text(sanitize(`Prescription ID: ${data.prescription_id}`), 20, 50)
+  doc.text(sanitize(`Date: ${new Date(data.prescription_date).toLocaleDateString()}`), 140, 50)
   
-  doc.text(`Patient: ${data.patient_name}`, 20, 60)
-  doc.text(`Patient ID: ${data.patient_id}`, 140, 60)
+  doc.text(sanitize(`Patient: ${data.patient_name}`), 20, 60)
+  doc.text(sanitize(`Patient ID: ${data.patient_id}`), 140, 60)
   
-  doc.text(`Doctor: Dr. ${data.doctor_name}`, 20, 70)
+  doc.text(sanitize(`Doctor: Dr. ${data.doctor_name}`), 20, 70)
   
   // Medicines header
   doc.setFontSize(12)
@@ -49,23 +50,23 @@ export function generatePrescriptionPDF(data: PrescriptionData): jsPDF {
   let yPos = 95
   
   data.items.forEach((item, index) => {
-    doc.text(`${index + 1}. ${item.medicine_name}`, 25, yPos)
-    doc.text(`Dosage: ${item.dosage}`, 30, yPos + 7)
-    doc.text(`Frequency: ${item.frequency}`, 30, yPos + 14)
-    doc.text(`Duration: ${item.duration}`, 30, yPos + 21)
-    doc.text(`Quantity: ${item.quantity}`, 30, yPos + 28)
+    doc.text(sanitize(`${index + 1}. ${item.medicine_name}`), 25, yPos)
+    doc.text(sanitize(`Dosage: ${item.dosage}`), 30, yPos + 7)
+    doc.text(sanitize(`Frequency: ${item.frequency}`), 30, yPos + 14)
+    doc.text(sanitize(`Duration: ${item.duration}`), 30, yPos + 21)
+    doc.text(sanitize(`Quantity: ${item.quantity}`), 30, yPos + 28)
     yPos += 40
   })
   
   // Notes
   if (data.notes) {
     doc.text('Notes:', 20, yPos + 10)
-    doc.text(data.notes, 20, yPos + 20)
+    doc.text(sanitize(data.notes), 20, yPos + 20)
   }
   
   // Footer
   doc.text('Doctor Signature: ________________', 20, 250)
-  doc.text(`Total Amount: ₹${data.total_amount}`, 140, 250)
+  doc.text(sanitize(`Total Amount: ₹${data.total_amount}`), 140, 250)
   
   return doc
 }
