@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+// --- View/Edit Dialog State ---
+const emptyPatient = { id: '', name: '', age: '', gender: '', phone: '', registeredAt: '', status: '' }
 import { useOffline } from "@/hooks/use-offline"
 import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
@@ -213,6 +215,10 @@ const navigationItems = [
 ]
 
 export default function ReceptionistDashboard() {
+  // View/Edit Dialog State
+  const [viewPatientDialog, setViewPatientDialog] = useState(false)
+  const [editPatientDialog, setEditPatientDialog] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<any>(emptyPatient)
   const [notifications] = useState(8)
   const [newPatientDialog, setNewPatientDialog] = useState(false)
   const [emergencyDialog, setEmergencyDialog] = useState(false)
@@ -752,21 +758,99 @@ export default function ReceptionistDashboard() {
                               {patient.name}
                             </p>
                             <p className="text-xs text-gray-500 truncate">
-                              {patient.age}Y • {patient.gender} • {patient.contact_number}
+                              {patient.age}Y • {patient.gender} • {patient.phone || patient.contact_number}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-1 flex-shrink-0">
-                          <Button variant="ghost" size="sm" className="p-1">
+                          <Button variant="ghost" size="sm" className="p-1" onClick={() => { setSelectedPatient(patient); setEditPatientDialog(true); }}>
                             <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="p-1">
+                          <Button variant="ghost" size="sm" className="p-1" onClick={() => { setSelectedPatient(patient); setViewPatientDialog(true); }}>
                             <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
                           </Button>
                         </div>
                       </div>
                     ))
                   )}
+                {/* Dialogs for view/edit patient */}
+                <Dialog open={viewPatientDialog} onOpenChange={setViewPatientDialog}>
+                  <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                      <DialogTitle>Patient Details</DialogTitle>
+                      <DialogDescription>View patient registration details</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-2">
+                      <div><span className="font-medium">Name:</span> {selectedPatient.name}</div>
+                      <div><span className="font-medium">Age:</span> {selectedPatient.age}</div>
+                      <div><span className="font-medium">Gender:</span> {selectedPatient.gender}</div>
+                      <div><span className="font-medium">Phone:</span> {selectedPatient.phone || selectedPatient.contact_number}</div>
+                      <div><span className="font-medium">Registered At:</span> {selectedPatient.registeredAt}</div>
+                      <div><span className="font-medium">Status:</span> {selectedPatient.status}</div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setViewPatientDialog(false)}>Close</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={editPatientDialog} onOpenChange={setEditPatientDialog}>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Edit Patient</DialogTitle>
+                      <DialogDescription>Update patient registration details</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Name</label>
+                        <Input value={selectedPatient.name} onChange={e => setSelectedPatient((prev: any) => ({ ...prev, name: e.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Age</label>
+                        <Input type="number" value={selectedPatient.age} onChange={e => setSelectedPatient((prev: any) => ({ ...prev, age: e.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Gender</label>
+                        <select className="w-full p-2 border rounded-md text-sm" value={selectedPatient.gender} onChange={e => setSelectedPatient((prev: any) => ({ ...prev, gender: e.target.value }))}>
+                          <option value="">Select gender</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Phone</label>
+                        <Input value={selectedPatient.phone || selectedPatient.contact_number} onChange={e => setSelectedPatient((prev: any) => ({ ...prev, phone: e.target.value, contact_number: e.target.value }))} />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setEditPatientDialog(false)}>Cancel</Button>
+                      <Button className="bg-pink-500 hover:bg-pink-600" onClick={async () => {
+                        // Call backend PATCH API to update patient
+                        try {
+                          const res = await fetch(`/api/receptionist/patients/${selectedPatient.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              name: selectedPatient.name,
+                              age: selectedPatient.age,
+                              gender: selectedPatient.gender,
+                              contact_number: selectedPatient.phone || selectedPatient.contact_number,
+                              address: selectedPatient.address || '',
+                              emergency_contact_name: selectedPatient.emergencyContact || selectedPatient.emergency_contact_name || ''
+                            })
+                          });
+                          if (!res.ok) throw new Error('Failed to update patient');
+                          setRecentRegistrations(prev => prev.map(p =>
+                            p.id === selectedPatient.id ? { ...p, ...selectedPatient } : p
+                          ));
+                          setEditPatientDialog(false);
+                        } catch (err) {
+                          alert('Failed to update patient. Please try again.');
+                        }
+                      }}>Save</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
                 </CardContent>
               </Card>
 

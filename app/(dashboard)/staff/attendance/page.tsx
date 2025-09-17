@@ -38,56 +38,19 @@ export default function AttendancePage() {
   const { authState } = useAuth()
   const user = authState?.user
 
-  // Generate attendance for the entire year for display purposes
-  const generateYearlyAttendance = () => {
-    const today = new Date()
-    const records = []
-    
-    // Generate past records for the year
-    for (let i = 0; i < 365; i++) {
-      const date = new Date()
-      date.setDate(today.getDate() - i)
-      
-      // Skip weekends for simplicity
-      if (date.getDay() === 0 || date.getDay() === 6) continue
-      
-      // Randomize status with realistic probability
-      const rand = Math.random()
-      let status = 'present'
-      let checkIn = `08:${Math.floor(Math.random() * 15).toString().padStart(2, '0')}:00`
-      let checkOut = `17:${Math.floor(Math.random() * 30).toString().padStart(2, '0')}:00`
-      
-      if (rand > 0.9) {
-        status = 'absent'
-        checkIn = ""
-        checkOut = ""
-      } else if (rand > 0.8) {
-        status = 'late'
-        checkIn = `08:${Math.floor(Math.random() * 30 + 15).toString().padStart(2, '0')}:00`
-      }
-      
-      records.push({
-        date: date.toISOString().split('T')[0],
-        checkIn,
-        checkOut,
-        status
-      })
-    }
-    
-    return records
-  }
-
   // Fetch attendance data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // In a real app, you would fetch this from your API
-        // For now, we use the mock data generation
-        setAttendanceData(generateYearlyAttendance())
+        const response = await fetch("/api/staff/attendance");
+        const data = await response.json();
+        if (data.success) {
+          setAttendanceData(data.attendance);
+        } else {
+          console.error("Failed to fetch attendance data:", data.error);
+        }
       } catch (error) {
         console.error('Error fetching attendance data:', error)
-        // Fallback to mock data in case of any error
-        setAttendanceData(generateYearlyAttendance())
       } finally {
         setLoading(false)
       }
@@ -182,16 +145,18 @@ export default function AttendancePage() {
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Attendance Record</h1>
-          <p className="text-gray-500">View and track your attendance history</p>
+        <div className="flex items-center gap-4">
+          <Link href="/staff">
+            <Button variant="outline" className="flex items-center">
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Attendance Record</h1>
+            <p className="text-gray-500">View and track your attendance history</p>
+          </div>
         </div>
-        <Link href="/staff">
-          <Button variant="outline" className="flex items-center">
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
       </div>
 
       {/* Today's Status Card */}

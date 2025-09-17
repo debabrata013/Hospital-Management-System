@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image";
 import { 
   Heart, 
   Eye, 
@@ -158,16 +159,22 @@ function LoginForm() {
           </Link>
         </div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
-              <Heart className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your NMSC account</p>
-        </div>
+      {/* Header */}
+<div className="text-center mb-8">
+  <div className="flex items-center justify-center mb-4">
+    <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-3 rounded-xl">
+      <Image 
+        src="/logo.jpg"  
+        alt="Hospital Logo"
+        width={40}
+        height={40}
+        className="rounded-md"
+      />
+    </div>
+  </div>
+  <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+  <p className="text-gray-600">Sign in to your NMSC account</p>
+</div>
 
         {/* Alert Messages */}
         {alertMessage && (

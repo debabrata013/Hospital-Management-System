@@ -15,6 +15,9 @@ import PatientAdmissionForm from '@/components/admin/PatientAdmissionForm'
 import PatientDischargeForm from '@/components/admin/PatientDischargeForm'
 import CleaningManagement from '@/components/admin/CleaningManagement'
 import AssignCleaningButton from '@/components/admin/AssignCleaningButton'
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 
 
 interface Room {
@@ -200,6 +203,11 @@ export default function RoomManagementPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Room Management</h1>

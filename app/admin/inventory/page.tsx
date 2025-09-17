@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 import { Progress } from '@/components/ui/progress'
 import { 
   Package, 
@@ -713,6 +716,8 @@ const VendorModal = ({ isOpen, onClose, onVendorUpdated, editingVendorProp }: { 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    
+
       <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
@@ -1465,7 +1470,10 @@ export default function AdminInventoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6 lg:p-8">
-      
+        <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
       {/* Header */}
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

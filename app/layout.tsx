@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: ' NMSC Hospital',
   description: 'Hospital Management System built with Next.js',
   icons: {
-    icon: '/logo.ico', // ✅ your hospital logo
+    icon: '/logo.jpg', // ✅ your hospital logo
   },
 }
 
