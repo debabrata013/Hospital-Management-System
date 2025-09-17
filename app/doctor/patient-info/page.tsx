@@ -54,6 +54,21 @@ interface Prescription {
   dosage: string
   instructions: string
   created_at: string
+  prescription_date?: string
+  prescription_id?: string
+  vitals?: {
+    blood_pressure?: string
+    heart_rate?: string
+    temperature?: string
+    weight?: string
+    height?: string
+  }
+  medicines?: Array<{
+    name: string
+    dosage: string
+    frequency: string
+    duration: string
+  }>
 }
 
 interface AIContent {
@@ -294,6 +309,284 @@ export default function PatientInfoPage() {
     })
   }
 
+  const exportPrescriptions = () => {
+    if (!selectedPatient || prescriptions.length === 0) {
+      alert('No prescriptions to export')
+      return
+    }
+
+    // Create PDF content using jsPDF
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      alert('Please allow pop-ups to export prescriptions')
+      return
+    }
+
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Prescriptions - ${selectedPatient.name}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #333;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #2563eb;
+              padding-bottom: 20px;
+            }
+            .hospital-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #2563eb;
+              margin-bottom: 5px;
+            }
+            .patient-info { 
+              background: #f8fafc; 
+              padding: 20px; 
+              margin-bottom: 30px; 
+              border-radius: 8px;
+              border-left: 4px solid #2563eb;
+            }
+            .prescription { 
+              margin-bottom: 30px; 
+              page-break-inside: avoid; 
+              border: 1px solid #e2e8f0;
+              padding: 20px;
+              border-radius: 8px;
+            }
+            .prescription h3 { 
+              color: #2563eb; 
+              border-bottom: 1px solid #e2e8f0; 
+              padding-bottom: 10px; 
+              margin-bottom: 15px;
+            }
+            .vitals { 
+              background: #f0f9ff; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 6px;
+            }
+            .medications { 
+              background: #fefce8; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 6px;
+              border-left: 4px solid #eab308;
+            }
+            .instructions { 
+              background: #f0fdf4; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 6px;
+              border-left: 4px solid #22c55e;
+            }
+            .grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 10px; 
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #64748b;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 20px;
+            }
+            @media print { 
+              body { margin: 0; }
+              .prescription { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">Hospital Management System</div>
+            <h1>Prescription Report</h1>
+            <p>Generated on: ${new Date().toLocaleDateString('en-IN', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}</p>
+          </div>
+          
+          <div class="patient-info">
+            <h2>Patient Information</h2>
+            <div class="grid">
+              <div><strong>Name:</strong> ${selectedPatient.name}</div>
+              <div><strong>Patient ID:</strong> ${selectedPatient.patient_id}</div>
+              <div><strong>Age:</strong> ${calculateAge(selectedPatient.date_of_birth)} years</div>
+              <div><strong>Gender:</strong> ${selectedPatient.gender}</div>
+              <div><strong>Contact:</strong> ${selectedPatient.contact_number}</div>
+              <div><strong>Blood Group:</strong> ${selectedPatient.blood_group || 'Not specified'}</div>
+            </div>
+          </div>
+
+          <h2>Prescriptions (${prescriptions.length} total)</h2>
+
+          ${prescriptions.map((prescription, index) => `
+            <div class="prescription">
+              <h3>Prescription #${index + 1} - ${formatDate(prescription.created_at)}</h3>
+              
+              <div><strong>Doctor:</strong> ${prescription.doctor_name}</div>
+              <div><strong>Prescription ID:</strong> ${prescription.prescription_id || 'N/A'}</div>
+              
+              ${prescription.vitals && (prescription.vitals.blood_pressure || prescription.vitals.heart_rate || prescription.vitals.temperature) ? `
+                <div class="vitals">
+                  <strong>Vitals:</strong><br>
+                  ${prescription.vitals.blood_pressure ? `Blood Pressure: ${prescription.vitals.blood_pressure}<br>` : ''}
+                  ${prescription.vitals.heart_rate ? `Heart Rate: ${prescription.vitals.heart_rate} bpm<br>` : ''}
+                  ${prescription.vitals.temperature ? `Temperature: ${prescription.vitals.temperature}°F<br>` : ''}
+                  ${prescription.vitals.weight ? `Weight: ${prescription.vitals.weight} kg<br>` : ''}
+                  ${prescription.vitals.height ? `Height: ${prescription.vitals.height} cm<br>` : ''}
+                </div>
+              ` : ''}
+              
+              <div class="medications">
+                <strong>Medications:</strong><br>
+                ${prescription.medications || 'No medications prescribed'}
+              </div>
+              
+              ${prescription.instructions ? `
+                <div class="instructions">
+                  <strong>Instructions:</strong><br>
+                  ${prescription.instructions}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+
+          <div class="footer">
+            <p>This is a computer-generated prescription report.</p>
+            <p>For any queries, please contact the hospital administration.</p>
+          </div>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(pdfContent)
+    printWindow.document.close()
+    printWindow.focus()
+    
+    // Auto-trigger print dialog for PDF generation
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
+  }
+
+  const exportAISummaries = () => {
+    if (!selectedPatient || aiContent.length === 0) {
+      alert('No AI content to export')
+      return
+    }
+
+    const summaries = aiContent.filter(content => content.type === 'summary')
+    if (summaries.length === 0) {
+      alert('No AI summaries to export')
+      return
+    }
+
+    const csvContent = [
+      ['Date', 'Type', 'Status', 'Doctor Notes', 'AI Content'],
+      ...summaries.map(content => [
+        formatDate(content.created_at),
+        content.type || '',
+        content.status || '',
+        content.doctor_notes || '',
+        (content.content || '').replace(/\n/g, ' ')
+      ])
+    ].map(row => row.map(field => `"${field}"`).join(',')).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `${selectedPatient.name}_ai_summaries_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const printDietPlans = () => {
+    if (!selectedPatient) {
+      alert('No patient selected')
+      return
+    }
+
+    const dietPlans = aiContent.filter(content => content.type === 'diet_plan')
+    if (dietPlans.length === 0) {
+      alert('No diet plans to print')
+      return
+    }
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      alert('Please allow pop-ups to print diet plans')
+      return
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Diet Plans - ${selectedPatient.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .patient-info { background: #f5f5f5; padding: 15px; margin-bottom: 20px; }
+            .diet-plan { margin-bottom: 30px; page-break-inside: avoid; }
+            .diet-plan h3 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 5px; }
+            .notes { background: #e0f2fe; padding: 10px; margin: 10px 0; }
+            .content { background: #f9f9f9; padding: 15px; white-space: pre-line; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Diet Plans</h1>
+            <h2>${selectedPatient.name} (${selectedPatient.patient_id})</h2>
+            <p>Generated on: ${new Date().toLocaleDateString('en-IN')}</p>
+          </div>
+          
+          <div class="patient-info">
+            <strong>Patient Information:</strong><br>
+            Age: ${calculateAge(selectedPatient.date_of_birth)} years<br>
+            Gender: ${selectedPatient.gender}<br>
+            ${selectedPatient.blood_group ? `Blood Group: ${selectedPatient.blood_group}<br>` : ''}
+            Contact: ${selectedPatient.contact_number}
+          </div>
+
+          ${dietPlans.map(plan => `
+            <div class="diet-plan">
+              <h3>Diet Plan - ${formatDate(plan.created_at)}</h3>
+              <p><strong>Status:</strong> ${plan.status}</p>
+              ${plan.doctor_notes ? `
+                <div class="notes">
+                  <strong>Doctor's Notes:</strong><br>
+                  ${plan.doctor_notes}
+                </div>
+              ` : ''}
+              <div class="content">
+                ${plan.content}
+              </div>
+            </div>
+          `).join('')}
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(printContent)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -513,7 +806,7 @@ export default function PatientInfoPage() {
                             <Pill className="h-5 w-5 mr-2" />
                             All Prescriptions
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={exportPrescriptions}>
                             <Download className="h-4 w-4 mr-2" />
                             Export
                           </Button>
@@ -559,7 +852,7 @@ export default function PatientInfoPage() {
                             <Brain className="h-5 w-5 mr-2" />
                             AI-Generated Patient Summaries
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={exportAISummaries}>
                             <Download className="h-4 w-4 mr-2" />
                             Export All
                           </Button>
@@ -615,7 +908,7 @@ export default function PatientInfoPage() {
                             <Utensils className="h-5 w-5 mr-2" />
                             AI-Generated Diet Plans
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={printDietPlans}>
                             <Printer className="h-4 w-4 mr-2" />
                             Print Plans
                           </Button>

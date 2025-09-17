@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         id, user_id, name, email, contact_number, role, department, 
         specialization, is_active, created_at, last_login, shift_preference
       FROM users 
-      WHERE role IN ('pharmacy', 'receptionist', 'staff')
+      WHERE role IN ('pharmacy', 'receptionist', 'nurse')
     `
     
     if (staffType !== 'all') {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const [staff] = await connection.execute(query)
     
     // Also get cleaning staff from separate table
-    let cleaningStaff = []
+    let cleaningStaff: any[] = []
     if (staffType === 'all' || staffType === 'cleaning') {
       const [cleaning] = await connection.execute(`
         SELECT id, name, email, phone as contact_number, status, shift, 
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Validate mobile number (10 digits starting with 6-9)
     if (!/^[6-9]\d{9}$/.test(mobile)) {
       return NextResponse.json(
-        { success: false, error: 'Please enter a valid 10-digit mobile number' },
+        { success: false, error: 'Please enter a valid 10-digit mobile number starting with 6-9' },
         { status: 400 }
       )
     }
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate role
-    if (!['pharmacy', 'receptionist', 'staff', 'cleaning'].includes(role)) {
+    if (!['pharmacy', 'receptionist', 'nurse', 'cleaning'].includes(role)) {
       return NextResponse.json(
         { success: false, error: 'Invalid role' },
         { status: 400 }
@@ -172,22 +172,34 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Generate user ID based on role
-      let prefix = 'ST'
+      let prefix = 'NR'
       if (role === 'pharmacy') prefix = 'PH'
       else if (role === 'receptionist') prefix = 'RC'
       
-      const [lastUser] = await connection.execute(
-        'SELECT user_id FROM users WHERE role = ? ORDER BY id DESC LIMIT 1',
-        [role]
+      // Get all existing user_ids with this prefix to find the next available number
+      const [existingIds] = await connection.execute(
+        'SELECT user_id FROM users WHERE user_id LIKE ? ORDER BY user_id',
+        [`${prefix}%`]
       )
       
       let nextNumber = 1
-      if ((lastUser as any[]).length > 0) {
-        const lastUserId = (lastUser as any)[0].user_id
-        const match = lastUserId.match(new RegExp(`${prefix}(\\d+)`))
-        if (match) {
-          nextNumber = parseInt(match[1]) + 1
+      const existingNumbers = (existingIds as any[])
+        .map(row => {
+          const match = row.user_id.match(new RegExp(`${prefix}(\\d+)`))
+          return match ? parseInt(match[1]) : 0
+        })
+        .filter(num => num > 0)
+        .sort((a, b) => a - b)
+      
+      // Find the first gap or use the next number after the highest
+      for (let i = 0; i < existingNumbers.length; i++) {
+        if (existingNumbers[i] !== i + 1) {
+          nextNumber = i + 1
+          break
         }
+      }
+      if (nextNumber === 1 && existingNumbers.length > 0) {
+        nextNumber = Math.max(...existingNumbers) + 1
       }
       
       userId = `${prefix}${nextNumber.toString().padStart(3, '0')}`
@@ -196,15 +208,25 @@ export async function POST(request: NextRequest) {
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10)
       
-      // Insert into users table
+      // Insert into users table - try explicit role update after insert
       const [userResult] = await connection.execute(`
         INSERT INTO users (
-          user_id, name, email, contact_number, password_hash, role, 
+          user_id, name, email, contact_number, password_hash, 
           department, specialization, shift_preference, is_active, is_verified, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, NOW())
-      `, [userId, name, email, mobile, hashedPassword, role, 
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, NOW())
+      `, [userId, name, email, mobile, hashedPassword, 
           department || (role === 'pharmacy' ? 'Pharmacy' : role === 'receptionist' ? 'Reception' : 'Nursing'),
           specialization || '', shift || 'flexible'])
+      
+      // Explicitly update the role field
+      await connection.execute(`
+        UPDATE users SET role = ? WHERE user_id = ?
+      `, [role, userId])
+      
+      // Also fix existing nurse records that have blank roles
+      await connection.execute(`
+        UPDATE users SET role = 'nurse' WHERE user_id LIKE 'NR%' AND (role IS NULL OR role = '')
+      `)
       
       result = userResult
       
@@ -231,7 +253,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating staff:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create staff' },
+      { success: false, error: 'Database error: ' + (error as Error).message },
       { status: 500 }
     )
   }
@@ -356,7 +378,7 @@ export async function PUT(request: NextRequest) {
       await connection.execute(`
         UPDATE users 
         SET ${updateFields.join(', ')}
-        WHERE id = ? AND role IN ('pharmacy', 'receptionist', 'staff')
+        WHERE id = ? AND role IN ('pharmacy', 'receptionist', 'nurse')
       `, updateValues)
       
       const [updatedStaff] = await connection.execute(
@@ -413,7 +435,7 @@ export async function DELETE(request: NextRequest) {
       await connection.execute('DELETE FROM cleaning_staff WHERE id = ?', [id])
     } else {
       await connection.execute(
-        'DELETE FROM users WHERE id = ? AND role IN ("pharmacy", "receptionist", "staff")',
+        'DELETE FROM users WHERE id = ? AND role IN ("pharmacy", "receptionist", "nurse")',
         [id]
       )
     }

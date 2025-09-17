@@ -32,7 +32,7 @@ interface Staff {
 const staffRoles = [
   { value: 'pharmacy', label: 'Pharmacist', icon: Pill, color: 'bg-green-100 text-green-700 border-green-200' },
   { value: 'receptionist', label: 'Receptionist', icon: UserCheck, color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'staff', label: 'Nurse/Staff', icon: Stethoscope, color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { value: 'nurse', label: 'Nurse', icon: Stethoscope, color: 'bg-purple-100 text-purple-700 border-purple-200' },
   { value: 'cleaning', label: 'Room Cleaning', icon: Sparkles, color: 'bg-yellow-100 text-yellow-700 border-yellow-200' }
 ]
 
@@ -231,7 +231,7 @@ export default function StaffPage() {
               Add New Employee
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Staff Member</DialogTitle>
               <DialogDescription>
@@ -342,7 +342,7 @@ export default function StaffPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       {formData.role === 'pharmacy' ? 'Pharmacy hours may vary based on department needs' :
                        formData.role === 'receptionist' ? 'Front desk schedule with potential rotations' :
-                       formData.role === 'staff' ? 'Nursing rotation and assigned floors' :
+                       formData.role === 'nurse' ? 'Nursing rotation and assigned floors' :
                        formData.role === 'cleaning' ? 'Cleaning and maintenance schedule' : 
                        'Select the primary work schedule'}
                     </p>
@@ -376,7 +376,7 @@ export default function StaffPage() {
               <TabsTrigger value="all">All Employees ({staff.length})</TabsTrigger>
               <TabsTrigger value="pharmacy">Pharmacy Staff ({staff.filter(s => s.role === 'pharmacy').length})</TabsTrigger>
               <TabsTrigger value="receptionist">Reception ({staff.filter(s => s.role === 'receptionist').length})</TabsTrigger>
-              <TabsTrigger value="staff">Nursing Staff ({staff.filter(s => s.role === 'staff').length})</TabsTrigger>
+              <TabsTrigger value="nurse">Nursing Staff ({staff.filter(s => s.role === 'nurse').length})</TabsTrigger>
               <TabsTrigger value="cleaning">Housekeeping ({staff.filter(s => s.role === 'cleaning').length})</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -444,7 +444,7 @@ export default function StaffPage() {
                         <div className="text-xs text-gray-600">
                           {member.role === 'pharmacy' ? 'Pharmacy Hours' : 
                            member.role === 'receptionist' ? 'Front Desk' : 
-                           member.role === 'staff' ? 'Nursing Schedule' : 'Cleaning Schedule'}
+                           member.role === 'nurse' ? 'Nursing Schedule' : 'Cleaning Schedule'}
                         </div>
                       </div>
                     </TableCell>
@@ -578,7 +578,7 @@ export default function StaffPage() {
                     <Label htmlFor="edit-specialization">
                       {editingStaff?.role === 'pharmacy' ? 'Pharmacy Expertise' :
                        editingStaff?.role === 'receptionist' ? 'Reception Skills' :
-                       editingStaff?.role === 'staff' ? 'Nursing Specialization' :
+                       editingStaff?.role === 'nurse' ? 'Nursing Specialization' :
                        editingStaff?.role === 'cleaning' ? 'Cleaning Expertise' : 'Specialization'}
                     </Label>
                     <Input
@@ -588,7 +588,7 @@ export default function StaffPage() {
                       placeholder={
                         editingStaff?.role === 'pharmacy' ? 'e.g., Clinical Pharmacy, Drug Information' :
                         editingStaff?.role === 'receptionist' ? 'e.g., Patient Relations, Insurance' :
-                        editingStaff?.role === 'staff' ? 'e.g., ICU, Emergency, Pediatric' :
+                        editingStaff?.role === 'nurse' ? 'e.g., ICU, Emergency, Pediatric' :
                         editingStaff?.role === 'cleaning' ? 'e.g., Room Sanitization, Equipment' : 'Specialization'
                       }
                     />

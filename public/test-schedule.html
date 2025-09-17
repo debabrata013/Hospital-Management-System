@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Creation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #e91e63; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #c2185b; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Schedule Creation Test</h1>
+    
+    <div class="form-group">
+        <label for="doctorId">Doctor ID:</label>
+        <input type="number" id="doctorId" value="1" min="1">
+    </div>
+    
+    <div class="form-group">
+        <label for="date">Date:</label>
+        <input type="date" id="date" value="2025-09-16">
+    </div>
+    
+    <div class="form-group">
+        <label for="startTime">Start Time:</label>
+        <input type="time" id="startTime" value="09:00">
+    </div>
+    
+    <div class="form-group">
+        <label for="endTime">End Time:</label>
+        <input type="time" id="endTime" value="17:00">
+    </div>
+    
+    <div class="form-group">
+        <label for="roomNumber">Room Number:</label>
+        <input type="text" id="roomNumber" value="OPD">
+    </div>
+    
+    <div class="form-group">
+        <label for="maxPatients">Max Patients:</label>
+        <input type="number" id="maxPatients" value="12" min="1" max="50">
+    </div>
+    
+    <button onclick="testDoctorsAPI()">Test Doctors API</button>
+    <button onclick="createSchedule()">Create Schedule</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testDoctorsAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing Doctors API...</p>';
+            
+            try {
+                const response = await fetch('/api/admin/doctors');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `<div class="success">
+                        <h3>Doctors API Success!</h3>
+                        <p>Found ${data.doctors?.length || 0} doctors:</p>
+                        <ul>${data.doctors?.map(d => `<li>ID: ${d.id} - ${d.name} (${d.specialization || 'N/A'})</li>`).join('') || '<li>No doctors found</li>'}</ul>
+                    </div>`;
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">
+                        <h3>Doctors API Error!</h3>
+                        <p>Status: ${response.status}</p>
+                        <p>Error: ${data.error || 'Unknown error'}</p>
+                    </div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">
+                    <h3>Network Error!</h3>
+                    <p>${error.message}</p>
+                </div>`;
+            }
+        }
+        
+        async function createSchedule() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Creating schedule...</p>';
+            
+            const formData = {
+                doctorId: parseInt(document.getElementById('doctorId').value),
+                date: document.getElementById('date').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                roomNumber: document.getElementById('roomNumber').value,
+                maxPatients: parseInt(document.getElementById('maxPatients').value)
+            };
+            
+            console.log('Form data:', formData);
+            
+            try {
+                const response = await fetch('/api/admin/schedules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `<div class="success">
+                        <h3>Schedule Created Successfully!</h3>
+                        <p>Schedule ID: ${data.scheduleId}</p>
+                        <p>Doctor: ${data.doctor}</p>
+                        <p>Date: ${data.date}</p>
+                        <p>Time: ${data.time}</p>
+                        <p>Room: ${data.room}</p>
+                        <p>Max Patients: ${data.maxPatients}</p>
+                    </div>`;
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">
+                        <h3>Schedule Creation Failed!</h3>
+                        <p>Status: ${response.status}</p>
+                        <p>Error: ${data.error || 'Unknown error'}</p>
+                    </div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">
+                    <h3>Network Error!</h3>
+                    <p>${error.message}</p>
+                </div>`;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
