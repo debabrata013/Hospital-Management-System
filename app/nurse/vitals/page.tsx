@@ -148,6 +148,30 @@ export default function StaffVitalsPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
+    
+    // Define which fields should only accept numeric values
+    const numericFields = ['pulse', 'temperature', 'oxygenSaturation', 'respiratoryRate', 'weight'];
+    
+    // Special handling for blood pressure (allows numbers and slash)
+    if (id === 'bloodPressure') {
+      // Only allow numbers and one slash for blood pressure format (e.g., 120/80)
+      const bloodPressureRegex = /^[0-9]*\/?[0-9]*$/;
+      if (bloodPressureRegex.test(value) || value === '') {
+        setFormState(prev => ({ ...prev, [id]: value }));
+      }
+      return;
+    }
+    
+    // For numeric fields, only allow numbers and decimal points
+    if (numericFields.includes(id)) {
+      const numericRegex = /^[0-9]*\.?[0-9]*$/;
+      if (numericRegex.test(value) || value === '') {
+        setFormState(prev => ({ ...prev, [id]: value }));
+      }
+      return;
+    }
+    
+    // For all other fields (notes, time), allow any input
     setFormState(prev => ({ ...prev, [id]: value }));
   };
 
@@ -367,11 +391,111 @@ export default function StaffVitalsPage() {
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader><DialogTitle>Record Patient Vitals</DialogTitle><DialogDescription>Enter vital signs for the selected patient.</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="patientId">Patient ({patients.length} available)</Label><Select value={formState.patientId} onValueChange={(v) => handleSelectChange('patientId', v)}><SelectTrigger><SelectValue placeholder={patients.length > 0 ? "Select patient" : "No patients available"} /></SelectTrigger><SelectContent>{patients.length > 0 ? patients.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>) : <SelectItem value="none" disabled>No patients found</SelectItem>}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="time">Time</Label><Input id="time" type="time" value={formState.time} onChange={handleInputChange} /></div></div>
-            <div className="grid grid-cols-3 gap-4"><div className="space-y-2"><Label htmlFor="bloodPressure">Blood Pressure</Label><Input id="bloodPressure" placeholder="120/80" value={formState.bloodPressure} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="pulse">Pulse</Label><Input id="pulse" placeholder="72" value={formState.pulse} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="temperature">Temperature</Label><Input id="temperature" placeholder="98.6" value={formState.temperature} onChange={handleInputChange} /></div></div>
-            <div className="grid grid-cols-3 gap-4"><div className="space-y-2"><Label htmlFor="oxygenSaturation">Oxygen Sat.</Label><Input id="oxygenSaturation" placeholder="98" value={formState.oxygenSaturation} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="respiratoryRate">Resp. Rate</Label><Input id="respiratoryRate" placeholder="16" value={formState.respiratoryRate} onChange={handleInputChange} /></div><div className="space-y-2"><Label htmlFor="weight">Weight (kg)</Label><Input id="weight" placeholder="70" value={formState.weight} onChange={handleInputChange} /></div></div>
-            <div className="space-y-2"><Label htmlFor="status">Status</Label><Select value={formState.status} onValueChange={(v) => handleSelectChange('status', v)}><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger><SelectContent>{statusOptions.slice(1).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label htmlFor="notes">Notes</Label><Textarea id="notes" placeholder="Additional observations..." value={formState.notes} onChange={handleInputChange} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="patientId">Patient ({patients.length} available)</Label>
+                <Select value={formState.patientId} onValueChange={(v) => handleSelectChange('patientId', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={patients.length > 0 ? "Select patient" : "No patients available"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {patients.length > 0 ? patients.map(p => 
+                      <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                    ) : <SelectItem value="none" disabled>No patients found</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input id="time" type="time" value={formState.time} onChange={handleInputChange} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bloodPressure">Blood Pressure</Label>
+                <Input 
+                  id="bloodPressure" 
+                  placeholder="120/80" 
+                  value={formState.bloodPressure} 
+                  onChange={handleInputChange}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pulse">Pulse</Label>
+                <Input 
+                  id="pulse" 
+                  placeholder="72" 
+                  value={formState.pulse} 
+                  onChange={handleInputChange}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="temperature">Temperature</Label>
+                <Input 
+                  id="temperature" 
+                  placeholder="98.6" 
+                  value={formState.temperature} 
+                  onChange={handleInputChange}
+                  inputMode="decimal"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="oxygenSaturation">Oxygen Sat.</Label>
+                <Input 
+                  id="oxygenSaturation" 
+                  placeholder="98" 
+                  value={formState.oxygenSaturation} 
+                  onChange={handleInputChange}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="respiratoryRate">Resp. Rate</Label>
+                <Input 
+                  id="respiratoryRate" 
+                  placeholder="16" 
+                  value={formState.respiratoryRate} 
+                  onChange={handleInputChange}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight (kg)</Label>
+                <Input 
+                  id="weight" 
+                  placeholder="70" 
+                  value={formState.weight} 
+                  onChange={handleInputChange}
+                  inputMode="decimal"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={formState.status} onValueChange={(v) => handleSelectChange('status', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.slice(1).map(s => 
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea 
+                id="notes" 
+                placeholder="Additional observations..." 
+                value={formState.notes} 
+                onChange={handleInputChange} 
+              />
+            </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setNewVitalsDialog(false)}>Cancel</Button><Button className="bg-green-500 hover:bg-green-600" onClick={handleSaveVitals}>Save Vitals</Button></DialogFooter>
         </DialogContent>
