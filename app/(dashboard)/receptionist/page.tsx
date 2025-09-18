@@ -148,26 +148,7 @@ const recentRegistrations = [
   }
 ]
 
-const emergencyContacts = [
-  {
-    id: 1,
-    patientName: "Ajay Kumar",
-    contactName: "Sita Kumar",
-    relationship: "Wife",
-    phone: "+91 98765 43216",
-    priority: "high",
-    status: "active"
-  },
-  {
-    id: 2,
-    patientName: "Elderly Patient",
-    contactName: "Dr. Emergency",
-    relationship: "Doctor",
-    phone: "+91 98765 43217",
-    priority: "critical",
-    status: "contacted"
-  }
-]
+// Emergency contacts section removed
 
 const pendingBills = [
   {
@@ -221,7 +202,6 @@ export default function ReceptionistDashboard() {
   const [selectedPatient, setSelectedPatient] = useState<any>(emptyPatient)
   const [notifications] = useState(8)
   const [newPatientDialog, setNewPatientDialog] = useState(false)
-  const [emergencyDialog, setEmergencyDialog] = useState(false)
   const { logout, authState } = useAuth()
   
   // Real data states
@@ -230,11 +210,11 @@ export default function ReceptionistDashboard() {
     pendingAppointments: 0,
     waitingPatients: 0,
     totalBills: 0,
+    pendingBillsAmount: 0,
     emergencyContacts: 0
   })
   const [patientQueue, setPatientQueue] = useState<any[]>([])
   const [recentRegistrations, setRecentRegistrations] = useState<any[]>([])
-  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([])
   const [pendingBills, setPendingBills] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
@@ -263,6 +243,19 @@ export default function ReceptionistDashboard() {
       const appointmentsResponse = await fetch('/api/receptionist/appointments')
       const appointmentsData = await appointmentsResponse.json()
 
+      // Fetch billing stats for pending bills
+  let pendingBillsCount = 0
+  let pendingBillsAmount = 0
+      try {
+        const billingStatsRes = await fetch('/api/receptionist/billing?action=stats')
+        const billingStats = await billingStatsRes.json()
+        pendingBillsCount = Number(billingStats?.pending_count || 0)
+        pendingBillsAmount = Number(billingStats?.pending_amount || 0)
+      } catch (e) {
+        // Ignore stats failure; keep defaults
+        console.warn('Billing stats fetch failed:', e)
+      }
+
       // Process data
       const today = new Date().toDateString()
       const todayRegistrations = patientsData.patients?.filter((p: any) => 
@@ -273,7 +266,8 @@ export default function ReceptionistDashboard() {
         todayRegistrations,
         pendingAppointments: appointmentsData.appointments?.length || 0,
         waitingPatients: queueData.queue?.filter((q: any) => q.status === 'scheduled').length || 0,
-        totalBills: 0, // Will implement billing later
+        totalBills: pendingBillsCount,
+        pendingBillsAmount,
         emergencyContacts: 0 // Will implement emergency contacts later
       })
 
@@ -569,7 +563,7 @@ export default function ReceptionistDashboard() {
           {/* Dashboard Content */}
           <main className="flex-1 p-3 lg:p-6 space-y-4 lg:space-y-8">
             {/* Key Statistics */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               <Card className="border-pink-100 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-3 lg:p-6">
                   <div className="flex items-center justify-between">
@@ -601,8 +595,7 @@ export default function ReceptionistDashboard() {
                       </p>
                       <p className="text-xs lg:text-sm text-pink-600 flex items-center mt-1">
                         <Calendar className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
-                        <span className="hidden sm:inline">Next at 10:30 AM</span>
-                        <span className="sm:hidden">10:30 AM</span>
+                       
                       </p>
                     </div>
                     <div className="bg-gradient-to-r from-green-400 to-green-500 p-2 lg:p-3 rounded-xl">
@@ -643,8 +636,8 @@ export default function ReceptionistDashboard() {
                       </p>
                       <p className="text-xs lg:text-sm text-purple-600 flex items-center mt-1">
                         <DollarSign className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
-                        <span className="hidden sm:inline">₹1,25,000 total</span>
-                        <span className="sm:hidden">₹1.25L</span>
+                        <span className="hidden sm:inline">₹{Number(dashboardData.pendingBillsAmount).toLocaleString()}</span>
+                        <span className="sm:hidden">₹{Number(dashboardData.pendingBillsAmount).toLocaleString()}</span>
                       </p>
                     </div>
                     <div className="bg-gradient-to-r from-purple-400 to-purple-500 p-2 lg:p-3 rounded-xl">
@@ -653,27 +646,7 @@ export default function ReceptionistDashboard() {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="border-red-100 hover:shadow-lg transition-all duration-300 col-span-2 lg:col-span-1">
-                <CardContent className="p-3 lg:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs lg:text-sm font-medium text-gray-600">Emergency Contacts</p>
-                      <p className="text-xl lg:text-3xl font-bold text-gray-900">
-                        {isLoading ? '...' : dashboardData.emergencyContacts}
-                      </p>
-                      <p className="text-xs lg:text-sm text-red-600 flex items-center mt-1">
-                        <AlertTriangle className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
-                        <span className="hidden sm:inline">2 critical</span>
-                        <span className="sm:hidden">2 critical</span>
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-red-400 to-red-500 p-2 lg:p-3 rounded-xl">
-                      <Phone className="h-4 w-4 lg:h-8 lg:w-8 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Emergency Contacts summary card removed */}
             </div>
 
             {/* Main Dashboard Grid */}
@@ -854,42 +827,7 @@ export default function ReceptionistDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Emergency Contacts */}
-              <Card className="border-red-100 xl:col-span-1">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base lg:text-lg font-semibold">Emergency Contacts</CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => setEmergencyDialog(true)}>
-                      <Phone className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-                      <span className="hidden sm:inline">Contact</span>
-                      <span className="sm:hidden">Call</span>
-                    </Button>
-                  </div>
-                  <CardDescription className="text-xs lg:text-sm">Critical patient contacts requiring attention</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 lg:space-y-4">
-                  {emergencyContacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center justify-between p-2 lg:p-3 bg-red-50 rounded-lg border border-red-100">
-                      <div className="flex items-center space-x-2 lg:space-x-3 min-w-0 flex-1">
-                        <AlertTriangle className="h-4 w-4 lg:h-5 lg:w-5 text-red-500 flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs lg:text-sm truncate">{contact.contactName}</p>
-                          <p className="text-xs text-gray-600 truncate">{contact.relationship} of {contact.patientName}</p>
-                          <p className="text-xs text-gray-500 truncate">{contact.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
-                        <Badge className={contact.priority === 'critical' ? 'bg-red-100 text-red-700 text-xs' : 'bg-yellow-100 text-yellow-700 text-xs'}>
-                          {contact.priority}
-                        </Badge>
-                        <Button variant="ghost" size="sm" className="p-1">
-                          <Phone className="h-3 w-3 lg:h-4 lg:w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* Emergency Contacts list removed */}
             </div>
 
             {/* Pending Bills & Messages Section */}
@@ -1028,42 +966,7 @@ export default function ReceptionistDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Emergency Contact Dialog */}
-      <Dialog open={emergencyDialog} onOpenChange={setEmergencyDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Emergency Contact</DialogTitle>
-            <DialogDescription>
-              Contact emergency contacts for critical patients
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {emergencyContacts.map((contact) => (
-              <div key={contact.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                  <div>
-                    <p className="font-medium">{contact.contactName}</p>
-                    <p className="text-sm text-gray-600">{contact.relationship} of {contact.patientName}</p>
-                    <p className="text-sm font-mono">{contact.phone}</p>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Button size="sm" className="bg-green-500 hover:bg-green-600">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Call
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmergencyDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Emergency Contact Dialog removed */}
     </SidebarProvider>
   )
 }

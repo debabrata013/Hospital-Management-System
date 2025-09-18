@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
+import mysql, { ResultSetHeader } from 'mysql2/promise';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -51,6 +51,31 @@ export async function GET(request: NextRequest) {
         `SELECT * FROM bill_templates WHERE is_active = 1 ORDER BY item_type, item_name`
       );
       return NextResponse.json({ templates });
+    }
+    
+    if (action === 'stats') {
+      // Return high-level billing stats for dashboard
+      const [rows] = await connection.execute(
+        `SELECT 
+           COUNT(*) as total_count,
+           SUM(final_amount) as total_amount,
+           SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+           SUM(CASE WHEN payment_status = 'pending' THEN final_amount ELSE 0 END) as pending_amount,
+           SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count,
+           SUM(CASE WHEN payment_status = 'paid' THEN final_amount ELSE 0 END) as paid_amount
+         FROM bills`
+      );
+
+      const stats = (rows as any[])[0] || {};
+      return NextResponse.json({
+        success: true,
+        total_count: Number(stats.total_count || 0),
+        total_amount: Number(stats.total_amount || 0),
+        pending_count: Number(stats.pending_count || 0),
+        pending_amount: Number(stats.pending_amount || 0),
+        paid_count: Number(stats.paid_count || 0),
+        paid_amount: Number(stats.paid_amount || 0)
+      });
     }
     
     if (action === 'patient-bills' && patientId) {
@@ -147,7 +172,8 @@ export async function POST(request: NextRequest) {
     await connection.beginTransaction();
     
     // Calculate totals
-    const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const totalAmount = (items as Array<{ quantity: number; unitPrice: number }>).
+      reduce((sum: number, item) => sum + (item.quantity * item.unitPrice), 0);
     const discountAmount = discount || 0;
     const taxAmount = tax || 0;
     const finalAmount = totalAmount - discountAmount + taxAmount;
@@ -155,7 +181,7 @@ export async function POST(request: NextRequest) {
     const billId = generateBillId();
     
     // Insert bill
-    const [billResult] = await connection.execute(
+    const [billResult] = await connection.execute<ResultSetHeader>(
       `INSERT INTO bills (
         bill_id, patient_id, appointment_id, bill_type, total_amount, 
         discount_amount, tax_amount, final_amount, payment_status, 
@@ -178,7 +204,7 @@ export async function POST(request: NextRequest) {
       ]
     );
     
-    const billDbId = billResult.insertId;
+    const billDbId = (billResult as ResultSetHeader).insertId;
     
     // Insert bill items
     for (const item of items) {
