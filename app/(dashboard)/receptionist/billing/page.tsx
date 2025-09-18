@@ -73,6 +73,8 @@ interface BillItem {
   quantity: number
   unitPrice: number
   discountPercent?: number
+  // For consultation items, link to a doctor
+  doctorId?: number
 }
 
 interface BillTemplate {
@@ -90,6 +92,7 @@ export default function BillingPage() {
   const [templates, setTemplates] = useState<BillTemplate[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
+  const [doctors, setDoctors] = useState<Array<{ id: number; name: string; department?: string | null; specialization?: string | null }>>([])
   
   // Search and filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -119,6 +122,7 @@ export default function BillingPage() {
   useEffect(() => {
     fetchBills()
     fetchTemplates()
+    fetchDoctors()
   }, [searchQuery, statusFilter, dateFrom, dateTo])
 
   // Load all patients on mount for search
@@ -164,6 +168,36 @@ export default function BillingPage() {
       setTemplates(data.templates || [])
     } catch (error) {
       console.error('Failed to fetch templates:', error)
+    }
+  }
+
+  // Fetch doctors for consultation dropdown
+  const fetchDoctors = async () => {
+    try {
+      const res = await fetch('/api/receptionist/doctors')
+      const data = await res.json()
+      // Normalize possible shapes
+      if (Array.isArray(data.doctors)) {
+        setDoctors(
+          data.doctors.map((d: any) => ({
+            id: Number(d.id),
+            name: d.name,
+            department: d.department ?? null,
+            specialization: d.specialization ?? null,
+          }))
+        )
+      } else if (Array.isArray(data)) {
+        setDoctors(
+          data.map((d: any) => ({
+            id: Number(d.id),
+            name: d.name,
+            department: d.department ?? null,
+            specialization: d.specialization ?? null,
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Failed to fetch doctors:', error)
     }
   }
 
@@ -246,13 +280,16 @@ export default function BillingPage() {
       setIsSubmitting(true)
       const { finalAmount } = calculateTotals()
       
+      // Strip UI-only fields like doctorId before sending
+      const itemsForPayload = billItems.map(({ doctorId, ...rest }) => rest)
+
       const response = await fetch('/api/receptionist/billing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPatient.id,
           billType: billForm.billType,
-          items: billItems,
+          items: itemsForPayload,
           discount: billForm.discount,
           tax: billForm.tax,
           paymentMethod,
@@ -705,24 +742,7 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              {/* Quick Templates */}
-              <div className="mb-4">
-                <Label className="text-sm">Quick Add Templates:</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {templates.slice(0, 6).map(template => (
-                    <Button
-                      key={template.id}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addBillItem(template)}
-                      className="text-xs"
-                    >
-                      {template.item_name} (₹{template.default_price})
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              {/* Quick Templates removed as requested */}
 
               {/* Items List */}
               <div className="space-y-3">
@@ -730,12 +750,45 @@ export default function BillingPage() {
                   <Card key={index} className="p-4">
                     <div className="grid grid-cols-12 gap-3 items-end">
                       <div className="col-span-3">
-                        <Label className="text-xs">Item Name</Label>
-                        <Input
-                          value={item.itemName}
-                          onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
-                          placeholder="Item name"
-                        />
+                        {item.itemType === 'consultation' ? (
+                          <>
+                            <Label className="text-xs">Doctor</Label>
+                            <Select
+                              value={item.doctorId ? String(item.doctorId) : ''}
+                              onValueChange={(value) => {
+                                const docId = Number(value)
+                                const doc = doctors.find(d => d.id === docId)
+                                // Store both doctorId and itemName (doctor name) to keep backend payload compatible
+                                updateBillItem(index, 'doctorId', docId)
+                                updateBillItem(index, 'itemName', doc?.name || '')
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={doctors.length ? 'Select doctor' : 'No doctors found'} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {doctors.length === 0 ? (
+                                  <SelectItem value="" disabled>No doctors available</SelectItem>
+                                ) : (
+                                  doctors.map((d) => (
+                                    <SelectItem key={d.id} value={String(d.id)}>
+                                      {d.name}{d.specialization ? ` • ${d.specialization}` : ''}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </>
+                        ) : (
+                          <>
+                            <Label className="text-xs">Item Name</Label>
+                            <Input
+                              value={item.itemName}
+                              onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
+                              placeholder="Item name"
+                            />
+                          </>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <Label className="text-xs">Type</Label>
