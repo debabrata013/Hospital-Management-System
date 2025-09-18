@@ -41,6 +41,50 @@ const staffRoles = [
 
 const shifts = ['Morning', 'Afternoon', 'Evening', 'Night', 'flexible']
 
+const hospitalDepartments = [
+  { value: 'cardiology', label: 'Cardiology' },
+  { value: 'neurology', label: 'Neurology' },
+  { value: 'orthopedics', label: 'Orthopedics' },
+  { value: 'pediatrics', label: 'Pediatrics' },
+  { value: 'gynecology', label: 'Gynecology & Obstetrics' },
+  { value: 'general_medicine', label: 'General Medicine' },
+  { value: 'surgery', label: 'General Surgery' },
+  { value: 'emergency', label: 'Emergency Department' },
+  { value: 'icu', label: 'Intensive Care Unit (ICU)' },
+  { value: 'radiology', label: 'Radiology & Imaging' },
+  { value: 'pathology', label: 'Pathology & Lab Medicine' },
+  { value: 'pharmacy', label: 'Pharmacy' },
+  { value: 'physiotherapy', label: 'Physiotherapy' },
+  { value: 'psychiatry', label: 'Psychiatry' },
+  { value: 'dermatology', label: 'Dermatology' },
+  { value: 'ophthalmology', label: 'Ophthalmology' },
+  { value: 'ent', label: 'ENT (Ear, Nose, Throat)' },
+  { value: 'urology', label: 'Urology' },
+  { value: 'oncology', label: 'Oncology' },
+  { value: 'nephrology', label: 'Nephrology' },
+  { value: 'gastroenterology', label: 'Gastroenterology' },
+  { value: 'pulmonology', label: 'Pulmonology' },
+  { value: 'endocrinology', label: 'Endocrinology' },
+  { value: 'anesthesiology', label: 'Anesthesiology' },
+  { value: 'reception', label: 'Reception & Front Desk' },
+  { value: 'administration', label: 'Administration' },
+  { value: 'housekeeping', label: 'Housekeeping & Maintenance' },
+  { value: 'security', label: 'Security' },
+  { value: 'dietary', label: 'Dietary & Nutrition' },
+  { value: 'medical_records', label: 'Medical Records' },
+  { value: 'billing', label: 'Billing & Accounts' },
+  { value: 'hr', label: 'Human Resources' },
+  { value: 'it', label: 'Information Technology' },
+  { value: 'biomedical', label: 'Biomedical Engineering' },
+  { value: 'blood_bank', label: 'Blood Bank' },
+  { value: 'dialysis', label: 'Dialysis Unit' },
+  { value: 'rehabilitation', label: 'Rehabilitation Services' },
+  { value: 'social_services', label: 'Social Services' },
+  { value: 'chaplaincy', label: 'Chaplaincy Services' },
+  { value: 'transport', label: 'Patient Transport' },
+  { value: 'laundry', label: 'Laundry Services' }
+]
+
 export default function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
@@ -311,12 +355,21 @@ export default function StaffPage() {
                     </div>
                     <div>
                       <Label htmlFor="department">Department</Label>
-                      <Input
-                        id="department"
-                        value={formData.department}
-                        onChange={(e) => setFormData({...formData, department: e.target.value})}
-                        placeholder="Department or unit assignment"
-                      />
+                      <Select 
+                        value={formData.department} 
+                        onValueChange={(value) => setFormData({...formData, department: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                          {hospitalDepartments.map((dept) => (
+                            <SelectItem key={dept.value} value={dept.value}>
+                              {dept.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="specialization">Specialization/Skills</Label>
@@ -435,7 +488,9 @@ export default function StaffPage() {
                           <StaffIcon className="h-3 w-3 mr-1" />
                           {staffRoles.find(r => r.value === member.role)?.label}
                         </Badge>
-                        <div className="text-sm font-medium">{member.department}</div>
+                        <div className="text-sm font-medium">
+                          {hospitalDepartments.find(dept => dept.value === member.department)?.label || member.department}
+                        </div>
                         {member.specialization && (
                           <div className="text-xs text-gray-600">
                             Specializes in: {member.specialization}
@@ -553,12 +608,21 @@ export default function StaffPage() {
                   </div>
                   <div>
                     <Label htmlFor="edit-department">Department/Unit</Label>
-                    <Input
-                      id="edit-department"
-                      value={formData.department}
-                      onChange={(e) => setFormData({...formData, department: e.target.value})}
-                      placeholder="Department or unit"
-                    />
+                    <Select 
+                      value={formData.department} 
+                      onValueChange={(value) => setFormData({...formData, department: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px] overflow-y-auto">
+                        {hospitalDepartments.map((dept) => (
+                          <SelectItem key={dept.value} value={dept.value}>
+                            {dept.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
