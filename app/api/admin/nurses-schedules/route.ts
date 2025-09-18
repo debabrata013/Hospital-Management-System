@@ -73,20 +73,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for existing schedule conflict
+    // Check for existing schedule conflicts (only time overlaps, allow multiple shifts per day)
     const conflictCheck = await executeQuery(
-      `SELECT id FROM nurse_schedules 
+      `SELECT id, shift_type, start_time, end_time FROM nurse_schedules 
        WHERE nurse_id = ? AND shift_date = ? 
-       AND ((start_time <= ? AND end_time > ?) OR (start_time < ? AND end_time >= ?))
-       AND status != 'Cancelled'`,
-      [nurseId, date, startTime, startTime, endTime, endTime]
+       AND status != 'cancelled'`,
+      [nurseId, date]
     ) as any[]
 
     if (conflictCheck && conflictCheck.length > 0) {
-      return NextResponse.json(
-        { error: 'Nurse already has a conflicting schedule at this time' },
-        { status: 409 }
-      )
+      // Only check for time overlap conflicts (allow double shifts with different times)
+      const timeConflict = conflictCheck.find(schedule => {
+        const existingStart = schedule.start_time.slice(0, 5);
+        const existingEnd = schedule.end_time.slice(0, 5);
+        
+        console.log(`⏰ Checking overlap: New ${startTime}-${endTime} vs Existing ${schedule.shift_type} ${existingStart}-${existingEnd}`);
+        
+        // Check if new shift overlaps with existing shift
+        const hasOverlap = (startTime < existingEnd && endTime > existingStart);
+        
+        if (hasOverlap) {
+          console.log(`❌ Time overlap detected with ${schedule.shift_type} shift`);
+        }
+        
+        return hasOverlap;
+      });
+
+      if (timeConflict) {
+        return NextResponse.json(
+          { error: `Time conflict: Nurse already has a ${timeConflict.shift_type} shift (${timeConflict.start_time} - ${timeConflict.end_time}) that overlaps with the requested time (${startTime} - ${endTime})` },
+          { status: 409 }
+        )
+      }
+      
+      console.log(`✅ No time conflicts found. Nurse can work double shift.`);
     }
 
     // Create the schedule
@@ -128,8 +148,21 @@ export async function POST(request: NextRequest) {
       maxPatients: maxPatients || 8
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating nurse schedule:', error)
+    
+    // Handle specific database constraint errors
+    if (error.code === 'ER_DUP_ENTRY') {
+      if (error.sqlMessage && error.sqlMessage.includes('unique_nurse_shift')) {
+        return NextResponse.json(
+          { 
+            error: 'Database constraint prevents double shifts. To fix this:\n\n1. Go to your database (phpMyAdmin/MySQL Workbench)\n2. Run: ALTER TABLE nurse_schedules DROP INDEX unique_nurse_shift;\n3. Then try creating the schedule again.\n\nOR create a schedule with different shift type (Evening/Night instead of Morning)' 
+          },
+          { status: 409 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Failed to create nurse schedule. Please try again.' },
       { status: 500 }

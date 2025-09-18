@@ -102,6 +102,8 @@ export default function StaffDashboard() {
   const [allStaff, setAllStaff] = useState<any[]>([])
   const [assignedPatients, setAssignedPatients] = useState<any[]>([])
   const [patientsLoading, setPatientsLoading] = useState(true)
+  const [scheduleData, setScheduleData] = useState<any>(null)
+  const [scheduleLoading, setScheduleLoading] = useState(true)
   const { authState } = useAuth()
   const user = authState?.user
 
@@ -140,6 +142,41 @@ export default function StaffDashboard() {
           setAssignedPatients([])
         } finally {
           setPatientsLoading(false)
+        }
+
+        // Fetch nurse schedule
+        try {
+          console.log('🔄 Fetching nurse schedule...');
+          const scheduleResponse = await fetch('/api/nurse/schedule', { 
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          })
+          console.log('📅 Schedule API response status:', scheduleResponse.status);
+          
+          if (scheduleResponse.ok) {
+            const scheduleResponseData = await scheduleResponse.json()
+            console.log('📊 Schedule data received:', scheduleResponseData);
+            
+            if (scheduleResponseData.success) {
+              setScheduleData(scheduleResponseData)
+              console.log('✅ Schedule data set in state');
+              
+              // Log current time and schedule details
+              const now = new Date();
+              console.log('🕐 Current time:', now.toLocaleTimeString());
+              console.log('📋 Today schedule:', scheduleResponseData.todaySchedule);
+              console.log('📅 Upcoming schedules:', scheduleResponseData.upcomingSchedules?.length || 0);
+            }
+          } else {
+            console.log('❌ Schedule API failed with status:', scheduleResponse.status);
+          }
+        } catch (error) {
+          console.error('Error fetching schedule:', error)
+          setScheduleData(null)
+        } finally {
+          setScheduleLoading(false)
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -436,15 +473,55 @@ export default function StaffDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-blue-800">Current Shift</h3>
+                        <h3 className="font-medium text-blue-800">
+                          {scheduleLoading ? 'Current Shift' : 
+                           scheduleData?.scheduleType === 'current' ? 'Current Shift' :
+                           scheduleData?.scheduleType === 'upcoming' ? 'Upcoming Shift' :
+                           scheduleData?.scheduleType === 'completed' ? 'Recent Shift' :
+                           'Shift Status'}
+                        </h3>
                         <Clock className="h-5 w-5 text-blue-500" />
                       </div>
-                      <p className="text-2xl font-bold mt-2">{staffProfile?.shift || 'Flexible'}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {staffProfile?.role === 'pharmacy' ? 'Pharmacy Hours' : 
-                         staffProfile?.role === 'receptionist' ? 'Front Desk' : 
-                         staffProfile?.role === 'staff' ? 'Nursing Schedule' : 'Staff Hours'}
-                      </p>
+                      {scheduleLoading ? (
+                        <div className="animate-pulse">
+                          <div className="h-8 bg-blue-200 rounded mt-2"></div>
+                          <div className="h-4 bg-blue-200 rounded mt-1"></div>
+                        </div>
+                      ) : scheduleData?.todaySchedule ? (
+                        <>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-2xl font-bold capitalize">
+                              {scheduleData.todaySchedule.shift_type}
+                            </p>
+                            {scheduleData.scheduleType === 'current' && (
+                              <Badge className="bg-green-100 text-green-700 text-xs">ACTIVE</Badge>
+                            )}
+                            {scheduleData.scheduleType === 'upcoming' && (
+                              <Badge className="bg-blue-100 text-blue-700 text-xs">UPCOMING</Badge>
+                            )}
+                            {scheduleData.scheduleType === 'completed' && (
+                              <Badge className="bg-gray-100 text-gray-700 text-xs">COMPLETED</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {scheduleData.todaySchedule.start_time} - {scheduleData.todaySchedule.end_time}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {scheduleData.todaySchedule.ward_assignment} • {scheduleData.todaySchedule.status}
+                          </p>
+                          <p className="text-xs text-blue-500 mt-1">
+                            🕐 Current: {new Date().toLocaleTimeString()}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-bold mt-2">No Shift</p>
+                          <p className="text-sm text-gray-600 mt-1">No schedule assigned for today</p>
+                          <p className="text-xs text-blue-500 mt-1">
+                            🕐 Current: {new Date().toLocaleTimeString()}
+                          </p>
+                        </>
+                      )}
                     </div>
                     
                     <div className="bg-green-50 rounded-lg p-4 border border-green-100">
@@ -475,41 +552,77 @@ export default function StaffDashboard() {
                   </div>
 
                   <div className="mt-6">
-                    <h3 className="font-medium text-gray-700 mb-2">Today's Schedule</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="w-2 h-10 bg-blue-500 rounded-full mr-3"></div>
-                          <div>
-                            <p className="font-medium">Morning Briefing</p>
-                            <p className="text-sm text-gray-500">8:00 AM - 8:30 AM</p>
+                    <h3 className="font-medium text-gray-700 mb-2">Schedule Overview</h3>
+                    {scheduleLoading ? (
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="animate-pulse p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-2 h-10 bg-gray-300 rounded-full"></div>
+                              <div className="space-y-2 flex-1">
+                                <div className="h-4 bg-gray-300 rounded w-1/3"></div>
+                                <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <Badge>Completed</Badge>
+                        ))}
                       </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="w-2 h-10 bg-green-500 rounded-full mr-3"></div>
-                          <div>
-                            <p className="font-medium">Shift Duties</p>
-                            <p className="text-sm text-gray-500">8:30 AM - 12:30 PM</p>
+                    ) : scheduleData?.todaySchedule ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center">
+                            <div className="w-2 h-10 bg-blue-500 rounded-full mr-3"></div>
+                            <div>
+                              <p className="font-medium capitalize">{scheduleData.todaySchedule.shift_type} Shift</p>
+                              <p className="text-sm text-gray-500">
+                                {scheduleData.todaySchedule.start_time} - {scheduleData.todaySchedule.end_time}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {scheduleData.todaySchedule.ward_assignment}
+                              </p>
+                            </div>
                           </div>
+                          <Badge className={`capitalize ${
+                            scheduleData.todaySchedule.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                            scheduleData.todaySchedule.status === 'active' ? 'bg-green-100 text-green-700' :
+                            scheduleData.todaySchedule.status === 'completed' ? 'bg-gray-100 text-gray-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {scheduleData.todaySchedule.status}
+                          </Badge>
                         </div>
-                        <Badge variant="outline">In Progress</Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="w-2 h-10 bg-orange-500 rounded-full mr-3"></div>
-                          <div>
-                            <p className="font-medium">Lunch Break</p>
-                            <p className="text-sm text-gray-500">12:30 PM - 1:30 PM</p>
+                        
+                        {scheduleData.upcomingSchedules && scheduleData.upcomingSchedules.length > 1 && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">Upcoming Schedules</h4>
+                            <div className="space-y-2">
+                              {scheduleData.upcomingSchedules.slice(1, 3).map((schedule: any, index: number) => (
+                                <div key={schedule.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center">
+                                    <div className="w-2 h-8 bg-gray-400 rounded-full mr-3"></div>
+                                    <div>
+                                      <p className="text-sm font-medium capitalize">{schedule.shift_type} Shift</p>
+                                      <p className="text-xs text-gray-500">
+                                        {new Date(schedule.shift_date).toLocaleDateString()} • {schedule.start_time} - {schedule.end_time}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {schedule.ward_assignment}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                        <Badge variant="secondary">Upcoming</Badge>
+                        )}
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-center py-6 bg-gray-50 rounded-lg">
+                        <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No schedule assigned</p>
+                        <p className="text-xs text-gray-400">Contact admin for schedule assignment</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

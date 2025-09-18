@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
             SELECT 
               id,
               blood_pressure,
-              heart_rate,
+              pulse as heart_rate, -- Corrected column name from screenshot
               temperature,
               respiratory_rate,
               oxygen_saturation,
