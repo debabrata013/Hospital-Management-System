@@ -200,9 +200,9 @@ const navigationItems = [
   {
     title: "Patient Management",
     items: [
-      { title: "Appointments", icon: Calendar, url: "/receptionist/appointments" },
+      { title: "OPD", icon: Calendar, url: "/receptionist/appointments" },
       { title: "Surgery Appointments", icon: Stethoscope, url: "/receptionist/surgery-appointments" },
-      { title: "Admissions", icon: Bed, url: "/receptionist/admissions" },
+      { title: "IPD", icon: Bed, url: "/receptionist/admissions" },
       { title: "Search Patients", icon: Search, url: "/receptionist/search-patients" }
     ]
   },
@@ -265,14 +265,14 @@ export default function ReceptionistDashboard() {
 
       // Process data
       const today = new Date().toDateString()
-      const todayRegistrations = patientsData.patients?.filter(p => 
+      const todayRegistrations = patientsData.patients?.filter((p: any) => 
         new Date(p.registration_date).toDateString() === today
       ).length || 0
 
       setDashboardData({
         todayRegistrations,
         pendingAppointments: appointmentsData.appointments?.length || 0,
-        waitingPatients: queueData.queue?.filter(q => q.status === 'scheduled').length || 0,
+        waitingPatients: queueData.queue?.filter((q: any) => q.status === 'scheduled').length || 0,
         totalBills: 0, // Will implement billing later
         emergencyContacts: 0 // Will implement emergency contacts later
       })
