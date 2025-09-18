@@ -347,7 +347,17 @@ export default function AdminDashboard() {
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-pink-50"
+                      >
+                        <Link href="/admin/nurses-schedules" className="flex items-center space-x-3 px-3 py-2 rounded-lg">
+                          <UserCheck className="h-5 w-5" />
+                          <span>Nurses Schedules</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton 
                         asChild 

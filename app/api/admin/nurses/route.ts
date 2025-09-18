@@ -12,13 +12,17 @@ export async function GET(request: NextRequest) {
         role,
         contact_number as mobile,
         created_at,
-        updated_at
+        updated_at,
+        1 as is_active
       FROM users 
       WHERE role = 'nurse'
       ORDER BY name ASC
     `);
 
-    return NextResponse.json(nurses);
+    return NextResponse.json({
+      nurses: nurses,
+      count: Array.isArray(nurses) ? nurses.length : 0
+    });
   } catch (error) {
     console.error('Error fetching nurses:', error);
     return NextResponse.json(
