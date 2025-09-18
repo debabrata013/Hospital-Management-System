@@ -48,22 +48,21 @@ import {
   CheckCircle,
   Plus,
   Edit,
+  Trash2,
   Eye,
-  Bell,
-  FileText,
-  Stethoscope,
-  Settings,
+  Coffee,
+  Calendar,
+  LogOut,
   UserCog,
   Shield,
   TrendingUp,
-  Calendar,
   Thermometer,
   HeartPulse,
   Clipboard,
   UserCheck,
   Package,
-  Coffee,
-  Phone
+  Phone,
+  Stethoscope
 } from 'lucide-react'
 import { LogoutButton } from "@/components/auth/LogoutButton"
 import { useAuth } from "@/hooks/useAuth"
@@ -91,7 +90,6 @@ const navigationItems = [
   {
     title: "Personal",
     items: [
-      { title: "Attendance", icon: UserCheck, url: "/nurse/attendance" },
       { title: "Break Time", icon: Coffee, url: "/nurse/break" },
       { title: "Leave", icon: Calendar, url: "/nurse/leave" },
     ]
@@ -102,8 +100,6 @@ export default function StaffDashboard() {
   const [staffProfile, setStaffProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [allStaff, setAllStaff] = useState<any[]>([])
-  const [attendanceData, setAttendanceData] = useState<any[]>([])
-  const [attendanceLoading, setAttendanceLoading] = useState(true)
   const [assignedPatients, setAssignedPatients] = useState<any[]>([])
   const [patientsLoading, setPatientsLoading] = useState(true)
   const { authState } = useAuth()
@@ -129,27 +125,6 @@ export default function StaffDashboard() {
           }
         }
 
-        // Fetch attendance data
-        try {
-          const attendanceResponse = await fetch('/api/nurse/attendance')
-          if (attendanceResponse.ok) {
-            const attendanceData = await attendanceResponse.json()
-            if (attendanceData.success) {
-              setAttendanceData(attendanceData.data || [])
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching attendance data:', error)
-          // Use mock data if API fails
-          setAttendanceData([
-            { date: '2025-09-14', checkIn: '08:05:00', checkOut: '17:00:00', status: 'present' },
-            { date: '2025-09-13', checkIn: '08:02:00', checkOut: '17:05:00', status: 'present' },
-            { date: '2025-09-12', checkIn: '08:00:00', checkOut: '16:58:00', status: 'present' },
-            { date: '2025-09-11', checkIn: '08:10:00', checkOut: '17:10:00', status: 'present' },
-            { date: '2025-09-10', checkIn: '08:25:00', checkOut: '17:00:00', status: 'late' },
-            { date: '2025-09-09', checkIn: null, checkOut: null, status: 'absent' }
-          ])
-        }
 
         // Fetch assigned patients
         try {
@@ -166,8 +141,6 @@ export default function StaffDashboard() {
         } finally {
           setPatientsLoading(false)
         }
-        
-        setAttendanceLoading(false)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -394,6 +367,24 @@ export default function StaffDashboard() {
                           <p className="font-medium">{staffProfile.department || 'Not assigned'}</p>
                         </div>
                         <div>
+                          <p className="text-gray-500">Assignment</p>
+                          <div className="flex items-center">
+                            <Badge 
+                              className={`capitalize ${
+                                staffProfile.assignment === 'ward' 
+                                  ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                                  : staffProfile.assignment === 'opd'
+                                  ? 'bg-green-100 text-green-700 border-green-200'
+                                  : 'bg-gray-100 text-gray-700 border-gray-200'
+                              }`}
+                            >
+                              {staffProfile.assignment === 'ward' ? 'Ward' : 
+                               staffProfile.assignment === 'opd' ? 'OPD' : 
+                               'Not Assigned'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
                           <p className="text-gray-500">Shift</p>
                           <p className="font-medium capitalize">{staffProfile.shift || 'Flexible'}</p>
                         </div>
@@ -601,137 +592,6 @@ export default function StaffDashboard() {
             </Card>
                         
       
-            {/* Attendance Section */}
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold flex items-center">
-                  <UserCheck className="h-6 w-6 mr-2 text-pink-500" />
-                  My Attendance
-                </CardTitle>
-                <CardDescription>View your attendance history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Attendance Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-green-800">Present Days</h3>
-                        <p className="text-2xl font-bold mt-1">
-                          {attendanceLoading 
-                            ? "..." 
-                            : attendanceData.filter(a => a.status === 'present').length}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-yellow-800">Late Days</h3>
-                        <p className="text-2xl font-bold mt-1">
-                          {attendanceLoading 
-                            ? "..." 
-                            : attendanceData.filter(a => a.status === 'late').length}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-red-800">Absent Days</h3>
-                        <p className="text-2xl font-bold mt-1">
-                          {attendanceLoading 
-                            ? "..." 
-                            : attendanceData.filter(a => a.status === 'absent').length}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-blue-800">Attendance Rate</h3>
-                        <p className="text-2xl font-bold mt-1">
-                          {attendanceLoading 
-                            ? "..." 
-                            : attendanceData.length 
-                              ? Math.round((attendanceData.filter(a => a.status === 'present' || a.status === 'late').length / attendanceData.length) * 100) + '%'
-                              : "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Attendance History Table */}
-                  <div className="mt-4">
-                    <h3 className="font-medium text-gray-700 mb-2">Recent Attendance</h3>
-                    
-                    {attendanceLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
-                        <p className="mt-2 text-gray-500">Loading attendance history...</p>
-                      </div>
-                    ) : attendanceData.length > 0 ? (
-                      <div className="overflow-x-auto rounded-lg border border-gray-200">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {attendanceData.slice(0, 7).map((record, index) => (
-                              <tr key={index} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                  {new Date(record.date).toLocaleDateString('en-US', {
-                                    weekday: 'short', 
-                                    month: 'short', 
-                                    day: 'numeric'
-                                  })}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {record.checkIn ? record.checkIn.substring(0, 5) : '—'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {record.checkOut ? record.checkOut.substring(0, 5) : '—'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  {record.status === 'present' && (
-                                    <Badge className="bg-green-100 text-green-700">Present</Badge>
-                                  )}
-                                  {record.status === 'late' && (
-                                    <Badge className="bg-yellow-100 text-yellow-700">Late</Badge>
-                                  )}
-                                  {record.status === 'absent' && (
-                                    <Badge className="bg-red-100 text-red-700">Absent</Badge>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <Clock className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500">No attendance records found</p>
-                      </div>
-                    )}
-                    
-                    {/* View All Link */}
-                    <div className="flex justify-center mt-4">
-                      <Link href="/nurse/attendance">
-                        <Button variant="outline" className="text-gray-600">
-                          View Complete Attendance History
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </main>
         </SidebarInset>
       </div>
