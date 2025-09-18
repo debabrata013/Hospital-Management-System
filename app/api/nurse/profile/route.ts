@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
           department: 'Nursing',
           specialization: 'General Care',
           shift: 'morning',
+          assignment: 'ward', // Add assignment for mock data
           isActive: true,
           createdAt: '2023-01-01',
           lastLogin: '2023-09-14'
@@ -48,13 +49,15 @@ export async function GET(request: NextRequest) {
 
     const connection = await mysql.createConnection(dbConfig)
     
-    // Fetch staff profile from users table
+    // Fetch staff profile from users table with assignment information
     const [users] = await connection.execute(
       `SELECT 
-        id, user_id, name, email, contact_number, role, department, 
-        specialization, shift_preference, is_active, created_at, last_login
-      FROM users 
-      WHERE id = ? AND role IN ('staff', 'nurse', 'receptionist', 'pharmacy')`,
+        u.id, u.user_id, u.name, u.email, u.contact_number, u.role, u.department, 
+        u.specialization, u.shift_preference, u.is_active, u.created_at, u.last_login,
+        na.department as assignment_department
+      FROM users u
+      LEFT JOIN nurse_assignments na ON u.id = na.nurse_id AND na.is_active = 1
+      WHERE u.id = ? AND u.role IN ('staff', 'nurse', 'receptionist', 'pharmacy')`,
       [session.user.userId]
     )
 
@@ -82,6 +85,7 @@ export async function GET(request: NextRequest) {
         department: staff.department,
         specialization: staff.specialization,
         shift: staff.shift_preference,
+        assignment: staff.assignment_department, // Add assignment from nurse_assignments table
         isActive: staff.is_active === 1,
         createdAt: staff.created_at,
         lastLogin: staff.last_login
