@@ -705,24 +705,7 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              {/* Quick Templates */}
-              <div className="mb-4">
-                <Label className="text-sm">Quick Add Templates:</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {templates.slice(0, 6).map(template => (
-                    <Button
-                      key={template.id}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addBillItem(template)}
-                      className="text-xs"
-                    >
-                      {template.item_name} (₹{template.default_price})
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              {/* Quick Templates removed as requested */}
 
               {/* Items List */}
               <div className="space-y-3">
