@@ -70,6 +70,12 @@ export default function NursesSchedulesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<NurseSchedule | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [viewingSchedule, setViewingSchedule] = useState<NurseSchedule | null>(null)
+  const handleViewSchedule = (schedule: NurseSchedule) => {
+    setViewingSchedule(schedule)
+    setIsViewModalOpen(true)
+  }
   const [formData, setFormData] = useState<CreateScheduleData>({
     nurseId: '',
     date: new Date().toISOString().split('T')[0],
@@ -582,6 +588,15 @@ export default function NursesSchedulesPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => handleViewSchedule(schedule)}
+                          className="border-green-200 text-green-600 hover:bg-green-50"
+                        >
+                          <UserCheck className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEditSchedule(schedule)}
                           className="border-blue-200 text-blue-600 hover:bg-blue-50"
                         >
@@ -597,6 +612,36 @@ export default function NursesSchedulesPage() {
                           <Trash2 className="h-4 w-4 mr-1" />
                           Delete
                         </Button>
+      {/* View Schedule Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              Nurse Schedule Details
+            </DialogTitle>
+            <DialogDescription>
+              Details for {viewingSchedule?.nurse_name}
+            </DialogDescription>
+          </DialogHeader>
+          {viewingSchedule && (
+            <div className="space-y-3 py-2">
+              <div><b>ID:</b> {viewingSchedule.id}</div>
+              <div><b>Date:</b> {viewingSchedule.shift_date}</div>
+              <div><b>Shift:</b> {viewingSchedule.shift_type} ({viewingSchedule.start_time} - {viewingSchedule.end_time})</div>
+              <div><b>Status:</b> <Badge>{viewingSchedule.status}</Badge></div>
+              <div><b>Ward:</b> {viewingSchedule.ward_assignment}</div>
+              <div><b>Patients:</b> {viewingSchedule.current_patients}/{viewingSchedule.max_patients}</div>
+              <div><b>Created At:</b> {viewingSchedule.created_at}</div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
                       </div>
                     </div>
                   </div>
