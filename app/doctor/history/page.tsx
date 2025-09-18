@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -259,6 +261,10 @@ export default function DoctorHistoryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-6">
       {/* Header */}
+           <Link href="/doctor" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
