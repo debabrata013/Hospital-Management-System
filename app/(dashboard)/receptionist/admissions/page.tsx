@@ -99,7 +99,6 @@ export default function AdmissionsPage() {
   // Dialog states
   const [showNewAdmissionDialog, setShowNewAdmissionDialog] = useState(false)
   const [showAdmissionDetailsDialog, setShowAdmissionDetailsDialog] = useState(false)
-  const [showDischargeDialog, setShowDischargeDialog] = useState(false)
   const [showTransferDialog, setShowTransferDialog] = useState(false)
   
   const [selectedAdmission, setSelectedAdmission] = useState<Admission | null>(null)
@@ -121,11 +120,6 @@ export default function AdmissionsPage() {
     emergencyContactRelation: ''
   })
   
-  const [dischargeForm, setDischargeForm] = useState({
-    dischargeNotes: '',
-    dischargeSummary: '',
-    dischargeInstructions: ''
-  })
   
   const [transferForm, setTransferForm] = useState({
     newRoomId: '',
@@ -261,45 +255,6 @@ export default function AdmissionsPage() {
     }
   }
 
-  const dischargePatient = async () => {
-    if (!selectedAdmission) return
-    
-    try {
-      setIsSubmitting(true)
-      const response = await fetch('/api/receptionist/admissions', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          admissionId: selectedAdmission.admission_id,
-          action: 'discharge',
-          ...dischargeForm,
-          dischargedBy: 1 // Replace with actual user ID
-        })
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        const confirmBilling = confirm(`Patient discharged successfully!\n\nBill Generated:\nBill ID: ${result.billId}\nTotal Amount: ₹${result.totalAmount.toLocaleString()}\nStay Duration: ${result.stayDays} days\n\nBill has been added to the billing system.\n\nWould you like to go to the billing section to process payment?`)
-        
-        setShowDischargeDialog(false)
-        setDischargeForm({ dischargeNotes: '', dischargeSummary: '', dischargeInstructions: '' })
-        fetchAdmissions()
-        fetchRooms()
-        
-        if (confirmBilling) {
-          window.open('/receptionist/billing', '_blank')
-        }
-      } else {
-        const error = await response.json()
-        alert(error.message || 'Failed to discharge patient')
-      }
-    } catch (error) {
-      console.error('Failed to discharge patient:', error)
-      alert('Failed to discharge patient')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const transferPatient = async () => {
     if (!selectedAdmission || !transferForm.newRoomId) return
@@ -662,17 +617,6 @@ export default function AdmissionsPage() {
                             <RefreshCw className="h-4 w-4 mr-1" />
                             Transfer
                           </Button>
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600"
-                            onClick={() => {
-                              setSelectedAdmission(admission)
-                              setShowDischargeDialog(true)
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Discharge
-                          </Button>
                         </>
                       )}
                     </div>
@@ -905,69 +849,6 @@ export default function AdmissionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Discharge Dialog */}
-      <Dialog open={showDischargeDialog} onOpenChange={setShowDischargeDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Discharge Patient</DialogTitle>
-            <DialogDescription>
-              Complete the discharge process for {selectedAdmission?.patient_name}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label>Discharge Notes</Label>
-              <Textarea
-                placeholder="Enter discharge notes..."
-                value={dischargeForm.dischargeNotes}
-                onChange={(e) => setDischargeForm(prev => ({ ...prev, dischargeNotes: e.target.value }))}
-                rows={3}
-              />
-            </div>
-            
-            <div>
-              <Label>Discharge Summary</Label>
-              <Textarea
-                placeholder="Enter discharge summary..."
-                value={dischargeForm.dischargeSummary}
-                onChange={(e) => setDischargeForm(prev => ({ ...prev, dischargeSummary: e.target.value }))}
-                rows={4}
-              />
-            </div>
-            
-            <div>
-              <Label>Discharge Instructions</Label>
-              <Textarea
-                placeholder="Enter discharge instructions for patient..."
-                value={dischargeForm.dischargeInstructions}
-                onChange={(e) => setDischargeForm(prev => ({ ...prev, dischargeInstructions: e.target.value }))}
-                rows={4}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDischargeDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={dischargePatient}
-              disabled={isSubmitting}
-              className="bg-green-500 hover:bg-green-600"
-            >
-              {isSubmitting ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Discharging...
-                </>
-              ) : (
-                'Discharge Patient'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Transfer Dialog */}
       <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
