@@ -66,6 +66,8 @@ import {
 } from 'lucide-react'
 import { LogoutButton } from "@/components/auth/LogoutButton"
 import { useAuth } from "@/hooks/useAuth"
+import { useScheduleMonitor } from "@/hooks/useScheduleMonitor"
+import { ScheduleMonitor } from "@/components/ScheduleMonitor"
 
 // Mock data for staff dashboard
 const staffStats = {
@@ -104,18 +106,31 @@ export default function StaffDashboard() {
   const [patientsLoading, setPatientsLoading] = useState(true)
   const [scheduleData, setScheduleData] = useState<any>(null)
   const [scheduleLoading, setScheduleLoading] = useState(true)
+  const [breakData, setBreakData] = useState<any[]>([])
+  const [breakLoading, setBreakLoading] = useState(true)
+  const [totalBreakTime, setTotalBreakTime] = useState(0)
   const { authState } = useAuth()
   const user = authState?.user
+  
+  // Monitor schedule for automatic logout
+  const { currentSchedule, timeRemaining, isMonitoring } = useScheduleMonitor()
 
   // Fetch staff profile data and colleagues
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch nurse profile
+        console.log('[NURSE-DASHBOARD] Fetching profile...')
         const profileResponse = await fetch('/api/nurse/profile')
+        console.log('[NURSE-DASHBOARD] Profile response status:', profileResponse.status)
+        
         if (profileResponse.ok) {
           const profileData = await profileResponse.json()
+          console.log('[NURSE-DASHBOARD] Profile data received:', profileData)
           setStaffProfile(profileData.staff)
+        } else {
+          const errorData = await profileResponse.json()
+          console.error('[NURSE-DASHBOARD] Profile fetch failed:', errorData)
         }
 
         // Fetch all nurses for directory
@@ -177,6 +192,55 @@ export default function StaffDashboard() {
           setScheduleData(null)
         } finally {
           setScheduleLoading(false)
+        }
+
+        // Fetch break data
+        try {
+          console.log('🔄 Fetching break data...');
+          const breakResponse = await fetch('/api/staff/fetch_Breaks', { 
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          })
+          console.log('☕ Break API response status:', breakResponse.status);
+          
+          if (breakResponse.ok) {
+            const breakResponseData = await breakResponse.json()
+            console.log('📊 Break data received:', breakResponseData);
+            
+            if (breakResponseData.success && breakResponseData.breaks) {
+              setBreakData(breakResponseData.breaks)
+              
+              // Calculate total break time for today (only completed breaks)
+              const completedBreaks = breakResponseData.breaks.filter((breakItem: any) => breakItem.end_time && breakItem.duration)
+              console.log('📊 All breaks:', breakResponseData.breaks.length);
+              console.log('📊 Completed breaks:', completedBreaks.length);
+              console.log('📊 Break details:', breakResponseData.breaks.map((b: any) => ({
+                id: b.id,
+                start: b.start_time,
+                end: b.end_time,
+                duration: b.duration
+              })));
+              
+              const totalMinutes = completedBreaks.reduce((total: number, breakItem: any) => {
+                const minutes = Math.floor(breakItem.duration / 60) // Convert seconds to minutes
+                console.log(`📊 Break ${breakItem.id}: ${breakItem.duration} seconds = ${minutes} minutes`);
+                return total + minutes
+              }, 0)
+              
+              setTotalBreakTime(totalMinutes)
+              console.log('✅ Break data set - Total completed breaks:', completedBreaks.length);
+              console.log('✅ Break data set - Total time today:', totalMinutes, 'minutes');
+            }
+          } else {
+            console.log('❌ Break API failed with status:', breakResponse.status);
+          }
+        } catch (error) {
+          console.error('Error fetching break data:', error)
+          setBreakData([])
+        } finally {
+          setBreakLoading(false)
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -344,21 +408,11 @@ export default function StaffDashboard() {
                             <span className="text-muted-foreground">ID:</span>
                             <p className="font-medium">{staffProfile.user_id}</p>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Shift:</span>
-                            <p className="font-medium capitalize">{staffProfile.shift || 'Flexible'}</p>
-                          </div>
                         </div>
-                        {staffProfile.specialization && (
-                          <div className="mt-2">
-                            <span className="text-muted-foreground text-xs">Specialization:</span>
-                            <p className="font-medium text-xs">{staffProfile.specialization}</p>
-                          </div>
-                        )}
                       </div>
                     )}
                     <DropdownMenuSeparator />
-                    <LogoutButton />
+                    <LogoutButton showText={true} className="w-full" />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -545,9 +599,20 @@ export default function StaffDashboard() {
                           Start Break
                         </Button>
                       </Link>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Time used today: 0 minutes
-                      </p>
+                      {breakLoading ? (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Loading break data...
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Time used today: {totalBreakTime} minutes
+                          {breakData.length > 0 && (
+                            <span className="text-purple-600 ml-1">
+                              ({breakData.filter(b => b.end_time && b.duration).length} completed break{breakData.filter(b => b.end_time && b.duration).length !== 1 ? 's' : ''})
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -567,7 +632,7 @@ export default function StaffDashboard() {
                           </div>
                         ))}
                       </div>
-                    ) : scheduleData?.todaySchedule ? (
+                    ) : scheduleData?.todaySchedule || currentSchedule ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <div className="flex items-center">
@@ -703,8 +768,6 @@ export default function StaffDashboard() {
                 )}
               </CardContent>
             </Card>
-                        
-      
           </main>
         </SidebarInset>
       </div>

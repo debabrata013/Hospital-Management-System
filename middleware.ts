@@ -19,7 +19,7 @@ const PROTECTED_ROUTES = {
   '/api/doctor': ['super-admin', 'doctor'],
   '/api/pharmacy': ['super-admin', 'pharmacy'],
   '/api/patients': ['super-admin', 'admin', 'doctor', 'staff', 'nurse', 'receptionist'],
-  '/api/staff': ['super-admin', 'staff'],
+  '/api/staff': ['super-admin', 'staff', 'nurse'],
   '/api/nurse': ['super-admin', 'nurse'],
   '/api/receptionist': ['super-admin', 'receptionist']
 }
@@ -104,10 +104,45 @@ export async function middleware(request: NextRequest) {
     // Verify JWT token
     const { payload } = await jwtVerify(token, JWT_SECRET)
     const userRole = payload.role as string
+    const userId = payload.userId as string
     
     console.log(`[MIDDLEWARE] JWT verified successfully`)
     console.log(`[MIDDLEWARE] User role: ${userRole}`)
     console.log(`[MIDDLEWARE] Protected route: ${protectedRoute}`)
+
+    // Additional schedule validation for nurses accessing nurse routes
+    if (userRole === 'nurse' && pathname.startsWith('/nurse')) {
+      console.log(`[MIDDLEWARE] Validating nurse schedule for user: ${userId}`)
+      
+      try {
+        // Quick schedule validation (only for nurse dashboard access)
+        const scheduleValidation = await fetch(`${request.nextUrl.origin}/api/auth/validate-schedule`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, role: userRole })
+        })
+        
+        if (scheduleValidation.ok) {
+          const scheduleResult = await scheduleValidation.json()
+          
+          if (!scheduleResult.canLogin) {
+            console.log(`[MIDDLEWARE] Nurse schedule validation failed: ${scheduleResult.message}`)
+            // Redirect to login with schedule error
+            const loginUrl = new URL('/login', request.url)
+            loginUrl.searchParams.set('message', 'schedule-restriction')
+            loginUrl.searchParams.set('details', scheduleResult.message)
+            
+            // Clear invalid session
+            const response = NextResponse.redirect(loginUrl)
+            response.cookies.set('auth-token', '', { maxAge: 0, path: '/' })
+            return response
+          }
+        }
+      } catch (scheduleError) {
+        console.error(`[MIDDLEWARE] Schedule validation error:`, scheduleError)
+        // Continue with normal flow if schedule validation fails
+      }
+    }
 
     // Check if user has required role for this route
     const requiredRoles = PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES]
@@ -125,7 +160,7 @@ export async function middleware(request: NextRequest) {
     
     // Add user info to headers for API routes
     const response = NextResponse.next()
-    response.headers.set('x-user-id', payload.userId as string)
+    response.headers.set('x-user-id', userId)
     response.headers.set('x-user-role', userRole)
     response.headers.set('x-user-email', payload.email as string)
 

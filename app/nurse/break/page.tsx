@@ -36,7 +36,18 @@ export default function BreakPage() {
 
   useEffect(() => {
     if (activeBreak) {
-      setTimer(Math.floor((new Date().getTime() - new Date(activeBreak.start_time).getTime()) / 1000))
+      // Calculate initial elapsed time from break start
+      const startTime = new Date(activeBreak.start_time).getTime()
+      const currentTime = new Date().getTime()
+      const elapsedSeconds = Math.floor((currentTime - startTime) / 1000)
+      
+      console.log('[BREAK-TIMER] Break start time:', activeBreak.start_time)
+      console.log('[BREAK-TIMER] Current time:', new Date().toISOString())
+      console.log('[BREAK-TIMER] Elapsed seconds:', elapsedSeconds)
+      
+      setTimer(Math.max(0, elapsedSeconds)) // Ensure timer is never negative
+      
+      // Update timer every second
       intervalRef.current = setInterval(() => {
         setTimer((prevTimer) => prevTimer + 1)
       }, 1000)
@@ -51,12 +62,37 @@ export default function BreakPage() {
   const fetchBreaks = async () => {
     try {
       // Add { cache: "no-store" } to prevent browser caching issues
-      const response = await fetch("/api/staff/breaks", { cache: "no-store" })
+      const response = await fetch("/api/staff/fetch_Breaks", { cache: "no-store" })
       const data = await response.json()
+      console.log('[BREAK-PAGE] Fetched breaks data:', data)
 
       if (data.success) {
-        setBreaks(data.breaks.filter((b: Break) => b.end_time))
-        setActiveBreak(data.breaks.find((b: Break) => !b.end_time) || null)
+        const completedBreaks = data.breaks.filter((b: Break) => b.end_time)
+        const activeBreakItem = data.breaks.find((b: Break) => !b.end_time) || null
+        
+        console.log('[BREAK-PAGE] Completed breaks:', completedBreaks.length)
+        console.log('[BREAK-PAGE] Active break:', activeBreakItem)
+        
+        // Check if active break is too old (more than 2 hours)
+        if (activeBreakItem) {
+          const breakStartTime = new Date(activeBreakItem.start_time).getTime()
+          const currentTime = new Date().getTime()
+          const hoursElapsed = (currentTime - breakStartTime) / (1000 * 60 * 60)
+          
+          console.log('[BREAK-PAGE] Active break hours elapsed:', hoursElapsed)
+          
+          if (hoursElapsed > 2) {
+            console.log('[BREAK-PAGE] Active break is too old, auto-ending it...')
+            // Auto-end the old break
+            await handleEndBreak(activeBreakItem.id, true)
+            // Refresh data after auto-ending
+            setTimeout(() => fetchBreaks(), 1000)
+            return
+          }
+        }
+        
+        setBreaks(completedBreaks)
+        setActiveBreak(activeBreakItem)
       }
     } catch (error) {
       console.error("Error fetching breaks:", error)
@@ -73,6 +109,7 @@ export default function BreakPage() {
       if (data.success) {
         toast.success("Break started.")
         setActiveBreak(data.break)
+        console.log('[BREAK-START] Break started:', data.break)
       } else {
         toast.error(data.error || "Failed to start break.")
       }
@@ -84,31 +121,49 @@ export default function BreakPage() {
     }
   }
 
-  const handleEndBreak = async () => {
-    if (!activeBreak) return
-    setSubmitting(true)
+  const handleEndBreak = async (breakId?: number, isAutoEnd?: boolean) => {
+    const targetBreakId = breakId || activeBreak?.id
+    if (!targetBreakId) return
+    
+    if (!isAutoEnd) setSubmitting(true)
 
     try {
       const response = await fetch("/api/staff/break/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ break_id: activeBreak.id }),
+        body: JSON.stringify({ break_id: targetBreakId }),
       })
       const data = await response.json()
 
       if (data.success) {
-        toast.success("Break ended.")
+        if (isAutoEnd) {
+          toast.success("Old break automatically ended.")
+          console.log('[BREAK-END] Auto-ended old break:', data.break)
+        } else {
+          toast.success("Break ended.")
+          console.log('[BREAK-END] Break ended:', data.break)
+        }
+        
         setActiveBreak(null)
         // Manually add the completed break to the history to avoid re-fetching
         setBreaks(prevBreaks => [data.break, ...prevBreaks])
+        
+        if (!isAutoEnd) {
+          // Refresh the break data to get updated totals
+          fetchBreaks()
+        }
       } else {
-        toast.error(data.error || "Failed to end break.")
+        if (!isAutoEnd) {
+          toast.error(data.error || "Failed to end break.")
+        }
       }
     } catch (error) {
       console.error("Error ending break:", error)
-      toast.error("An unexpected error occurred.")
+      if (!isAutoEnd) {
+        toast.error("An unexpected error occurred.")
+      }
     } finally {
-      setSubmitting(false)
+      if (!isAutoEnd) setSubmitting(false)
     }
   }
 
@@ -124,11 +179,28 @@ export default function BreakPage() {
 
   return (
     <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Break Management</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold">Break Management</h1>
+          </div>
+          {activeBreak && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                const hoursElapsed = (new Date().getTime() - new Date(activeBreak.start_time).getTime()) / (1000 * 60 * 60)
+                if (hoursElapsed > 1) {
+                  handleEndBreak(activeBreak.id, true)
+                }
+              }}
+              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              Reset Old Break
+            </Button>
+          )}
         </div>
       <Card>
         <CardHeader>
@@ -145,7 +217,7 @@ export default function BreakPage() {
               </div>
               <Button
                 size="lg"
-                onClick={handleEndBreak}
+                onClick={() => handleEndBreak()}
                 disabled={submitting}
                 className="bg-red-500 hover:bg-red-600"
               >

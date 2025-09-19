@@ -97,6 +97,15 @@ export default function DoctorDashboard() {
   const [assignedNurses, setAssignedNurses] = useState<any>({ opd: { count: 0, nurses: [] }, ward: { count: 0, nurses: [] } });
   const [nursesLoading, setNursesLoading] = useState(true);
   
+  // Patient filter state
+  const [patientFilter, setPatientFilter] = useState<'all' | 'active' | 'discharged'>('all');
+  
+  // Filter patients based on selected filter
+  const filteredPatients = admittedPatients.filter(patient => {
+    if (patientFilter === 'all') return true;
+    return patient.status === patientFilter;
+  });
+  
   // Vitals modal states
   const [vitalsDialog, setVitalsDialog] = useState(false);
   const [dischargeDialog, setDischargeDialog] = useState(false);
@@ -1012,12 +1021,30 @@ export default function DoctorDashboard() {
                     <CardDescription>Active admissions and recent discharges under your care</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Badge variant="outline" className="text-blue-600 border-blue-200">
+                    <Button
+                      variant={patientFilter === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 ${patientFilter === 'all' ? 'bg-gray-600 text-white' : 'text-gray-600 border-gray-200'}`}
+                      onClick={() => setPatientFilter('all')}
+                    >
+                      All ({admittedPatients.length})
+                    </Button>
+                    <Button
+                      variant={patientFilter === 'active' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 ${patientFilter === 'active' ? 'bg-blue-600 text-white' : 'text-blue-600 border-blue-200'}`}
+                      onClick={() => setPatientFilter('active')}
+                    >
                       {admittedPatients.filter(p => p.status === 'active').length} Active
-                    </Badge>
-                    <Badge variant="outline" className="text-green-600 border-green-200">
+                    </Button>
+                    <Button
+                      variant={patientFilter === 'discharged' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 ${patientFilter === 'discharged' ? 'bg-green-600 text-white' : 'text-green-600 border-green-200'}`}
+                      onClick={() => setPatientFilter('discharged')}
+                    >
                       {admittedPatients.filter(p => p.status === 'discharged').length} Discharged
-                    </Badge>
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1026,8 +1053,8 @@ export default function DoctorDashboard() {
                       <div className="flex items-center justify-center py-8">
                         <div className="text-gray-500">Loading admitted patients...</div>
                       </div>
-                    ) : admittedPatients.length > 0 ? (
-                      admittedPatients.map((patient: any) => (
+                    ) : filteredPatients.length > 0 ? (
+                      filteredPatients.map((patient: any) => (
                         <div key={patient.admission_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -1152,7 +1179,14 @@ export default function DoctorDashboard() {
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p>No patients currently admitted</p>
+                        <p>
+                          {patientFilter === 'all' 
+                            ? 'No patients currently admitted'
+                            : patientFilter === 'active'
+                            ? 'No active patients'
+                            : 'No discharged patients'
+                          }
+                        </p>
                       </div>
                     )}
                   </div>
