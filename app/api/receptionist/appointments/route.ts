@@ -93,23 +93,6 @@ export async function POST(request: NextRequest) {
 
     connection = await getConnection();
     
-    // Check for conflicting appointments
-    if (appointmentTime) {
-      const [conflicts] = await connection.execute<RowDataPacket[]>(
-        `SELECT id FROM appointments 
-         WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? 
-         AND status NOT IN ('cancelled', 'completed')`,
-        [doctorId, appointmentDate, appointmentTime]
-      );
-
-      if (conflicts.length > 0) {
-        return NextResponse.json(
-          { message: 'Doctor is not available at this time' },
-          { status: 409 }
-        );
-      }
-    }
-    
     // Generate appointment ID
     const appointmentId = `APT${Date.now().toString(36)}${Math.random().toString(36).substr(2, 4)}`.toUpperCase();
     
@@ -129,12 +112,12 @@ export async function POST(request: NextRequest) {
     const internalPatientId = (patientResult[0] as RowDataPacket).id as number;
 
     // If doctorId is not provided, select one from the specified department
-    let resolvedDoctorId = doctorId;
+    let resolvedDoctorId = doctorId as number | undefined;
     if (!resolvedDoctorId) {
       if (!department) {
         return NextResponse.json({ message: 'Either doctorId or department is required' }, { status: 400 });
       }
-      // Pick least busy doctor in the department for the date
+      // Pick least busy active doctor in the department for the date
       const [doctorRows] = await connection.execute<RowDataPacket[]>(
         `SELECT u.id, COALESCE(COUNT(a.id),0) AS todays_appointments
          FROM users u
@@ -151,9 +134,63 @@ export async function POST(request: NextRequest) {
         [appointmentDate, department]
       );
       if (doctorRows.length === 0) {
-        return NextResponse.json({ message: `No available doctors found for department ${department}` }, { status: 404 });
+        // Fallback: create or reuse a placeholder 'Unassigned' doctor for this department
+        const deptSlug = String(department)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+
+        const placeholderEmail = `unassigned+${deptSlug}@hospital.local`;
+        const placeholderName = `Unassigned - ${department}`;
+
+        // Try to find existing placeholder
+        const [placeholderRows] = await connection.execute<RowDataPacket[]>(
+          `SELECT id FROM users 
+           WHERE role = 'doctor' 
+             AND department = ? 
+             AND (email = ? OR name = ?) 
+           LIMIT 1`,
+          [department, placeholderEmail, placeholderName]
+        );
+
+        if (placeholderRows.length > 0) {
+          resolvedDoctorId = (placeholderRows[0] as RowDataPacket).id as number;
+        } else {
+          // Create minimal placeholder doctor record (inactive)
+          const userId = `USR${Date.now().toString(36).toUpperCase()}${Math.random()
+            .toString(36)
+            .substring(2, 6)
+            .toUpperCase()}`;
+          const passwordHash = `UNASSIGNED-${userId}`; // dummy value; account is inactive
+          const contact = '0000000000';
+
+          const [insertResult] = await connection.execute<OkPacket>(
+            `INSERT INTO users (user_id, name, email, password_hash, role, contact_number, department, is_active, is_verified, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 'doctor', ?, ?, 0, 0, NOW(), NOW())`,
+            [userId, placeholderName, placeholderEmail, passwordHash, contact, department]
+          );
+          resolvedDoctorId = insertResult.insertId as number;
+        }
+      } else {
+        resolvedDoctorId = (doctorRows[0] as RowDataPacket).id as number;
       }
-      resolvedDoctorId = (doctorRows[0] as RowDataPacket).id as number;
+    }
+
+    // Check for conflicting appointments AFTER resolving doctor
+    if (appointmentTime && resolvedDoctorId) {
+      const [conflicts] = await connection.execute<RowDataPacket[]>(
+        `SELECT id FROM appointments 
+         WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? 
+         AND status NOT IN ('cancelled', 'completed')`,
+        [resolvedDoctorId, appointmentDate, appointmentTime]
+      );
+
+      if (conflicts.length > 0) {
+        return NextResponse.json(
+          { message: 'Doctor is not available at this time' },
+          { status: 409 }
+        );
+      }
     }
     
     // Insert appointment
