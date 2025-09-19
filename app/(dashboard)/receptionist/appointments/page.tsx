@@ -67,12 +67,13 @@ interface Appointment {
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [departments, setDepartments] = useState<string[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [allPatients, setAllPatients] = useState<Patient[]>([])
   const [patientSearchQuery, setPatientSearchQuery] = useState('')
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [statusFilter, setStatusFilter] = useState('')
-  const [doctorFilter, setDoctorFilter] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   
@@ -84,7 +85,7 @@ export default function AppointmentsPage() {
   // Form states
   const [appointmentForm, setAppointmentForm] = useState({
     patientId: '',
-    doctorId: '',
+    department: '',
     appointmentTime: '',
     appointmentType: 'consultation',
     notes: ''
@@ -97,6 +98,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     fetchDoctors()
+    fetchDepartments()
     fetchAppointments()
   }, [selectedDate])
 
@@ -106,7 +108,14 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     fetchAppointments()
-  }, [statusFilter, doctorFilter])
+  }, [statusFilter, departmentFilter])
+
+  // Load patients when opening the dialog to enable instant search
+  useEffect(() => {
+    if (newAppointmentDialog && allPatients.length === 0) {
+      fetchAllPatients()
+    }
+  }, [newAppointmentDialog])
 
   const fetchAppointments = async () => {
     try {
@@ -114,7 +123,7 @@ export default function AppointmentsPage() {
       const params = new URLSearchParams({
         date: selectedDate,
         ...(statusFilter && { status: statusFilter }),
-        ...(doctorFilter && { doctorId: doctorFilter })
+        ...(departmentFilter && { department: departmentFilter })
       })
       
       const response = await fetch(`/api/receptionist/appointments?${params}`)
@@ -137,6 +146,16 @@ export default function AppointmentsPage() {
     }
   }
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch('/api/receptionist/departments')
+      const data = await response.json()
+      setDepartments(data.departments || [])
+    } catch (error) {
+      console.error('Failed to fetch departments:', error)
+    }
+  }
+
   const fetchAllPatients = async () => {
     try {
       const response = await fetch('/api/receptionist/patients')
@@ -151,8 +170,8 @@ export default function AppointmentsPage() {
   const searchPatients = async (query: string) => {
     setPatientSearchQuery(query)
     
-    if (query.length < 2) {
-      setPatients(allPatients.slice(0, 20)) // Show first 20 when no search
+    if (query.length < 1) {
+      setPatients(allPatients.slice(0, 20)) // Show first 20 when no/short search
       return
     }
     
@@ -186,7 +205,7 @@ export default function AppointmentsPage() {
     try {
       console.log('Creating appointment with data:', {
         patientId: appointmentForm.patientId,
-        doctorId: appointmentForm.doctorId,
+        department: appointmentForm.department,
         appointmentDate: selectedDate,
         appointmentTime: appointmentForm.appointmentTime,
         appointmentType: appointmentForm.appointmentType,
@@ -198,7 +217,7 @@ export default function AppointmentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: appointmentForm.patientId,
-          doctorId: appointmentForm.doctorId,
+          department: appointmentForm.department,
           appointmentDate: selectedDate,
           appointmentTime: appointmentForm.appointmentTime,
           appointmentType: appointmentForm.appointmentType,
@@ -210,7 +229,7 @@ export default function AppointmentsPage() {
         setNewAppointmentDialog(false)
         setAppointmentForm({
           patientId: '',
-          doctorId: '',
+          department: '',
           appointmentTime: '',
           appointmentType: 'consultation',
           notes: ''
@@ -315,7 +334,7 @@ export default function AppointmentsPage() {
             setPatientSearchQuery('')
             setAppointmentForm({
               patientId: '',
-              doctorId: '',
+              department: '',
               appointmentTime: '',
               appointmentType: 'consultation',
               notes: ''
@@ -360,16 +379,16 @@ export default function AppointmentsPage() {
               </Select>
             </div>
             <div>
-              <Label>Doctor</Label>
-              <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+              <Label>Department</Label>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All doctors" />
+                  <SelectValue placeholder="All departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All doctors</SelectItem>
-                  {doctors.map(doctor => (
-                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      {doctor.name}
+                  <SelectItem value="all">All departments</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -436,8 +455,12 @@ export default function AppointmentsPage() {
                             Dr. {appointment.doctor_name}
                           </span>
                           <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {appointment.appointment_time}
+                            {appointment.appointment_time && (
+                              <>
+                                <Clock className="h-3 w-3 mr-1" />
+                                {appointment.appointment_time}
+                              </>
+                            )}
                           </span>
                         </div>
                       </div>
@@ -537,19 +560,16 @@ export default function AppointmentsPage() {
             
             <div>
               <Label>Doctor</Label>
-              <Select value={appointmentForm.doctorId} onValueChange={(value) => 
-                setAppointmentForm(prev => ({ ...prev, doctorId: value }))
+              <Select value={appointmentForm.department} onValueChange={(value) => 
+                setAppointmentForm(prev => ({ ...prev, department: value }))
               }>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select doctor" />
+                  <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {doctors.map(doctor => (
-                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>Dr. {doctor.name} (ID: {doctor.id})</span>
-                        {getDoctorStatusBadge(doctor)}
-                      </div>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -557,16 +577,6 @@ export default function AppointmentsPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="appointment-time">Appointment Time</Label>
-                <Input
-                  id="appointment-time"
-                  type="time"
-                  value={appointmentForm.appointmentTime}
-                  onChange={(e) => setAppointmentForm(prev => ({ ...prev, appointmentTime: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
               <div>
                 <Label htmlFor="appointment-type">Appointment Type</Label>
                 <Select value={appointmentForm.appointmentType} onValueChange={(value) => 
@@ -602,7 +612,7 @@ export default function AppointmentsPage() {
             </Button>
             <Button 
               onClick={handleCreateAppointment}
-              disabled={!appointmentForm.patientId || !appointmentForm.doctorId || !appointmentForm.appointmentTime}
+              disabled={!appointmentForm.patientId || !appointmentForm.department}
               className="w-full sm:w-auto bg-pink-500 hover:bg-pink-600"
             >
               Schedule Appointment
