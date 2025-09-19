@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
     const [appointments] = await connection.execute(
       `SELECT 
         a.appointment_id, a.appointment_date, a.appointment_time, a.appointment_type,
-        a.status, a.notes, a.created_at, a.updated_at,
+        a.status, a.notes, a.department, a.created_at, a.updated_at,
         p.id as patient_id, p.name as patient_name, p.patient_id as patient_number,
         p.contact_number as patient_phone, p.date_of_birth as patient_dob,
-        u.id as doctor_id, u.name as doctor_name, u.email as doctor_email
+        u.id as doctor_id, u.name as doctor_name, u.email as doctor_email, u.department as doctor_department
        FROM appointments a
        JOIN patients p ON a.patient_id = p.id
        JOIN users u ON a.doctor_id = u.id
@@ -99,8 +99,9 @@ export async function GET(request: NextRequest) {
         id: apt.doctor_id,
         name: apt.doctor_name,
         email: apt.doctor_email,
-        department: 'General Medicine' // Removed staff_profiles join, so department is hardcoded
-      }
+        department: apt.doctor_department || apt.department || 'General Medicine'
+      },
+      department: apt.department
     }))
     
     return NextResponse.json({
@@ -130,6 +131,7 @@ export async function POST(request: NextRequest) {
       appointment_date,
       appointment_time,
       appointment_type,
+      department,
       notes
     } = body
     
@@ -200,9 +202,9 @@ export async function POST(request: NextRequest) {
         const [res] = await connection.execute(
           `INSERT INTO appointments (
             appointment_id, patient_id, doctor_id, appointment_date, appointment_time, 
-            appointment_type, status, notes, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, 'Scheduled', ?, NOW(), NOW())`,
-          [nextAppointmentId, patient_id, doctor_id, appointment_date, appointment_time, appointment_type, notes || null]
+            appointment_type, department, status, notes, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, NOW(), NOW())`,
+          [nextAppointmentId, patient_id, doctor_id, appointment_date, appointment_time, appointment_type, department || null, notes || null]
         )
         result = res
         break
