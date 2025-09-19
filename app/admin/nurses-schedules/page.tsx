@@ -72,6 +72,7 @@ export default function NursesSchedulesPage() {
   const [editingSchedule, setEditingSchedule] = useState<NurseSchedule | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [viewingSchedule, setViewingSchedule] = useState<NurseSchedule | null>(null)
+  const [nurseSearch, setNurseSearch] = useState('')
   const handleViewSchedule = (schedule: NurseSchedule) => {
     setViewingSchedule(schedule)
     setIsViewModalOpen(true)
@@ -131,7 +132,9 @@ export default function NursesSchedulesPage() {
     try {
       setLoadingNurses(true)
       console.log('🔄 Loading nurses...');
-      const response = await fetch('/api/admin/nurses', { cache: 'no-store' })
+      // Construct absolute URL to prevent deployment issues
+      const apiUrl = new URL('/api/admin/nurses', window.location.origin);
+      const response = await fetch(apiUrl, { cache: 'no-store' });
       console.log('👥 Nurses API response status:', response.status);
       if (response.ok) {
         const data = await response.json()
@@ -352,6 +355,11 @@ export default function NursesSchedulesPage() {
     return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`
   }
 
+  const filteredNurses = nurses.filter(nurse => 
+    nurse.name.toLowerCase().includes(nurseSearch.toLowerCase()) ||
+    (nurse.mobile && nurse.mobile.includes(nurseSearch))
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
@@ -401,12 +409,22 @@ export default function NursesSchedulesPage() {
                   <Label htmlFor="nurseId">Nurse *</Label>
                   <Select value={formData.nurseId} onValueChange={(value) => setFormData(prev => ({ ...prev, nurseId: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a nurse" />
+                      <SelectValue placeholder="Select a nurse">
+                        {formData.nurseId ? nurses.find(n => n.id.toString() === formData.nurseId)?.name : null}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {nurses.map((nurse) => (
+                      <div className="p-2">
+                        <Input
+                          placeholder="Search by name or mobile..."
+                          value={nurseSearch}
+                          onChange={(e) => setNurseSearch(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      {filteredNurses.map((nurse) => (
                         <SelectItem key={nurse.id} value={nurse.id.toString()}>
-                          {nurse.name} - General
+                          {nurse.name} - {nurse.mobile}
                         </SelectItem>
                       ))}
                     </SelectContent>
