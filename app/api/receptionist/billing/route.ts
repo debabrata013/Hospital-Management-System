@@ -330,3 +330,97 @@ export async function PUT(request: NextRequest) {
     }
   }
 }
+
+// PATCH - Edit unpaid bill (amounts/items). Only allowed if payment_status != 'paid'
+export async function PATCH(request: NextRequest) {
+  let connection;
+  try {
+    const { billId, billType, items, discount, tax, notes } = await request.json();
+    if (!billId) {
+      return NextResponse.json({ message: 'Bill ID is required' }, { status: 400 });
+    }
+
+    connection = await getConnection();
+    await connection.beginTransaction();
+
+    // Check bill status
+    const [rows] = await connection.execute(
+      `SELECT id, payment_status FROM bills WHERE bill_id = ? FOR UPDATE`,
+      [billId]
+    );
+    const bills = rows as any[];
+    if (!bills.length) {
+      await connection.rollback();
+      return NextResponse.json({ message: 'Bill not found' }, { status: 404 });
+    }
+    if (bills[0].payment_status === 'paid') {
+      await connection.rollback();
+      return NextResponse.json({ message: 'Cannot edit a paid bill' }, { status: 400 });
+    }
+
+    const billDbId = bills[0].id;
+
+    // Recalculate totals from items if provided
+    let totalAmount: number | undefined;
+    let discountAmount: number | undefined;
+    let taxAmount: number | undefined;
+    let finalAmount: number | undefined;
+
+    if (Array.isArray(items) && items.length > 0) {
+      totalAmount = items.reduce((sum: number, it: any) => sum + (Number(it.quantity || 1) * Number(it.unitPrice || 0)), 0);
+      discountAmount = Number(discount || 0);
+      taxAmount = Number(tax || 0);
+      finalAmount = totalAmount - discountAmount + taxAmount;
+
+      // Replace items
+      await connection.execute(`DELETE FROM bill_items WHERE bill_id = ?`, [billDbId]);
+      for (const it of items) {
+        const itemTotal = (Number(it.quantity || 1) * Number(it.unitPrice || 0));
+        const itemDiscount = (Number(it.discountPercent || 0) * itemTotal) / 100;
+        await connection.execute(
+          `INSERT INTO bill_items (
+            bill_id, item_type, item_name, item_description, quantity,
+            unit_price, total_price, discount_percent, discount_amount
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            billDbId,
+            it.itemType || 'other',
+            it.itemName || 'Item',
+            it.description || null,
+            Number(it.quantity || 1),
+            Number(it.unitPrice || 0),
+            itemTotal,
+            Number(it.discountPercent || 0),
+            itemDiscount
+          ]
+        );
+      }
+    }
+
+    // Build bill update
+    const fields: string[] = [];
+    const values: any[] = [];
+    if (billType) { fields.push('bill_type = ?'); values.push(billType); }
+    if (totalAmount !== undefined) { fields.push('total_amount = ?'); values.push(totalAmount); }
+    if (discountAmount !== undefined) { fields.push('discount_amount = ?'); values.push(discountAmount); }
+    if (taxAmount !== undefined) { fields.push('tax_amount = ?'); values.push(taxAmount); }
+    if (finalAmount !== undefined) { fields.push('final_amount = ?'); values.push(finalAmount); }
+    if (notes !== undefined) { fields.push('notes = ?'); values.push(notes || null); }
+    fields.push('updated_at = NOW()');
+    values.push(billId);
+
+    await connection.execute(`UPDATE bills SET ${fields.join(', ')} WHERE bill_id = ?`, values);
+
+    await connection.commit();
+    return NextResponse.json({ message: 'Bill updated successfully' });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('Edit bill error:', error);
+    return NextResponse.json({ message: 'Failed to edit bill' }, { status: 500 });
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+// POST action=create-followup - Create follow-up bill linked to parent bill
+// Follow-up billing feature removed
