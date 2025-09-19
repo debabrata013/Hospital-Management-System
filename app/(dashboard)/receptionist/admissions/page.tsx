@@ -108,13 +108,12 @@ export default function AdmissionsPage() {
   // Form states
   const [admissionForm, setAdmissionForm] = useState({
     patientId: '',
-    roomId: '',
+    roomNumber: '',
+    bedNumber: '',
     doctorId: '',
     admissionType: 'planned',
     diagnosis: '',
-    chiefComplaint: '',
     admissionNotes: '',
-    estimatedStayDays: '',
     emergencyContactName: '',
     emergencyContactPhone: '',
     emergencyContactRelation: ''
@@ -221,7 +220,7 @@ export default function AdmissionsPage() {
   }
 
   const createAdmission = async () => {
-    if (!admissionForm.patientId || !admissionForm.roomId || !admissionForm.doctorId) {
+    if (!admissionForm.patientId || !admissionForm.roomNumber || !admissionForm.bedNumber || !admissionForm.doctorId) {
       alert('Please fill in all required fields')
       return
     }
@@ -232,8 +231,16 @@ export default function AdmissionsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...admissionForm,
-          estimatedStayDays: admissionForm.estimatedStayDays ? parseInt(admissionForm.estimatedStayDays) : null,
+          patientId: admissionForm.patientId,
+          roomNumber: admissionForm.roomNumber,
+          bedNumber: admissionForm.bedNumber,
+          doctorId: admissionForm.doctorId,
+          admissionType: admissionForm.admissionType,
+          diagnosis: admissionForm.diagnosis,
+          admissionNotes: admissionForm.admissionNotes,
+          emergencyContactName: admissionForm.emergencyContactName,
+          emergencyContactPhone: admissionForm.emergencyContactPhone,
+          emergencyContactRelation: admissionForm.emergencyContactRelation,
           admittedBy: 1 // Replace with actual user ID
         })
       })
@@ -293,13 +300,12 @@ export default function AdmissionsPage() {
   const resetAdmissionForm = () => {
     setAdmissionForm({
       patientId: '',
-      roomId: '',
+      roomNumber: '',
+      bedNumber: '',
       doctorId: '',
       admissionType: 'planned',
       diagnosis: '',
-      chiefComplaint: '',
       admissionNotes: '',
-      estimatedStayDays: '',
       emergencyContactName: '',
       emergencyContactPhone: '',
       emergencyContactRelation: ''
@@ -369,12 +375,12 @@ export default function AdmissionsPage() {
             setPatientSearchQuery('')
             setAdmissionForm({
               patientId: '',
-              roomId: '',
+              roomNumber: '',
+              bedNumber: '',
               doctorId: '',
               admissionType: 'planned',
-              chiefComplaint: '',
               diagnosis: '',
-              estimatedStayDays: '',
+              admissionNotes: '',
               emergencyContactName: '',
               emergencyContactPhone: '',
               emergencyContactRelation: ''
@@ -694,23 +700,24 @@ export default function AdmissionsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Room Selection */}
+              {/* Room Manual Entry */}
               <div>
-                <Label>Room *</Label>
-                <Select value={admissionForm.roomId} onValueChange={(value) => 
-                  setAdmissionForm(prev => ({ ...prev, roomId: value }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select room" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rooms.map(room => (
-                      <SelectItem key={room.id} value={room.id.toString()}>
-                        {room.room_number} - {room.room_type} (₹{room.daily_rate}/day) - Floor {room.floor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Room Number *</Label>
+                <Input
+                  placeholder="Enter room number"
+                  value={admissionForm.roomNumber}
+                  onChange={(e) => setAdmissionForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                />
+              </div>
+
+              {/* Bed Manual Entry */}
+              <div>
+                <Label>Bed Number *</Label>
+                <Input
+                  placeholder="Enter bed number"
+                  value={admissionForm.bedNumber}
+                  onChange={(e) => setAdmissionForm(prev => ({ ...prev, bedNumber: e.target.value }))}
+                />
               </div>
 
               {/* Doctor Selection */}
@@ -751,29 +758,9 @@ export default function AdmissionsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Estimated Stay */}
-              <div>
-                <Label>Estimated Stay (Days)</Label>
-                <Input
-                  type="number"
-                  placeholder="Enter estimated days"
-                  value={admissionForm.estimatedStayDays}
-                  onChange={(e) => setAdmissionForm(prev => ({ ...prev, estimatedStayDays: e.target.value }))}
-                />
-              </div>
             </div>
 
             {/* Medical Information */}
-            <div>
-              <Label>Chief Complaint</Label>
-              <Textarea
-                placeholder="Enter chief complaint..."
-                value={admissionForm.chiefComplaint}
-                onChange={(e) => setAdmissionForm(prev => ({ ...prev, chiefComplaint: e.target.value }))}
-                rows={2}
-              />
-            </div>
 
             <div>
               <Label>Diagnosis</Label>
@@ -833,7 +820,7 @@ export default function AdmissionsPage() {
             </Button>
             <Button 
               onClick={createAdmission}
-              disabled={isSubmitting || !admissionForm.patientId || !admissionForm.roomId || !admissionForm.doctorId}
+              disabled={isSubmitting || !admissionForm.patientId || !admissionForm.roomNumber || !admissionForm.bedNumber || !admissionForm.doctorId}
               className="bg-pink-500 hover:bg-pink-600"
             >
               {isSubmitting ? (
@@ -954,22 +941,16 @@ export default function AdmissionsPage() {
                   <div>
                     <p><strong>Doctor:</strong> Dr. {selectedAdmission.doctor_name}</p>
                     <p><strong>Room:</strong> {selectedAdmission.room_number} ({selectedAdmission.room_type})</p>
-                    <p><strong>Estimated Stay:</strong> {selectedAdmission.estimated_stay_days || 'Not specified'} days</p>
+                    {/* Estimated stay removed from UI */}
                     <p><strong>Total Charges:</strong> ₹{selectedAdmission.total_charges.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
 
               {/* Medical Information */}
-              {(selectedAdmission.diagnosis || selectedAdmission.chief_complaint) && (
+              {selectedAdmission.diagnosis && (
                 <div>
                   <h4 className="font-semibold mb-3">Medical Information</h4>
-                  {selectedAdmission.chief_complaint && (
-                    <div className="mb-2">
-                      <p className="text-sm"><strong>Chief Complaint:</strong></p>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{selectedAdmission.chief_complaint}</p>
-                    </div>
-                  )}
                   {selectedAdmission.diagnosis && (
                     <div>
                       <p className="text-sm"><strong>Diagnosis:</strong></p>
