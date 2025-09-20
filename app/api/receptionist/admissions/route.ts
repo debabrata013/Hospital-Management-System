@@ -55,12 +55,13 @@ export async function GET(request: NextRequest) {
     // Build dynamic query for admissions
     let query = `
       SELECT 
-        a.id, a.admission_id, a.patient_id, a.room_id, a.doctor_id,
+        a.id, a.admission_id, a.patient_id, a.room_id, a.manual_room_number, a.manual_bed_number, a.doctor_id,
         a.admission_date, a.discharge_date, a.admission_type, a.status,
         a.diagnosis, a.chief_complaint, a.estimated_stay_days, a.total_charges,
         a.emergency_contact_name, a.emergency_contact_phone, a.emergency_contact_relation,
         p.name as patient_name, p.age, p.gender, p.contact_number as patient_phone,
-        r.room_number, r.room_type,
+        COALESCE(r.room_number, a.manual_room_number) as room_number,
+        r.room_type,
         d.name as doctor_name,
         ab.name as admitted_by_name,
         a.created_at
@@ -120,14 +121,15 @@ export async function POST(request: NextRequest) {
   
   try {
     const {
-      patientId, roomId, doctorId, admissionType, diagnosis, chiefComplaint,
+      patientId, roomId, roomNumber, bedNumber, doctorId, admissionType, diagnosis, chiefComplaint,
       admissionNotes, estimatedStayDays, emergencyContactName, emergencyContactPhone,
       emergencyContactRelation, insuranceDetails, admittedBy
     } = await request.json();
 
-    if (!patientId || !roomId || !doctorId) {
+    // Require patientId, doctorId and either roomId or roomNumber
+    if (!patientId || !doctorId || (!roomId && !roomNumber)) {
       return NextResponse.json(
-        { message: 'Patient ID, Room ID, and Doctor ID are required' },
+        { message: 'Patient ID, Doctor ID, and Room (ID or Number) are required' },
         { status: 400 }
       );
     }
@@ -135,27 +137,48 @@ export async function POST(request: NextRequest) {
     connection = await getConnection();
     await connection.beginTransaction();
     
-    // Check if room is available
-    const [roomCheck] = await connection.execute(
-      `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
-      [roomId]
-    ) as [any[], any];
-    
-    if (!Array.isArray(roomCheck) || roomCheck.length === 0) {
+    // Resolve effective room ID from provided roomId or roomNumber
+    let effectiveRoomId: number | null = null;
+    let manualRoomNumber: string | null = null;
+    let manualBedNumber: string | null = null;
+    if (roomId) {
+      effectiveRoomId = parseInt(roomId, 10);
+      if (Number.isNaN(effectiveRoomId)) effectiveRoomId = null;
+    }
+    if (!effectiveRoomId && roomNumber) {
+      // Manual mode: accept alphanumeric roomNumber and bedNumber
+      manualRoomNumber = String(roomNumber);
+      manualBedNumber = bedNumber ? String(bedNumber) : null;
+    }
+    if (!effectiveRoomId && !manualRoomNumber) {
       await connection.rollback();
       return NextResponse.json(
-        { message: 'Room not found' },
+        { message: 'Room is required. Provide a valid roomId or a manual roomNumber.' },
         { status: 400 }
       );
     }
-    
-    const room = roomCheck[0];
-    if (room.status === 'Maintenance' || room.current_occupancy >= room.capacity) {
-      await connection.rollback();
-      return NextResponse.json(
-        { message: 'Room is not available' },
-        { status: 400 }
-      );
+
+    // Check if room is available
+    if (effectiveRoomId) {
+      const [roomCheck] = await connection.execute(
+        `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
+        [effectiveRoomId]
+      ) as [any[], any];
+      if (!Array.isArray(roomCheck) || roomCheck.length === 0) {
+        await connection.rollback();
+        return NextResponse.json(
+          { message: 'Room not found' },
+          { status: 400 }
+        );
+      }
+      const room = (roomCheck as any[])[0];
+      if (room.status === 'Maintenance' || room.current_occupancy >= room.capacity) {
+        await connection.rollback();
+        return NextResponse.json(
+          { message: 'Room is not available' },
+          { status: 400 }
+        );
+      }
     }
     
     const admissionId = generateAdmissionId();
@@ -164,13 +187,13 @@ export async function POST(request: NextRequest) {
     // Insert admission
     const [admissionResult] = await connection.execute(
       `INSERT INTO admissions (
-        admission_id, patient_id, room_id, doctor_id, admission_date,
+        admission_id, patient_id, room_id, manual_room_number, manual_bed_number, doctor_id, admission_date,
         admission_type, status, diagnosis, chief_complaint, admission_notes,
         estimated_stay_days, emergency_contact_name, emergency_contact_phone,
         emergency_contact_relation, insurance_details, admitted_by
-      ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        admissionId, patientId, roomId, doctorId, admissionDate,
+        admissionId, patientId, effectiveRoomId, manualRoomNumber, manualBedNumber, doctorId, admissionDate,
         admissionType || 'planned', diagnosis || null, chiefComplaint || null,
         admissionNotes || null, estimatedStayDays || null, emergencyContactName || null,
         emergencyContactPhone || null, emergencyContactRelation || null,
@@ -181,20 +204,28 @@ export async function POST(request: NextRequest) {
     const admissionDbId = (admissionResult as any).insertId;
     
     // Update room status and occupancy
-    const newOccupancy = room.current_occupancy + 1;
-    const newStatus = newOccupancy >= room.capacity ? 'Occupied' : 'Available';
-    
-    await connection.execute(
-      `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
-      [newStatus, newOccupancy, roomId]
-    );
+    if (effectiveRoomId) {
+      const [roomCheck2] = await connection.execute(
+        `SELECT current_occupancy, capacity FROM rooms WHERE id = ?`,
+        [effectiveRoomId]
+      ) as [any[], any];
+      if ((roomCheck2 as any[]).length > 0) {
+        const current = (roomCheck2 as any[])[0];
+        const newOccupancy = current.current_occupancy + 1;
+        const newStatus = newOccupancy >= current.capacity ? 'Occupied' : 'Available';
+        await connection.execute(
+          `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
+          [newStatus, newOccupancy, effectiveRoomId]
+        );
+      }
+    }
     
     // Create bed assignment record
     await connection.execute(
       `INSERT INTO bed_assignments (
-        admission_id, room_id, assigned_date, assigned_by
-      ) VALUES (?, ?, ?, ?)`,
-      [admissionDbId, roomId, admissionDate, admittedBy || 1]
+        admission_id, room_id, bed_number, assigned_date, assigned_by
+      ) VALUES (?, ?, ?, ?, ?)`,
+      [admissionDbId, effectiveRoomId, manualBedNumber, admissionDate, admittedBy || 1]
     );
     
     await connection.commit();
@@ -252,9 +283,9 @@ export async function PUT(request: NextRequest) {
          JOIN patients p ON a.patient_id = p.id
          WHERE a.admission_id = ?`,
         [admissionId]
-      );
+      ) as [any[], any];
       
-      if (admissionDetails.length === 0) {
+      if ((admissionDetails as any[]).length === 0) {
         await connection.rollback();
         return NextResponse.json(
           { message: 'Admission not found' },
@@ -262,14 +293,16 @@ export async function PUT(request: NextRequest) {
         );
       }
       
-      const admission = admissionDetails[0];
+      const admission = (admissionDetails as any[])[0];
       
       // Calculate stay duration and bill amount
       const admissionDate = new Date(admission.admission_date);
-      const stayDays = Math.ceil((dischargeDate - admissionDate) / (1000 * 60 * 60 * 24));
-      const roomCharges = stayDays * admission.daily_rate;
-      const consultationFee = 500; // Base consultation fee
-      const totalAmount = roomCharges + consultationFee;
+      const stayMs = dischargeDate.getTime() - admissionDate.getTime();
+      const stayDays = Math.ceil(stayMs / (1000 * 60 * 60 * 24));
+  const hasRoomRate = admission.daily_rate != null && !Number.isNaN(Number(admission.daily_rate));
+  const roomCharges = hasRoomRate ? stayDays * Number(admission.daily_rate) : 0;
+  const consultationFee = 500; // Base consultation fee
+  const totalAmount = roomCharges + consultationFee;
       
       // Generate bill ID
       const billId = `BILL${Date.now()}`;
@@ -283,16 +316,18 @@ export async function PUT(request: NextRequest) {
         [billId, admission.patient_id, totalAmount, totalAmount, dischargedBy || 1]
       );
       
-      const [billResult] = await connection.execute('SELECT LAST_INSERT_ID() as bill_db_id');
-      const billDbId = billResult[0].bill_db_id;
+  const [billResult] = await connection.execute('SELECT LAST_INSERT_ID() as bill_db_id') as [any[], any];
+  const billDbId = (billResult as any[])[0].bill_db_id;
       
       // Add bill items
-      await connection.execute(
-        `INSERT INTO bill_items (
-          bill_id, item_name, quantity, unit_price, total_price, item_type
-        ) VALUES (?, ?, ?, ?, ?, ?)`,
-        [billDbId, `${admission.room_type} Room (${stayDays} days)`, stayDays, admission.daily_rate, roomCharges, 'room']
-      );
+      if (hasRoomRate) {
+        await connection.execute(
+          `INSERT INTO bill_items (
+            bill_id, item_name, quantity, unit_price, total_price, item_type
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [billDbId, `${admission.room_type} Room (${stayDays} days)`, stayDays, admission.daily_rate, roomCharges, 'room']
+        );
+      }
       
       await connection.execute(
         `INSERT INTO bill_items (
@@ -316,10 +351,10 @@ export async function PUT(request: NextRequest) {
       const [roomInfo] = await connection.execute(
         `SELECT current_occupancy, capacity FROM rooms WHERE id = ?`,
         [admission.room_id]
-      );
+      ) as [any[], any];
       
-      if (roomInfo.length > 0) {
-        const newOccupancy = Math.max(0, roomInfo[0].current_occupancy - 1);
+      if ((roomInfo as any[]).length > 0) {
+        const newOccupancy = Math.max(0, (roomInfo as any[])[0].current_occupancy - 1);
         const newStatus = newOccupancy === 0 ? 'Cleaning Required' : 'Available';
         
         await connection.execute(
@@ -345,14 +380,38 @@ export async function PUT(request: NextRequest) {
         stayDays: stayDays
       });
       
-    } else if (action === 'transfer' && newRoomId) {
+    } else if (action === 'transfer') {
+      // Resolve new room by ID or Number
+      let effectiveNewRoomId: number | null = null;
+      if (newRoomId) {
+        effectiveNewRoomId = parseInt(newRoomId, 10);
+        if (Number.isNaN(effectiveNewRoomId)) effectiveNewRoomId = null;
+      }
+      const body: any = await request.json().catch(() => ({}));
+      const newRoomNumber = body?.newRoomNumber as string | undefined;
+      if (!effectiveNewRoomId && newRoomNumber) {
+        const [lookup] = await connection.execute(
+          `SELECT id FROM rooms WHERE room_number = ? LIMIT 1`,
+          [newRoomNumber]
+        ) as [any[], any];
+        if ((lookup as any[]).length > 0) {
+          effectiveNewRoomId = (lookup as any[])[0].id;
+        }
+      }
+      if (!effectiveNewRoomId) {
+        await connection.rollback();
+        return NextResponse.json(
+          { message: 'New room (ID or Number) is required' },
+          { status: 400 }
+        );
+      }
       // Check if new room is available
       const [roomCheck] = await connection.execute(
         `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
-        [newRoomId]
-      );
+        [effectiveNewRoomId]
+      ) as [any[], any];
       
-      if (roomCheck.length === 0) {
+      if ((roomCheck as any[]).length === 0) {
         await connection.rollback();
         return NextResponse.json(
           { message: 'New room not found' },
@@ -360,7 +419,7 @@ export async function PUT(request: NextRequest) {
         );
       }
       
-      const newRoom = roomCheck[0];
+      const newRoom = (roomCheck as any[])[0];
       if (newRoom.status === 'Maintenance' || newRoom.current_occupancy >= newRoom.capacity) {
         await connection.rollback();
         return NextResponse.json(
@@ -373,9 +432,9 @@ export async function PUT(request: NextRequest) {
       const [currentAdmission] = await connection.execute(
         `SELECT id, room_id FROM admissions WHERE admission_id = ?`,
         [admissionId]
-      );
+      ) as [any[], any];
       
-      if (currentAdmission.length === 0) {
+      if ((currentAdmission as any[]).length === 0) {
         await connection.rollback();
         return NextResponse.json(
           { message: 'Admission not found' },
@@ -383,23 +442,23 @@ export async function PUT(request: NextRequest) {
         );
       }
       
-      const oldRoomId = currentAdmission[0].room_id;
-      const admissionDbId = currentAdmission[0].id;
+      const oldRoomId = (currentAdmission as any[])[0].room_id;
+      const admissionDbId = (currentAdmission as any[])[0].id;
       
       // Update admission with new room
       await connection.execute(
         `UPDATE admissions SET room_id = ?, updated_at = NOW() WHERE admission_id = ?`,
-        [newRoomId, admissionId]
+        [effectiveNewRoomId, admissionId]
       );
       
       // Get old room info and update occupancy
       const [oldRoomInfo] = await connection.execute(
         `SELECT current_occupancy FROM rooms WHERE id = ?`,
         [oldRoomId]
-      );
+      ) as [any[], any];
       
-      if (oldRoomInfo.length > 0) {
-        const oldNewOccupancy = Math.max(0, oldRoomInfo[0].current_occupancy - 1);
+      if ((oldRoomInfo as any[]).length > 0) {
+        const oldNewOccupancy = Math.max(0, (oldRoomInfo as any[])[0].current_occupancy - 1);
         const oldNewStatus = oldNewOccupancy === 0 ? 'Cleaning Required' : 'Available';
         
         await connection.execute(
@@ -414,7 +473,7 @@ export async function PUT(request: NextRequest) {
       
       await connection.execute(
         `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
-        [newRoomStatus, newRoomOccupancy, newRoomId]
+        [newRoomStatus, newRoomOccupancy, effectiveNewRoomId]
       );
       
       // Close old bed assignment
@@ -430,7 +489,7 @@ export async function PUT(request: NextRequest) {
         `INSERT INTO bed_assignments (
           admission_id, room_id, assigned_date, assigned_by, reason
         ) VALUES (?, ?, NOW(), ?, ?)`,
-        [admissionDbId, newRoomId, dischargedBy || 1, transferReason || 'transfer']
+        [admissionDbId, effectiveNewRoomId, dischargedBy || 1, transferReason || 'transfer']
       );
     }
     
