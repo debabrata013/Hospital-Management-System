@@ -11,7 +11,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit, Trash2, Phone, Mail, User, Stethoscope, Loader2, UserCheck } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Plus, Edit, Trash2, Phone, Mail, User, Stethoscope, Loader2, UserCheck, ChevronsUpDown, Check } from 'lucide-react'
 import { toast } from "sonner"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -35,12 +37,40 @@ interface Doctor {
 }
 
 const departments = [
+  // General Departments
+  "Anesthesiology",
+  "Cardiology",
+  "Dermatology",
+  "Emergency Medicine",
+  "Endocrinology",
+  "Gastroenterology",
+  "General Surgery",
+  "Gynecology",
+  "Hematology",
+  "Infectious Disease",
+  "Internal Medicine",
+  "Nephrology",
+  "Neurology",
+  "Neurosurgery",
+  "Oncology",
+  "Ophthalmology",
+  "Orthopedics",
+  "Otolaryngology",
+  "Pathology",
+  "Pediatrics",
+  "Plastic Surgery",
+  "Psychiatry",
+  "Pulmonology",
+  "Radiology",
+  "Rheumatology",
+  "Urology",
+  // Surgical Procedures & Specializations
   "ACL reconstruction", 
   "Anterior cruciate ligament Reconstruction",
   "Appendectomy",
   "Arthrodesis", 
   "Arthroplasty", 
-  "Arthroscopic ", 
+  "Arthroscopic Surgery", 
   "Bone grafting", 
   "Carpal tunnel release", 
   "Cesarean section", 
@@ -52,7 +82,6 @@ const departments = [
   "External fixation", 
   "Foot and ankle surgery", 
   "Fracture repair", 
-  "Gyenecological surgery",
   "Hand surgery", 
   "Hernia repair",
   "Hip replacement", 
@@ -80,7 +109,7 @@ const departments = [
   "Uterine artery embolization", 
   "Varicocelectomy", 
   "Vasectomy",
-]
+].sort()
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
@@ -133,7 +162,7 @@ export default function DoctorsPage() {
       name: formData.name.trim(),
       mobile: formData.mobile.trim(),
       password: formData.password.trim(),
-      department: formData.department.trim(),
+      department: typeof formData.department === 'string' ? formData.department.trim() : '',
       experience: formData.experience.trim(),
       patientsTreated: formData.patientsTreated.trim(),
       description: formData.description.trim(),
@@ -142,8 +171,8 @@ export default function DoctorsPage() {
     }
 
     // Frontend validation
-    if (!cleanData.name || !cleanData.mobile || !cleanData.password) {
-      toast.error('Please fill in all required fields')
+    if (!cleanData.name || !cleanData.mobile || !cleanData.password || !cleanData.department) {
+      toast.error('Please fill in all required fields, including department')
       setSubmitting(false)
       return
     }
@@ -178,7 +207,9 @@ export default function DoctorsPage() {
         setFormData({ name: '', mobile: '', password: '', department: '', experience: '', patientsTreated: '', description: '', available: '', languages: '' })
         fetchDoctors()
       } else {
-        toast.error(data.error || 'Failed to create doctor')
+        const errorMessage = data.error || 'An unknown error occurred';
+        toast.error(errorMessage);
+        console.error('API Error:', errorMessage);
       }
     } catch (error) {
       console.error('Error creating doctor:', error)
@@ -200,7 +231,7 @@ export default function DoctorsPage() {
       name: formData.name.trim(),
       mobile: formData.mobile.trim(),
       password: formData.password.trim(),
-      department: formData.department.trim(),
+      department: typeof formData.department === 'string' ? formData.department.trim() : '',
       experience: formData.experience.trim(),
       patientsTreated: formData.patientsTreated.trim(),
       description: formData.description.trim(),
@@ -398,16 +429,42 @@ export default function DoctorsPage() {
                 </div>
                 <div>
                   <Label htmlFor="department">Department/Specialization</Label>
-                  <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-[200px] justify-between"
+                      >
+                        {formData.department
+                          ? departments.find((dept) => dept.toLowerCase() === formData.department.toLowerCase())
+                          : "Select department..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search department..." />
+                        <CommandEmpty>No department found.</CommandEmpty>
+                        <CommandGroup>
+                          {departments.map((dept) => (
+                            <CommandItem
+                              key={dept}
+                              value={dept}
+                              onSelect={(currentValue) => {
+                                setFormData({ ...formData, department: currentValue === formData.department ? "" : currentValue });
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${formData.department.toLowerCase() === dept.toLowerCase() ? "opacity-100" : "opacity-0"}`}
+                              />
+                              {dept}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <Label htmlFor="experience">Experience</Label>
@@ -558,7 +615,7 @@ export default function DoctorsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Doctor</DialogTitle>
             <DialogDescription>
@@ -613,16 +670,42 @@ export default function DoctorsPage() {
               </div>
               <div>
                 <Label htmlFor="edit-department">Department/Specialization</Label>
-                <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-[200px] justify-between"
+                    >
+                      {formData.department
+                        ? departments.find((dept) => dept.toLowerCase() === formData.department.toLowerCase())
+                        : "Select department..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search department..." />
+                      <CommandEmpty>No department found.</CommandEmpty>
+                      <CommandGroup>
+                        {departments.map((dept) => (
+                          <CommandItem
+                            key={dept}
+                            value={dept}
+                            onSelect={(currentValue) => {
+                              setFormData({ ...formData, department: currentValue === formData.department ? "" : currentValue });
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${formData.department.toLowerCase() === dept.toLowerCase() ? "opacity-100" : "opacity-0"}`}
+                            />
+                            {dept}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="edit-experience">Experience</Label>

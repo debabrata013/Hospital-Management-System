@@ -76,33 +76,36 @@ export async function POST(request: NextRequest) {
     
     // Check if mobile already exists
     const [existingUsers] = await connection.execute(
-      'SELECT id FROM users WHERE contact_number = ?',
+      'SELECT id, role, name FROM users WHERE contact_number = ?',
       [mobile]
     )
-    
+
     if ((existingUsers as any[]).length > 0) {
       await connection.end()
+      const existingUser = (existingUsers as any)[0];
       return NextResponse.json(
-        { success: false, error: 'Mobile number already exists' },
-        { status: 400 }
+        { success: false, error: `Mobile number is already in use by ${existingUser.role} '${existingUser.name}'.` },
+        { status: 409 } // 409 Conflict is more appropriate here
       )
     }
     
     // Generate new doctor ID
-    const [lastDoctor] = await connection.execute(
-      'SELECT user_id FROM users WHERE role = "doctor" ORDER BY id DESC LIMIT 1'
-    )
+    const [rows] = await connection.execute(
+      "SELECT user_id FROM users WHERE role = 'doctor' AND user_id LIKE 'DR%'"
+    );
     
-    let nextNumber = 1
-    if ((lastDoctor as any[]).length > 0) {
-      const lastUserId = (lastDoctor as any)[0].user_id
-      const match = lastUserId.match(/DR(\d+)/)
-      if (match) {
-        nextNumber = parseInt(match[1]) + 1
+    let maxId = 0;
+    if (Array.isArray(rows)) {
+      for (const user of rows) {
+        const numericPart = parseInt((user as any).user_id.replace('DR', ''), 10);
+        if (!isNaN(numericPart) && numericPart > maxId) {
+          maxId = numericPart;
+        }
       }
     }
-    
-    const userId = `DR${nextNumber.toString().padStart(3, '0')}`
+
+    const nextId = maxId + 1;
+    const userId = `DR${String(nextId).padStart(3, '0')}`;
     const email = `${userId.toLowerCase()}@hospital.com`
     
     // Parse experience years
@@ -121,12 +124,12 @@ export async function POST(request: NextRequest) {
     const [result] = await connection.execute(`
       INSERT INTO users (
         user_id, name, email, contact_number, password_hash, role, 
-        department, specialization, is_active, is_verified, 
+        department, is_active, is_verified, 
         experience_years, qualification, created_at
-      ) VALUES (?, ?, ?, ?, ?, 'doctor', ?, ?, 1, 1, ?, ?, NOW())
+      ) VALUES (?, ?, ?, ?, ?, 'doctor', ?, 1, 1, ?, ?, NOW())
     `, [
       userId, name, email, mobile, hashedPassword,
-      department || 'General Medicine', department || 'General Medicine',
+      department || 'General Medicine',
       experienceYears, description || ''
     ])
     

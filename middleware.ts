@@ -15,6 +15,7 @@ const PROTECTED_ROUTES = {
   '/staff': ['super-admin', 'staff'],
   '/nurse': ['super-admin', 'nurse'],
   '/receptionist': ['super-admin', 'receptionist'],
+  '/api/super-admin': ['super-admin'],
   '/api/admin': ['super-admin', 'admin'],
   '/api/doctor': ['super-admin', 'doctor'],
   '/api/pharmacy': ['super-admin', 'pharmacy'],
