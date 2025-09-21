@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
+import mysql, { RowDataPacket, OkPacket } from 'mysql2/promise';
 
 const dbConfig = {
   host: process.env.DB_HOST || 'srv2047.hstgr.io',
@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
-    const status = searchParams.get('status');
-    const doctorId = searchParams.get('doctorId');
+  const status = searchParams.get('status');
+  const doctorId = searchParams.get('doctorId');
+  const department = searchParams.get('department');
     
     connection = await getConnection();
     
@@ -52,10 +53,14 @@ export async function GET(request: NextRequest) {
       query += ' AND a.doctor_id = ?';
       params.push(doctorId);
     }
+    if (department && department !== 'all') {
+      query += ' AND u.department = ?';
+      params.push(department);
+    }
     
-    query += ' ORDER BY a.appointment_time, a.created_at';
+    query += ' ORDER BY a.appointment_time IS NULL, a.appointment_time, a.created_at';
     
-    const [appointments] = await connection.execute(query, params);
+  const [appointments] = await connection.execute<RowDataPacket[]>(query, params);
 
     return NextResponse.json({ appointments });
 
@@ -76,9 +81,10 @@ export async function POST(request: NextRequest) {
   let connection;
   
   try {
-    const { patientId, doctorId, appointmentDate, appointmentTime, notes, appointmentType } = await request.json();
+    const { patientId, doctorId, department, appointmentDate, appointmentTime, notes, appointmentType } = await request.json();
 
-    if (!patientId || !doctorId || !appointmentDate || !appointmentTime) {
+    // appointmentTime is now optional; doctorId can be auto-selected by department
+    if (!patientId || !appointmentDate) {
       return NextResponse.json(
         { message: 'Missing required fields' },
         { status: 400 }
@@ -87,26 +93,11 @@ export async function POST(request: NextRequest) {
 
     connection = await getConnection();
     
-    // Check for conflicting appointments
-    const [conflicts] = await connection.execute(
-      `SELECT id FROM appointments 
-       WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? 
-       AND status NOT IN ('cancelled', 'completed')`,
-      [doctorId, appointmentDate, appointmentTime]
-    );
-
-    if (conflicts.length > 0) {
-      return NextResponse.json(
-        { message: 'Doctor is not available at this time' },
-        { status: 409 }
-      );
-    }
-    
     // Generate appointment ID
     const appointmentId = `APT${Date.now().toString(36)}${Math.random().toString(36).substr(2, 4)}`.toUpperCase();
     
     // Get patient's internal ID from patient_id (code)
-    const [patientResult] = await connection.execute(
+    const [patientResult] = await connection.execute<RowDataPacket[]>(
       'SELECT id FROM patients WHERE patient_id = ?',
       [patientId]
     );
@@ -118,15 +109,97 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const internalPatientId = patientResult[0].id;
+    const internalPatientId = (patientResult[0] as RowDataPacket).id as number;
+
+    // If doctorId is not provided, select one from the specified department
+    let resolvedDoctorId = doctorId as number | undefined;
+    if (!resolvedDoctorId) {
+      if (!department) {
+        return NextResponse.json({ message: 'Either doctorId or department is required' }, { status: 400 });
+      }
+      // Pick least busy active doctor in the department for the date
+      const [doctorRows] = await connection.execute<RowDataPacket[]>(
+        `SELECT u.id, COALESCE(COUNT(a.id),0) AS todays_appointments
+         FROM users u
+         LEFT JOIN appointments a 
+           ON a.doctor_id = u.id 
+          AND DATE(a.appointment_date) = DATE(?)
+          AND a.status NOT IN ('cancelled')
+         WHERE u.role = 'doctor' 
+           AND u.is_active = 1 
+           AND u.department = ?
+         GROUP BY u.id
+         ORDER BY todays_appointments ASC, u.id ASC
+         LIMIT 1`,
+        [appointmentDate, department]
+      );
+      if (doctorRows.length === 0) {
+        // Fallback: create or reuse a placeholder 'Unassigned' doctor for this department
+        const deptSlug = String(department)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+
+        const placeholderEmail = `unassigned+${deptSlug}@hospital.local`;
+        const placeholderName = `Unassigned - ${department}`;
+
+        // Try to find existing placeholder
+        const [placeholderRows] = await connection.execute<RowDataPacket[]>(
+          `SELECT id FROM users 
+           WHERE role = 'doctor' 
+             AND department = ? 
+             AND (email = ? OR name = ?) 
+           LIMIT 1`,
+          [department, placeholderEmail, placeholderName]
+        );
+
+        if (placeholderRows.length > 0) {
+          resolvedDoctorId = (placeholderRows[0] as RowDataPacket).id as number;
+        } else {
+          // Create minimal placeholder doctor record (inactive)
+          const userId = `USR${Date.now().toString(36).toUpperCase()}${Math.random()
+            .toString(36)
+            .substring(2, 6)
+            .toUpperCase()}`;
+          const passwordHash = `UNASSIGNED-${userId}`; // dummy value; account is inactive
+          const contact = '0000000000';
+
+          const [insertResult] = await connection.execute<OkPacket>(
+            `INSERT INTO users (user_id, name, email, password_hash, role, contact_number, department, is_active, is_verified, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 'doctor', ?, ?, 0, 0, NOW(), NOW())`,
+            [userId, placeholderName, placeholderEmail, passwordHash, contact, department]
+          );
+          resolvedDoctorId = insertResult.insertId as number;
+        }
+      } else {
+        resolvedDoctorId = (doctorRows[0] as RowDataPacket).id as number;
+      }
+    }
+
+    // Check for conflicting appointments AFTER resolving doctor
+    if (appointmentTime && resolvedDoctorId) {
+      const [conflicts] = await connection.execute<RowDataPacket[]>(
+        `SELECT id FROM appointments 
+         WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? 
+         AND status NOT IN ('cancelled', 'completed')`,
+        [resolvedDoctorId, appointmentDate, appointmentTime]
+      );
+
+      if (conflicts.length > 0) {
+        return NextResponse.json(
+          { message: 'Doctor is not available at this time' },
+          { status: 409 }
+        );
+      }
+    }
     
     // Insert appointment
-    const [result] = await connection.execute(
+    const [result] = await connection.execute<OkPacket>(
       `INSERT INTO appointments (
         appointment_id, patient_id, doctor_id, appointment_date, 
         appointment_time, status, notes, appointment_type, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, 'scheduled', ?, ?, NOW(), NOW())`,
-      [appointmentId, internalPatientId, doctorId, appointmentDate, appointmentTime, notes || '', appointmentType || 'consultation']
+      [appointmentId, internalPatientId, resolvedDoctorId, appointmentDate, appointmentTime || null, notes || '', appointmentType || 'consultation']
     );
 
     return NextResponse.json({

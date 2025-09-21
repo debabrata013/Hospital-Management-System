@@ -20,7 +20,8 @@
     "create-doctor-profiles": "node scripts/create-doctor-staff-profile.js",
     "setup-admin": "npm run setup-appointments && npm run create-doctor-profiles && npm run create-sample-appointments && npm run setup-room-management",
     "seed-realtime": "node scripts/seed-realtime-data.js",
-    "migrate": "node scripts/migrate-add-diagnosis-column.js"
+    "migrate": "node scripts/migrate-add-diagnosis-column.js",
+    "migrate:add-manual-room-bed": "node scripts/migrations/run-add-manual-room-bed.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",

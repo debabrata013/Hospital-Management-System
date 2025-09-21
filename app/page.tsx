@@ -511,7 +511,7 @@ export default function LandingPage() {
   const doctors = [
     {
       id: 1,
-      name: 'Dr G K Nayak - MBBS D Orth',
+      name: 'Dr G K Nayak - MBBS D Ortho',
       specialization: 'Orthopedics (Founder)',
       experience: '45 Years',
       patients: '700K+',
@@ -528,7 +528,7 @@ export default function LandingPage() {
     },
     {
       id: 2,
-      name: 'Dr Vinod Paliwal - MBBS D Orth',
+      name: 'Dr Vinod Paliwal - MBBS D Ortho',
       specialization: 'Orthopedics',
       qualification: '',
       experience: '35 Years',
@@ -562,7 +562,7 @@ export default function LandingPage() {
     },
     {
       id: 4,
-      name: 'Dr Ramakant Dewangan - MBBS D Orth',
+      name: 'Dr Ramakant Dewangan - MBBS D Ortho',
       specialization: 'Orthopedics',
       qualification: '',
       experience: '15 Years',
@@ -613,7 +613,7 @@ export default function LandingPage() {
     },
     {
       id: 7,
-      name: 'Dr Niharika Nayak - MBBS DGO FMAS and FMR',
+      name: 'Dr Niharika Nayak - MBBS DGO FMAS and FRM',
       specialization: 'Gynecology',
       qualification: '',
       experience: '10+ Years',

@@ -103,21 +103,56 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Generate new admin ID
-    const [lastAdmin] = await connection.execute(
-      'SELECT user_id FROM users WHERE role = "admin" ORDER BY id DESC LIMIT 1'
+    // Generate new admin ID - more robust approach
+    const [existingAdmins] = await connection.execute(
+      'SELECT user_id FROM users WHERE role = "admin" AND user_id LIKE "AD%" ORDER BY user_id DESC'
     )
     
     let nextNumber = 1
-    if ((lastAdmin as any[]).length > 0) {
-      const lastUserId = (lastAdmin as any)[0].user_id
-      const match = lastUserId.match(/AD(\d+)/)
+    const existingIds = new Set()
+    
+    // Collect all existing admin IDs
+    for (const admin of (existingAdmins as any[])) {
+      const match = admin.user_id.match(/AD(\d+)/)
       if (match) {
-        nextNumber = parseInt(match[1]) + 1
+        existingIds.add(parseInt(match[1]))
       }
     }
     
-    const userId = `AD${nextNumber.toString().padStart(3, '0')}`
+    // Find the next available number
+    while (existingIds.has(nextNumber)) {
+      nextNumber++
+    }
+    
+    let userId = `AD${nextNumber.toString().padStart(3, '0')}`
+    console.log('Generated admin ID:', userId)
+    console.log('Existing admin IDs:', Array.from(existingIds))
+    
+    // Double-check that this ID doesn't exist
+    const [duplicateCheck] = await connection.execute(
+      'SELECT id FROM users WHERE user_id = ?',
+      [userId]
+    )
+    console.log('Duplicate check result:', (duplicateCheck as any[]).length)
+    
+    if ((duplicateCheck as any[]).length > 0) {
+      // If somehow still duplicate, generate a random number
+      nextNumber = Math.floor(Math.random() * 9000) + 1000
+      userId = `AD${nextNumber}`
+      
+      const [fallbackCheck] = await connection.execute(
+        'SELECT id FROM users WHERE user_id = ?',
+        [userId]
+      )
+      
+      if ((fallbackCheck as any[]).length > 0) {
+        await connection.end()
+        return NextResponse.json(
+          { success: false, error: 'Unable to generate unique admin ID. Please try again.' },
+          { status: 500 }
+        )
+      }
+    }
     const email = `${userId.toLowerCase()}@hospital.com`
     
     // Hash the password

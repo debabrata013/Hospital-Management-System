@@ -55,7 +55,9 @@ export default function NursesManagement() {
       }
       
       const nursesData = await nursesRes.json();
-      setNurses(nursesData.map((nurse: any) => ({
+      // Handle API response structure - API returns {nurses: [], count: number}
+      const nursesArray = nursesData.nurses || nursesData || [];
+      setNurses(nursesArray.map((nurse: any) => ({
         ...nurse,
         id: parseInt(nurse.id)
       })));

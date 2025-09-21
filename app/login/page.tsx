@@ -38,6 +38,7 @@ function LoginForm() {
 
   // Handle URL messages
   const message = searchParams.get('message')
+  const details = searchParams.get('details')
   const [alertMessage, setAlertMessage] = useState<{
     type: 'success' | 'error' | 'info';
     text: string;
@@ -70,11 +71,17 @@ function LoginForm() {
             text: 'Please login to access this page.'
           })
           break
+        case 'schedule-restriction':
+          setAlertMessage({
+            type: 'error',
+            text: details || 'You can only login during your scheduled shift times. Please contact your supervisor if you believe this is an error.'
+          })
+          break
         default:
           break
       }
     }
-  }, [message])
+  }, [message, details])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({

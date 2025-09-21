@@ -73,6 +73,8 @@ interface BillItem {
   quantity: number
   unitPrice: number
   discountPercent?: number
+  // For consultation items, link to a doctor
+  doctorId?: number
 }
 
 interface BillTemplate {
@@ -90,6 +92,7 @@ export default function BillingPage() {
   const [templates, setTemplates] = useState<BillTemplate[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
+  const [doctors, setDoctors] = useState<Array<{ id: number; name: string; department?: string | null; specialization?: string | null }>>([])
   
   // Search and filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -102,7 +105,8 @@ export default function BillingPage() {
   const [showPatientSearchDialog, setShowPatientSearchDialog] = useState(false)
   const [showBillDetailsDialog, setShowBillDetailsDialog] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-   const [allPatients, setAllPatients] = useState<Patient[]>([])
+  const [showEditBillDialog, setShowEditBillDialog] = useState(false)
+  const [allPatients, setAllPatients] = useState<Patient[]>([])
   // Form states
   const [patientSearchQuery, setPatientSearchQuery] = useState('')
   const [billItems, setBillItems] = useState<BillItem[]>([])
@@ -115,10 +119,12 @@ export default function BillingPage() {
   
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     fetchBills()
     fetchTemplates()
+    fetchDoctors()
   }, [searchQuery, statusFilter, dateFrom, dateTo])
 
   // Load all patients on mount for search
@@ -164,6 +170,36 @@ export default function BillingPage() {
       setTemplates(data.templates || [])
     } catch (error) {
       console.error('Failed to fetch templates:', error)
+    }
+  }
+
+  // Fetch doctors for consultation dropdown
+  const fetchDoctors = async () => {
+    try {
+      const res = await fetch('/api/receptionist/doctors')
+      const data = await res.json()
+      // Normalize possible shapes
+      if (Array.isArray(data.doctors)) {
+        setDoctors(
+          data.doctors.map((d: any) => ({
+            id: Number(d.id),
+            name: d.name,
+            department: d.department ?? null,
+            specialization: d.specialization ?? null,
+          }))
+        )
+      } else if (Array.isArray(data)) {
+        setDoctors(
+          data.map((d: any) => ({
+            id: Number(d.id),
+            name: d.name,
+            department: d.department ?? null,
+            specialization: d.specialization ?? null,
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Failed to fetch doctors:', error)
     }
   }
 
@@ -246,13 +282,16 @@ export default function BillingPage() {
       setIsSubmitting(true)
       const { finalAmount } = calculateTotals()
       
+      // Strip UI-only fields like doctorId before sending
+      const itemsForPayload = billItems.map(({ doctorId, ...rest }) => rest)
+
       const response = await fetch('/api/receptionist/billing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPatient.id,
           billType: billForm.billType,
-          items: billItems,
+          items: itemsForPayload,
           discount: billForm.discount,
           tax: billForm.tax,
           paymentMethod,
@@ -289,6 +328,42 @@ export default function BillingPage() {
       setIsSubmitting(false)
     }
   }
+
+  const editBill = async () => {
+    if (!selectedBill) return;
+    try {
+      setIsEditing(true)
+      const payloadItems = billItems.map(({ doctorId, ...rest }) => rest)
+      const { discountAmount, taxAmount } = calculateTotals()
+      const res = await fetch('/api/receptionist/billing', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billId: selectedBill.bill_id,
+          billType: billForm.billType,
+          items: payloadItems,
+          discount: discountAmount,
+          tax: taxAmount,
+          notes: billForm.notes
+        })
+      })
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.message || 'Failed to update bill')
+        return
+      }
+      alert('Bill updated successfully')
+      setShowEditBillDialog(false)
+      fetchBills()
+    } catch (e) {
+      console.error('Edit bill failed', e)
+      alert('Failed to update bill')
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  
 
   const initiateRazorpayPayment = async (billId: string, amount: number) => {
     try {
@@ -329,6 +404,55 @@ export default function BillingPage() {
     } catch (error) {
       console.error('Failed to initiate payment:', error)
       alert('Failed to initiate payment')
+    }
+  }
+
+  const preloadBillForEdit = async (billId: string) => {
+    try {
+      const res = await fetch(`/api/receptionist/billing/${billId}`)
+      if (!res.ok) throw new Error('Failed to load bill')
+      const data = await res.json()
+      const bill = data.bill
+      setSelectedBill({
+        id: bill.id,
+        bill_id: bill.bill_id,
+        patient_id: bill.patient_id,
+        bill_type: bill.bill_type,
+        total_amount: bill.total_amount,
+        discount_amount: bill.discount_amount,
+        tax_amount: bill.tax_amount,
+        final_amount: bill.final_amount,
+        payment_status: bill.payment_status,
+        payment_method: bill.payment_method,
+        is_offline: bill.is_offline,
+        notes: bill.notes,
+        created_at: bill.created_at,
+        patient_name: bill.patient_name,
+        patient_phone: bill.patient_phone,
+        patient_code: bill.patient_code,
+        created_by_name: bill.created_by_name
+      })
+      // Map items into BillItem[] (doctor not persisted per item, keep as name)
+      const items: BillItem[] = (bill.items || []).map((it: any) => ({
+        id: it.id,
+        itemType: it.item_type,
+        itemName: it.item_name,
+        description: it.item_description || '',
+        quantity: Number(it.quantity || 1),
+        unitPrice: Number(it.unit_price || 0),
+        discountPercent: Number(it.discount_percent || 0)
+      }))
+      setBillItems(items)
+      setBillForm({
+        billType: bill.bill_type || 'consultation',
+        discount: Number(bill.discount_amount || 0),
+        tax: Number(bill.tax_amount || 0),
+        notes: bill.notes || ''
+      })
+      setShowEditBillDialog(true)
+    } catch (e) {
+      console.error('Preload bill failed', e)
+      alert('Failed to load bill details')
     }
   }
 
@@ -549,6 +673,21 @@ export default function BillingPage() {
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
+                      {bill.payment_status !== 'paid' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBill(bill)
+                            // preload current bill items from API
+                            preloadBillForEdit(bill.bill_id)
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                      
                       {bill.payment_status === 'pending' && (
                         <Button
                           size="sm"
@@ -705,24 +844,7 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              {/* Quick Templates */}
-              <div className="mb-4">
-                <Label className="text-sm">Quick Add Templates:</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {templates.slice(0, 6).map(template => (
-                    <Button
-                      key={template.id}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addBillItem(template)}
-                      className="text-xs"
-                    >
-                      {template.item_name} (₹{template.default_price})
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              {/* Quick Templates removed as requested */}
 
               {/* Items List */}
               <div className="space-y-3">
@@ -730,12 +852,45 @@ export default function BillingPage() {
                   <Card key={index} className="p-4">
                     <div className="grid grid-cols-12 gap-3 items-end">
                       <div className="col-span-3">
-                        <Label className="text-xs">Item Name</Label>
-                        <Input
-                          value={item.itemName}
-                          onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
-                          placeholder="Item name"
-                        />
+                        {item.itemType === 'consultation' ? (
+                          <>
+                            <Label className="text-xs">Doctor</Label>
+                            <Select
+                              value={item.doctorId ? String(item.doctorId) : ''}
+                              onValueChange={(value) => {
+                                const docId = Number(value)
+                                const doc = doctors.find(d => d.id === docId)
+                                // Store both doctorId and itemName (doctor name) to keep backend payload compatible
+                                updateBillItem(index, 'doctorId', docId)
+                                updateBillItem(index, 'itemName', doc?.name || '')
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={doctors.length ? 'Select doctor' : 'No doctors found'} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {doctors.length === 0 ? (
+                                  <SelectItem value="" disabled>No doctors available</SelectItem>
+                                ) : (
+                                  doctors.map((d) => (
+                                    <SelectItem key={d.id} value={String(d.id)}>
+                                      {d.name}{d.specialization ? ` • ${d.specialization}` : ''}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </>
+                        ) : (
+                          <>
+                            <Label className="text-xs">Item Name</Label>
+                            <Input
+                              value={item.itemName}
+                              onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
+                              placeholder="Item name"
+                            />
+                          </>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <Label className="text-xs">Type</Label>
@@ -995,6 +1150,183 @@ export default function BillingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Bill Dialog */}
+      <Dialog open={showEditBillDialog} onOpenChange={setShowEditBillDialog}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Bill</DialogTitle>
+            <DialogDescription>
+              Update items and totals for {selectedBill?.bill_id}
+            </DialogDescription>
+          </DialogHeader>
+          {/* Items Editor */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Label>Bill Items</Label>
+              <div className="space-x-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => addBillItem()}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {billItems.map((item, index) => (
+                <Card key={index} className="p-4">
+                  <div className="grid grid-cols-12 gap-3 items-end">
+                    <div className="col-span-3">
+                      {item.itemType === 'consultation' ? (
+                        <>
+                          <Label className="text-xs">Doctor</Label>
+                          <Select
+                            value={item.doctorId ? String(item.doctorId) : ''}
+                            onValueChange={(value) => {
+                              const docId = Number(value)
+                              const doc = doctors.find(d => d.id === docId)
+                              updateBillItem(index, 'doctorId', docId)
+                              updateBillItem(index, 'itemName', doc?.name || '')
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={doctors.length ? 'Select doctor' : 'No doctors found'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {doctors.length === 0 ? (
+                                <SelectItem value="" disabled>No doctors available</SelectItem>
+                              ) : (
+                                doctors.map((d) => (
+                                  <SelectItem key={d.id} value={String(d.id)}>
+                                    {d.name}{d.specialization ? ` • ${d.specialization}` : ''}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </>
+                      ) : (
+                        <>
+                          <Label className="text-xs">Item Name</Label>
+                          <Input
+                            value={item.itemName}
+                            onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
+                            placeholder="Item name"
+                          />
+                        </>
+                      )}
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Type</Label>
+                      <Select 
+                        value={item.itemType} 
+                        onValueChange={(value) => updateBillItem(index, 'itemType', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="consultation">Consultation</SelectItem>
+                          <SelectItem value="medicine">Medicine</SelectItem>
+                          <SelectItem value="test">Test</SelectItem>
+                          <SelectItem value="procedure">Procedure</SelectItem>
+                          <SelectItem value="room_charge">Room Charge</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-1">
+                      <Label className="text-xs">Qty</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateBillItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Unit Price</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.unitPrice}
+                        onChange={(e) => updateBillItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Discount %</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={item.discountPercent || 0}
+                        onChange={(e) => updateBillItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Label className="text-xs">Total</Label>
+                      <div className="text-sm font-medium p-2 bg-gray-50 rounded">
+                        ₹{(item.quantity * item.unitPrice).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="col-span-1">
+                      <Button type="button" variant="outline" size="sm" onClick={() => removeBillItem(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {item.description && (
+                    <div className="mt-2">
+                      <Textarea
+                        placeholder="Item description..."
+                        value={item.description}
+                        onChange={(e) => updateBillItem(index, 'description', e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Totals */}
+          {(() => { const { subtotal, discountAmount, taxAmount, finalAmount } = calculateTotals(); return (
+            <Card className="mt-4">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Discount Amount</Label>
+                    <Input type="number" min="0" step="0.01" value={billForm.discount} onChange={(e) => setBillForm(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))} />
+                  </div>
+                  <div>
+                    <Label>Tax Amount</Label>
+                    <Input type="number" min="0" step="0.01" value={billForm.tax} onChange={(e) => setBillForm(prev => ({ ...prev, tax: parseFloat(e.target.value) || 0 }))} />
+                  </div>
+                  <div>
+                    <Label>Notes</Label>
+                    <Textarea placeholder="Bill notes..." value={billForm.notes} onChange={(e) => setBillForm(prev => ({ ...prev, notes: e.target.value }))} rows={2} />
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><span>Subtotal:</span><span>₹{subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Discount:</span><span>-₹{discountAmount.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Tax:</span><span>+₹{taxAmount.toFixed(2)}</span></div>
+                    <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Final Amount:</span><span>₹{finalAmount.toFixed(2)}</span></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ); })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditBillDialog(false)}>Cancel</Button>
+            <Button onClick={editBill} disabled={isEditing}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>

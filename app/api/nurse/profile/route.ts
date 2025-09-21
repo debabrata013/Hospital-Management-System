@@ -17,7 +17,12 @@ export const dynamic = 'force-dynamic';
 // GET - Fetch staff profile data
 export async function GET(request: NextRequest) {
   try {
-    // For static generation compatibility, provide mock data during build
+    // Temporarily disable static build check to ensure real data is returned
+    console.log('[NURSE-PROFILE] Environment check - NODE_ENV:', process.env.NODE_ENV, 'NEXT_PHASE:', process.env.NEXT_PHASE)
+    console.log('[NURSE-PROFILE] isStaticBuild():', isStaticBuild())
+    
+    // Comment out static build check for now to force real data
+    /*
     if (isStaticBuild()) {
       return NextResponse.json({
         success: true,
@@ -38,18 +43,39 @@ export async function GET(request: NextRequest) {
         }
       });
     }
+    */
 
     const session = await getServerSession(request)
+    console.log('[NURSE-PROFILE] Session:', session ? `User ID: ${session.user.userId}, Name: ${session.user.name}, Role: ${session.user.role}` : 'No session')
+    
     if (!session) {
+      console.log('[NURSE-PROFILE] No session found - user needs to login')
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized - Please login again' },
         { status: 401 }
+      )
+    }
+    
+    // Additional check to see if this is actually a nurse
+    if (session.user.role !== 'nurse') {
+      console.log('[NURSE-PROFILE] User role is not nurse:', session.user.role)
+      return NextResponse.json(
+        { success: false, error: 'Access denied - Nurse role required' },
+        { status: 403 }
       )
     }
 
     const connection = await mysql.createConnection(dbConfig)
     
     // Fetch staff profile from users table with assignment information
+    console.log('[NURSE-PROFILE] Fetching profile for user ID:', session.user.userId)
+    
+    // First, let's check what's in the users table for this ID
+    const [allUsers] = await connection.execute(
+      'SELECT id, user_id, name, email, contact_number, role FROM users WHERE role = "nurse" ORDER BY id DESC LIMIT 5'
+    )
+    console.log('[NURSE-PROFILE] Recent nurses in database:', allUsers)
+    
     const [users] = await connection.execute(
       `SELECT 
         u.id, u.user_id, u.name, u.email, u.contact_number, u.role, u.department, 
@@ -60,6 +86,8 @@ export async function GET(request: NextRequest) {
       WHERE u.id = ? AND u.role IN ('staff', 'nurse', 'receptionist', 'pharmacy')`,
       [session.user.userId]
     )
+    
+    console.log('[NURSE-PROFILE] Query result for user ID', session.user.userId, ':', users)
 
     await connection.end()
 

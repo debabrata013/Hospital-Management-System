@@ -812,7 +812,7 @@ export default function OPDPatientsPage() {
                           </div>
                         )}
                         <div className="mt-3 text-xs text-gray-500">
-                          Recorded by: {vital.recorded_by_name || 'Staff'}
+                          Recorded by: {vital.recorded_by || vital.recorded_by_name || 'Staff'}
                         </div>
                       </CardContent>
                     </Card>

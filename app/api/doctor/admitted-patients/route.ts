@@ -25,12 +25,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch admitted patients for this doctor
+    // First, let's debug what's in the database
+    console.log('Doctor ID:', doctorId);
+    
+    // Fetch both admitted and recently discharged patients for this doctor
     const result = await executeQuery(`
       SELECT 
         a.id as admission_id,
         a.admission_id as admission_code,
         a.patient_id,
+        a.doctor_id,
         a.room_id,
         a.admission_date,
         a.discharge_date,
@@ -41,20 +45,32 @@ export async function GET(request: NextRequest) {
         p.contact_number as patient_phone,
         p.email as patient_email,
         p.gender,
-        p.date_of_birth,
-        p.blood_group,
+        p.age,
         p.address,
         r.room_number,
         r.room_type,
-        r.floor
+        r.floor,
+        a.diagnosis,
+        a.chief_complaint,
+        ds.id as discharge_summary_id
       FROM admissions a
       JOIN patients p ON a.patient_id = p.id
       LEFT JOIN rooms r ON a.room_id = r.id
-      WHERE a.doctor_id = ? 
-        AND a.status IN ('active', 'admitted')
-        AND (a.discharge_date IS NULL OR a.discharge_date > NOW())
-      ORDER BY a.admission_date DESC
+      LEFT JOIN (
+        SELECT ds1.* 
+        FROM discharge_summaries ds1
+        WHERE ds1.id = (
+          SELECT MAX(ds2.id) 
+          FROM discharge_summaries ds2 
+          WHERE ds2.admission_id COLLATE utf8mb4_unicode_ci = ds1.admission_id COLLATE utf8mb4_unicode_ci
+        )
+      ) ds ON a.admission_id COLLATE utf8mb4_unicode_ci = ds.admission_id COLLATE utf8mb4_unicode_ci
+      WHERE a.doctor_id = ? AND (a.status = 'active' OR a.status = 'discharged')
+      GROUP BY a.id
+      ORDER BY a.status ASC, a.admission_date DESC
     `, [doctorId]);
+    
+    console.log('Query result:', result);
 
     // Ensure result is an array
     const admittedPatients = Array.isArray(result) ? result : [];
@@ -67,7 +83,7 @@ export async function GET(request: NextRequest) {
             SELECT 
               id,
               blood_pressure,
-              heart_rate,
+              pulse as heart_rate, -- Corrected column name from screenshot
               temperature,
               respiratory_rate,
               oxygen_saturation,

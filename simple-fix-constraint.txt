@@ -1,0 +1,18 @@
+-- Simple SQL to fix the nurse schedule constraint
+-- Run this in your MySQL database management tool (phpMyAdmin, MySQL Workbench, etc.)
+
+-- First, let's see what constraints exist
+SHOW INDEX FROM nurse_schedules;
+
+-- If you see 'unique_nurse_shift' constraint, run this to drop it:
+ALTER TABLE nurse_schedules DROP INDEX unique_nurse_shift;
+
+-- Then create a better constraint that allows double shifts:
+ALTER TABLE nurse_schedules 
+ADD CONSTRAINT unique_exact_schedule 
+UNIQUE (nurse_id, shift_date, shift_type, start_time, end_time, department);
+
+-- This new constraint allows:
+-- ✅ Same nurse, same date, DIFFERENT shift types (Morning + Evening)
+-- ✅ Same nurse, same date, same shift type, DIFFERENT times
+-- ❌ Prevents exact duplicate schedules only

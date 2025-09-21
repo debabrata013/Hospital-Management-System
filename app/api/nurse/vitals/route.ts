@@ -1,5 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { executeQuery } from '../../../../lib/db/connection'
+import jwt from 'jsonwebtoken'
+
+// Function to extract nurse name from JWT token
+function getNurseNameFromToken(request: NextRequest): string {
+  try {
+    const token = request.cookies.get('auth-token')?.value || request.cookies.get('auth-backup')?.value
+    if (!token) {
+      return 'Staff Nurse'
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
+    if (decoded && decoded.name) {
+      return decoded.name
+    }
+    
+    return 'Staff Nurse'
+  } catch (error) {
+    console.error('Error extracting nurse name from token:', error)
+    return 'Staff Nurse'
+  }
+}
 
 // GET - Fetch vitals history
 export async function GET(req: NextRequest) {
@@ -169,6 +190,10 @@ export async function POST(req: NextRequest) {
 
     console.log("Patient lookup - ID:", patientId, "Name from frontend:", patientName, "Name from DB:", actualPatientName)
 
+    // Get the actual nurse name from the JWT token
+    const nurseName = getNurseNameFromToken(req)
+    console.log("Recording vitals by nurse:", nurseName)
+
     const result = await executeQuery(insertQuery, [
       patientId,
       actualPatientName,
@@ -180,7 +205,7 @@ export async function POST(req: NextRequest) {
       weight || null,
       status || 'Normal',
       notes || null,
-      'Staff Nurse'
+      nurseName
     ])
 
     // Return the created vital record
@@ -189,7 +214,7 @@ export async function POST(req: NextRequest) {
       patientId: patientId.toString(),
       patientName: actualPatientName,
       recordedAt: new Date().toISOString(),
-      recordedBy: 'Staff Nurse',
+      recordedBy: nurseName,
       vitals: {
         bloodPressure: bloodPressure || '',
         pulse: pulse || '',

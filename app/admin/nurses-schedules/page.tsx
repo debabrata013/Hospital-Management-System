@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
@@ -43,7 +45,7 @@ interface NurseSchedule {
   end_time: string
   ward_assignment: string
   shift_type: string
-  status: 'scheduled' | 'active' | 'completed' | 'cancelled'
+  status: 'Scheduled' | 'active' | 'completed' | 'cancelled' | string
   max_patients: number
   current_patients: number
   created_at: string
@@ -68,6 +70,13 @@ export default function NursesSchedulesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<NurseSchedule | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [viewingSchedule, setViewingSchedule] = useState<NurseSchedule | null>(null)
+  const [nurseSearch, setNurseSearch] = useState('')
+  const handleViewSchedule = (schedule: NurseSchedule) => {
+    setViewingSchedule(schedule)
+    setIsViewModalOpen(true)
+  }
   const [formData, setFormData] = useState<CreateScheduleData>({
     nurseId: '',
     date: new Date().toISOString().split('T')[0],
@@ -122,11 +131,18 @@ export default function NursesSchedulesPage() {
   const loadNurses = async () => {
     try {
       setLoadingNurses(true)
-      const response = await fetch('/api/admin/nurses', { cache: 'no-store' })
+      console.log('🔄 Loading nurses...');
+      // Construct absolute URL to prevent deployment issues
+      const apiUrl = new URL('/api/admin/nurses', window.location.origin);
+      const response = await fetch(apiUrl, { cache: 'no-store' });
+      console.log('👥 Nurses API response status:', response.status);
       if (response.ok) {
         const data = await response.json()
+        console.log('👥 Nurses data received:', data);
         setNurses(data.nurses || [])
+        console.log('👥 Nurses set in state:', data.nurses?.length || 0);
       } else {
+        console.log('❌ Failed to load nurses, status:', response.status);
         toast.error('Failed to load nurses')
       }
     } catch (error) {
@@ -140,11 +156,16 @@ export default function NursesSchedulesPage() {
   const loadSchedules = async () => {
     try {
       setLoadingSchedules(true)
+      console.log('📅 Loading schedules...');
       const response = await fetch('/api/admin/nurses-schedules', { cache: 'no-store' })
+      console.log('📅 Schedules API response status:', response.status);
       if (response.ok) {
         const data = await response.json()
+        console.log('📅 Schedules data received:', data);
         setSchedules(data.schedules || [])
+        console.log('📅 Schedules set in state:', data.schedules?.length || 0);
       } else {
+        console.log('❌ Failed to load schedules, status:', response.status);
         toast.error('Failed to load schedules')
       }
     } catch (error) {
@@ -157,34 +178,55 @@ export default function NursesSchedulesPage() {
 
   const handleCreateSchedule = async () => {
     try {
+      console.log('🚀 Create Schedule clicked!');
+      console.log('📊 Form data:', formData);
+      console.log('👥 Available nurses:', nurses.length);
+      
       // Validation
       if (!formData.nurseId || !formData.date || !formData.startTime || !formData.endTime) {
+        console.log('❌ Validation failed - missing required fields:', {
+          nurseId: !!formData.nurseId,
+          date: !!formData.date,
+          startTime: !!formData.startTime,
+          endTime: !!formData.endTime
+        });
         toast.error('Please fill in all required fields')
         return
       }
 
       if (formData.startTime >= formData.endTime) {
+        console.log('❌ Time validation failed:', formData.startTime, '>=', formData.endTime);
         toast.error('End time must be after start time')
         return
       }
+
+      console.log('✅ All validations passed, creating schedule...');
+
+      const requestBody = {
+        nurseId: parseInt(formData.nurseId),
+        date: formData.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        wardAssignment: formData.wardAssignment,
+        shiftType: formData.shiftType,
+        maxPatients: parseInt(formData.maxPatients)
+      };
+      
+      console.log('📤 Sending request:', requestBody);
 
       const response = await fetch('/api/admin/nurses-schedules', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          nurseId: parseInt(formData.nurseId),
-          date: formData.date,
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          wardAssignment: formData.wardAssignment,
-          shiftType: formData.shiftType,
-          maxPatients: parseInt(formData.maxPatients)
-        }),
+        body: JSON.stringify(requestBody),
       })
 
+      console.log('📥 API Response status:', response.status);
+      
       if (response.ok) {
+        const successData = await response.json();
+        console.log('✅ Success response:', successData);
         toast.success('Nurse schedule created successfully!')
         setIsCreateModalOpen(false)
         setFormData({
@@ -199,6 +241,7 @@ export default function NursesSchedulesPage() {
         loadSchedules()
       } else {
         const errorData = await response.json()
+        console.log('❌ Error response:', errorData);
         toast.error(errorData.error || 'Failed to create schedule')
       }
     } catch (error) {
@@ -277,7 +320,7 @@ export default function NursesSchedulesPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'scheduled':
         return <Badge className="bg-blue-100 text-blue-700"><Clock className="h-3 w-3 mr-1" />Scheduled</Badge>
       case 'active':
@@ -312,9 +355,18 @@ export default function NursesSchedulesPage() {
     return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`
   }
 
+  const filteredNurses = nurses.filter(nurse => 
+    nurse.name.toLowerCase().includes(nurseSearch.toLowerCase()) ||
+    (nurse.mobile && nurse.mobile.includes(nurseSearch))
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
+        <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+  <ArrowLeft className="h-4 w-4 mr-2" />
+  Back to Dashboard
+</Link>
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
@@ -342,7 +394,7 @@ export default function NursesSchedulesPage() {
                 Create Schedule
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
@@ -352,17 +404,27 @@ export default function NursesSchedulesPage() {
                   Assign a nurse to a specific shift and ward
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">
                   <Label htmlFor="nurseId">Nurse *</Label>
                   <Select value={formData.nurseId} onValueChange={(value) => setFormData(prev => ({ ...prev, nurseId: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a nurse" />
+                      <SelectValue placeholder="Select a nurse">
+                        {formData.nurseId ? nurses.find(n => n.id.toString() === formData.nurseId)?.name : null}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {nurses.map((nurse) => (
+                      <div className="p-2">
+                        <Input
+                          placeholder="Search by name or mobile..."
+                          value={nurseSearch}
+                          onChange={(e) => setNurseSearch(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      {filteredNurses.map((nurse) => (
                         <SelectItem key={nurse.id} value={nurse.id.toString()}>
-                          {nurse.name} - General
+                          {nurse.name} - {nurse.mobile}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -576,6 +638,15 @@ export default function NursesSchedulesPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => handleViewSchedule(schedule)}
+                          className="border-green-200 text-green-600 hover:bg-green-50"
+                        >
+                          <UserCheck className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEditSchedule(schedule)}
                           className="border-blue-200 text-blue-600 hover:bg-blue-50"
                         >
@@ -591,6 +662,36 @@ export default function NursesSchedulesPage() {
                           <Trash2 className="h-4 w-4 mr-1" />
                           Delete
                         </Button>
+      {/* View Schedule Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              Nurse Schedule Details
+            </DialogTitle>
+            <DialogDescription>
+              Details for {viewingSchedule?.nurse_name}
+            </DialogDescription>
+          </DialogHeader>
+          {viewingSchedule && (
+            <div className="space-y-3 py-2">
+              <div><b>ID:</b> {viewingSchedule.id}</div>
+              <div><b>Date:</b> {viewingSchedule.shift_date}</div>
+              <div><b>Shift:</b> {viewingSchedule.shift_type} ({viewingSchedule.start_time} - {viewingSchedule.end_time})</div>
+              <div><b>Status:</b> <Badge>{viewingSchedule.status}</Badge></div>
+              <div><b>Ward:</b> {viewingSchedule.ward_assignment}</div>
+              <div><b>Patients:</b> {viewingSchedule.current_patients}/{viewingSchedule.max_patients}</div>
+              <div><b>Created At:</b> {viewingSchedule.created_at}</div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
                       </div>
                     </div>
                   </div>
@@ -609,7 +710,7 @@ export default function NursesSchedulesPage() {
 
       {/* Edit Schedule Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />

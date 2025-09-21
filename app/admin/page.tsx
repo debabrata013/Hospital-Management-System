@@ -150,7 +150,8 @@ export default function AdminDashboard() {
         setUpcomingAppointments(appointmentsData);
         setAdmittedPatients(admittedPatientsData);
         setStockAlerts(stockAlertsData);
-        setNurses(nursesData);
+        // Handle nurses data structure - API returns {nurses: [], count: number}
+        setNurses(nursesData.nurses || []);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');

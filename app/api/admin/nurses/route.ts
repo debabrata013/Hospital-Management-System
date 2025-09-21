@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeQuery } from '@/lib/db/connection';
+import mysql from 'mysql2/promise';
+
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: parseInt(process.env.DB_PORT || '3306')
+};
 
 export async function GET(request: NextRequest) {
   try {
+    const connection = await mysql.createConnection(dbConfig);
+    
     // Fetch all nurses from users table only
-    const nurses = await executeQuery(`
+    const [nurses] = await connection.execute(`
       SELECT 
         id,
         name,
@@ -18,6 +28,8 @@ export async function GET(request: NextRequest) {
       WHERE role = 'nurse'
       ORDER BY name ASC
     `);
+
+    await connection.end();
 
     return NextResponse.json({
       nurses: nurses,

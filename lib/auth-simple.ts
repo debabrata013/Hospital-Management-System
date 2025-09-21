@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 import { NextRequest } from 'next/server';
 
 // Simple mock user for development
@@ -19,70 +19,46 @@ export async function getServerSession(request: NextRequest) {
   try {
     // Get token from cookie or Authorization header
     const token = request.cookies.get('auth-token')?.value || 
+                  request.cookies.get('auth-backup')?.value ||
                   request.headers.get('authorization')?.replace('Bearer ', '');
 
-    // Fallback: allow "user-session" cookie in dev/local to provide a session
+    console.log('[AUTH] Token found:', !!token);
+
     if (!token) {
-      const rawSession = request.cookies.get('user-session')?.value;
-      if (rawSession) {
-        try {
-          const parsed = JSON.parse(rawSession);
-          return {
-            user: {
-              id: parsed.id?.toString?.() || parsed.id,
-              userId: parsed.userId,
-              name: parsed.name,
-              email: parsed.email,
-              role: parsed.role,
-              department: parsed.department,
-              specialization: parsed.specialization,
-              isActive: true,
-              permissions: parsed.permissions || []
-            }
-          };
-        } catch (_) {
-          // ignore parse errors and continue to JWT branch
-        }
-      }
-      
-      // For development, return mock user if no session found
-      return {
-        user: mockUser
-      };
+      console.log('[AUTH] No token found, returning null');
+      return null;
     }
 
-    // Verify JWT token
+    // Verify JWT token using jose library (same as login)
     let decoded: any;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+      const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret');
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      decoded = payload;
+      console.log('[AUTH] Token decoded successfully for user:', decoded.userId, decoded.name);
     } catch (tokenError) {
-      // For development, return mock user if token is invalid
-      return {
-        user: mockUser
-      };
+      console.error('[AUTH] Token verification failed:', tokenError);
+      return null;
     }
 
-    // Return session-like object with decoded user or mock user
+    // Return session-like object with decoded user
     return {
       user: {
-        id: decoded.userId || mockUser.id,
-        userId: decoded.userId || mockUser.userId,
-        name: decoded.name || mockUser.name,
-        email: decoded.email || mockUser.email,
-        role: decoded.role || mockUser.role,
-        department: decoded.department || mockUser.department,
-        specialization: decoded.specialization || mockUser.specialization,
+        id: decoded.userId,
+        userId: decoded.userId,
+        name: decoded.name,
+        email: decoded.email,
+        role: decoded.role,
+        department: decoded.department,
+        specialization: decoded.specialization,
         isActive: true,
-        permissions: decoded.permissions || mockUser.permissions
+        permissions: decoded.permissions || []
       }
     };
 
   } catch (error) {
-    console.error('Session verification error:', error);
-    // For development, return mock user on error
-    return {
-      user: mockUser
-    };
+    console.error('[AUTH] Session verification error:', error);
+    return null;
   }
 }
 

@@ -90,15 +90,39 @@ export default function DoctorDashboard() {
     surgeriesToday: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  const [admittedPatients, setAdmittedPatients] = useState([]);
+  const [admittedPatients, setAdmittedPatients] = useState<any[]>([]);
   const [admittedPatientsLoading, setAdmittedPatientsLoading] = useState(true);
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
   const [assignedNurses, setAssignedNurses] = useState<any>({ opd: { count: 0, nurses: [] }, ward: { count: 0, nurses: [] } });
   const [nursesLoading, setNursesLoading] = useState(true);
   
+  // Patient filter state
+  const [patientFilter, setPatientFilter] = useState<'all' | 'active' | 'discharged'>('all');
+  
+  // Filter patients based on selected filter
+  const filteredPatients = admittedPatients.filter(patient => {
+    if (patientFilter === 'all') return true;
+    return patient.status === patientFilter;
+  });
+  
   // Vitals modal states
   const [vitalsDialog, setVitalsDialog] = useState(false);
+  const [dischargeDialog, setDischargeDialog] = useState(false);
+  const [selectedPatientForDischarge, setSelectedPatientForDischarge] = useState<any>(null);
+  const [dischargeForm, setDischargeForm] = useState({
+    dischargeDiagnoses: '',
+    consults: '',
+    procedures: '',
+    hospitalCourse: '',
+    dischargeTo: '',
+    dischargeCondition: '',
+    dischargeMedications: '',
+    dischargeInstructions: '',
+    pendingLabs: '',
+    followUp: '',
+    copyTo: '',
+  });
   const [selectedPatientForVitals, setSelectedPatientForVitals] = useState<any>(null);
   const [vitalsData, setVitalsData] = useState<any[]>([]);
   const [vitalsLoading, setVitalsLoading] = useState(false);
@@ -290,6 +314,323 @@ export default function DoctorDashboard() {
     } catch (error) {
       console.error('Error saving prescription:', error);
       alert('Error saving prescription. Please try again.');
+    }
+  };
+
+  // Discharge functions
+  const handleDischargePatient = async () => {
+    if (!selectedPatientForDischarge) return;
+
+    // Validate required fields
+    const requiredFields = [
+      'dischargeDiagnoses',
+      'hospitalCourse', 
+      'dischargeTo',
+      'dischargeCondition',
+      'dischargeMedications',
+      'dischargeInstructions',
+      'followUp'
+    ];
+
+    const missingFields = requiredFields.filter(field => !dischargeForm[field as keyof typeof dischargeForm]);
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/doctor/discharge-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          admissionId: selectedPatientForDischarge.admission_id,
+          admissionCode: selectedPatientForDischarge.admission_code,
+          patientId: selectedPatientForDischarge.patient_id,
+          doctorId: selectedPatientForDischarge.doctor_id,
+          dischargeSummary: dischargeForm,
+          dischargedBy: user?.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Patient discharged successfully! Discharge Summary ID: ${data.dischargeSummaryId}`);
+        setDischargeDialog(false);
+        setSelectedPatientForDischarge(null);
+        // Reset form
+        setDischargeForm({
+          dischargeDiagnoses: '',
+          consults: '',
+          procedures: '',
+          hospitalCourse: '',
+          dischargeTo: '',
+          dischargeCondition: '',
+          dischargeMedications: '',
+          dischargeInstructions: '',
+          pendingLabs: '',
+          followUp: '',
+          copyTo: '',
+        });
+        // Refresh admitted patients
+        fetchAdmittedPatients();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to discharge patient: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error discharging patient:', error);
+      alert('Error discharging patient. Please try again.');
+    }
+  };
+
+  const handlePreviewPDF = () => {
+    if (!selectedPatientForDischarge) return;
+
+    // Create a new window for PDF preview
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Discharge Summary - ${selectedPatientForDischarge.patient_name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+          .patient-info { background: #f5f5f5; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+          .section { margin-bottom: 15px; }
+          .section-title { font-weight: bold; color: #333; margin-bottom: 5px; border-bottom: 1px solid #ccc; }
+          .content { margin-left: 10px; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>DISCHARGE SUMMARY</h1>
+          <h2>NMSC Hospital</h2>
+        </div>
+        
+        <div class="patient-info">
+          <h3>Patient Information</h3>
+          <p><strong>Patient Name:</strong> ${selectedPatientForDischarge.patient_name}</p>
+          <p><strong>Patient ID:</strong> ${selectedPatientForDischarge.patient_code}</p>
+          <p><strong>Admission Date:</strong> ${new Date(selectedPatientForDischarge.admission_date).toLocaleDateString()}</p>
+          <p><strong>Discharge Date:</strong> ${new Date().toLocaleDateString()}</p>
+        </div>
+
+        <div class="section">
+          <div class="section-title">ADMISSION DIAGNOSES:</div>
+          <div class="content">${selectedPatientForDischarge.diagnosis || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE DIAGNOSES:</div>
+          <div class="content">${dischargeForm.dischargeDiagnoses || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">CONSULTS:</div>
+          <div class="content">${dischargeForm.consults || 'None'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">PROCEDURES:</div>
+          <div class="content">${dischargeForm.procedures || 'None'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">HOSPITAL COURSE:</div>
+          <div class="content">${dischargeForm.hospitalCourse || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE TO:</div>
+          <div class="content">${dischargeForm.dischargeTo || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE CONDITION:</div>
+          <div class="content">${dischargeForm.dischargeCondition || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE MEDICATIONS:</div>
+          <div class="content">${dischargeForm.dischargeMedications || 'None'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE INSTRUCTIONS:</div>
+          <div class="content">${dischargeForm.dischargeInstructions || 'None'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">PENDING LABS:</div>
+          <div class="content">${dischargeForm.pendingLabs || 'None'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">FOLLOW-UP:</div>
+          <div class="content">${dischargeForm.followUp || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">COPY TO:</div>
+          <div class="content">${dischargeForm.copyTo || 'None'}</div>
+        </div>
+
+        <div style="margin-top: 40px; text-align: right;">
+          <p><strong>Discharged by:</strong> Dr. ${user?.name || 'Doctor'}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handleDownloadDischargeSummary = async (patient: any) => {
+    if (!patient.discharge_summary_id) {
+      alert('No discharge summary found for this patient');
+      return;
+    }
+
+    try {
+      // Fetch the discharge summary data
+      const response = await fetch(`/api/doctor/discharge-summary?id=${patient.discharge_summary_id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch discharge summary');
+      }
+      
+      const data = await response.json();
+      const summary = data.dischargeSummary;
+
+      // Create a new window for PDF
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Discharge Summary - ${summary.patient_name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .patient-info { background: #f5f5f5; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+            .section { margin-bottom: 15px; }
+            .section-title { font-weight: bold; color: #333; margin-bottom: 5px; border-bottom: 1px solid #ccc; }
+            .content { margin-left: 10px; white-space: pre-wrap; }
+            @media print { body { margin: 0; } }
+            .print-button { margin: 20px 0; text-align: center; }
+            .print-button button { 
+              background: #007bff; color: white; border: none; padding: 10px 20px; 
+              border-radius: 5px; cursor: pointer; margin: 0 10px; 
+            }
+            @media print { .print-button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>DISCHARGE SUMMARY</h1>
+            <h2>NMSC Hospital</h2>
+          </div>
+          
+          <div class="patient-info">
+            <h3>Patient Information</h3>
+            <p><strong>Patient Name:</strong> ${summary.patient_name}</p>
+            <p><strong>Patient ID:</strong> ${summary.patient_code}</p>
+            <p><strong>Gender:</strong> ${summary.gender}</p>
+            <p><strong>Age:</strong> ${summary.age}</p>
+            <p><strong>Admission Date:</strong> ${new Date(summary.admission_date).toLocaleDateString()}</p>
+            <p><strong>Discharge Date:</strong> ${new Date(summary.created_at).toLocaleDateString()}</p>
+            <p><strong>Admission Type:</strong> ${summary.admission_type}</p>
+          </div>
+
+          <div class="section">
+            <div class="section-title">ADMISSION DIAGNOSES:</div>
+            <div class="content">${summary.admission_diagnosis || 'Not specified'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">DISCHARGE DIAGNOSES:</div>
+            <div class="content">${summary.discharge_diagnoses || 'Not specified'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">CONSULTS:</div>
+            <div class="content">${summary.consults || 'None'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">PROCEDURES:</div>
+            <div class="content">${summary.procedures || 'None'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">HOSPITAL COURSE:</div>
+            <div class="content">${summary.hospital_course || 'Not specified'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">DISCHARGE TO:</div>
+            <div class="content">${summary.discharge_to || 'Not specified'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">DISCHARGE CONDITION:</div>
+            <div class="content">${summary.discharge_condition || 'Not specified'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">DISCHARGE MEDICATIONS:</div>
+            <div class="content">${summary.discharge_medications || 'None'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">DISCHARGE INSTRUCTIONS:</div>
+            <div class="content">${summary.discharge_instructions || 'None'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">PENDING LABS:</div>
+            <div class="content">${summary.pending_labs || 'None'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">FOLLOW-UP:</div>
+            <div class="content">${summary.follow_up || 'Not specified'}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">COPY TO:</div>
+            <div class="content">${summary.copy_to || 'None'}</div>
+          </div>
+
+          <div class="print-button">
+            <button onclick="window.print()">🖨️ Print</button>
+            <button onclick="window.close()">❌ Close</button>
+          </div>
+
+          <div style="margin-top: 40px; text-align: right;">
+            <p><strong>Discharged by:</strong> Dr. ${summary.doctor_name}</p>
+            <p><strong>Date:</strong> ${new Date(summary.created_at).toLocaleDateString()}</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error downloading discharge summary:', error);
+      alert('Failed to download discharge summary. Please try again.');
     }
   };
 
@@ -676,12 +1017,35 @@ export default function DoctorDashboard() {
               <Card className="border-pink-100">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-gray-900">Admitted Patients</CardTitle>
-                    <CardDescription>Patients currently admitted under your care</CardDescription>
+                    <CardTitle className="text-gray-900">Patient Management</CardTitle>
+                    <CardDescription>Active admissions and recent discharges under your care</CardDescription>
                   </div>
-                  <Badge variant="outline" className="text-pink-600 border-pink-200">
-                    {admittedPatients.length} Total
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={patientFilter === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 ${patientFilter === 'all' ? 'bg-gray-600 text-white' : 'text-gray-600 border-gray-200'}`}
+                      onClick={() => setPatientFilter('all')}
+                    >
+                      All ({admittedPatients.length})
+                    </Button>
+                    <Button
+                      variant={patientFilter === 'active' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 ${patientFilter === 'active' ? 'bg-blue-600 text-white' : 'text-blue-600 border-blue-200'}`}
+                      onClick={() => setPatientFilter('active')}
+                    >
+                      {admittedPatients.filter(p => p.status === 'active').length} Active
+                    </Button>
+                    <Button
+                      variant={patientFilter === 'discharged' ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 ${patientFilter === 'discharged' ? 'bg-green-600 text-white' : 'text-green-600 border-green-200'}`}
+                      onClick={() => setPatientFilter('discharged')}
+                    >
+                      {admittedPatients.filter(p => p.status === 'discharged').length} Discharged
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -689,8 +1053,8 @@ export default function DoctorDashboard() {
                       <div className="flex items-center justify-center py-8">
                         <div className="text-gray-500">Loading admitted patients...</div>
                       </div>
-                    ) : admittedPatients.length > 0 ? (
-                      admittedPatients.map((patient: any) => (
+                    ) : filteredPatients.length > 0 ? (
+                      filteredPatients.map((patient: any) => (
                         <div key={patient.admission_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -744,39 +1108,70 @@ export default function DoctorDashboard() {
                               </div>
                             </div>
                             <div className="flex flex-col space-y-2 flex-shrink-0 w-24">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-8 w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                                onClick={async () => {
-                                  setSelectedPatientForVitals(patient);
-                                  setVitalsLoading(true);
-                                  setVitalsDialog(true);
-                                  
-                                  try {
-                                    const response = await fetch(`/api/doctor/vitals?patientId=${patient.patient_id}`);
-                                    const data = await response.json();
-                                    setVitalsData(data.vitals || []);
-                                  } catch (error) {
-                                    console.error('Error fetching vitals:', error);
-                                    setVitalsData([]);
-                                  } finally {
-                                    setVitalsLoading(false);
-                                  }
-                                }}
-                              >
-                                <HeartPulse className="h-3 w-3 mr-1" />
-                                Vitals
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-8 w-full text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                                onClick={() => handleAdmittedPatientPrescription(patient)}
-                              >
-                                <FileEdit className="h-3 w-3 mr-1" />
-                                Prescription
-                              </Button>
+                              {patient.status === 'active' ? (
+                                <>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                    onClick={async () => {
+                                      setSelectedPatientForVitals(patient);
+                                      setVitalsLoading(true);
+                                      setVitalsDialog(true);
+                                      
+                                      try {
+                                        const response = await fetch(`/api/doctor/vitals?patientId=${patient.patient_id}`);
+                                        const data = await response.json();
+                                        setVitalsData(data.vitals || []);
+                                      } catch (error) {
+                                        console.error('Error fetching vitals:', error);
+                                        setVitalsData([]);
+                                      } finally {
+                                        setVitalsLoading(false);
+                                      }
+                                    }}
+                                  >
+                                    <HeartPulse className="h-3 w-3 mr-1" />
+                                    Vitals
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-full text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                                    onClick={() => handleAdmittedPatientPrescription(patient)}
+                                  >
+                                    <FileEdit className="h-3 w-3 mr-1" />
+                                    Prescription
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-full text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                                    onClick={() => {
+                                      setSelectedPatientForDischarge(patient);
+                                      setDischargeDialog(true);
+                                    }}
+                                  >
+                                    <LogOut className="h-3 w-3 mr-1" />
+                                    Discharge
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Badge className="bg-green-100 text-green-700 text-xs">
+                                    Discharged
+                                  </Badge>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                    onClick={() => handleDownloadDischargeSummary(patient)}
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    Export PDF
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -784,7 +1179,14 @@ export default function DoctorDashboard() {
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p>No patients currently admitted</p>
+                        <p>
+                          {patientFilter === 'all' 
+                            ? 'No patients currently admitted'
+                            : patientFilter === 'active'
+                            ? 'No active patients'
+                            : 'No discharged patients'
+                          }
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1632,6 +2034,233 @@ export default function DoctorDashboard() {
               <FileEdit className="h-4 w-4 mr-1" />
               Save Prescription
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Discharge Summary Dialog */}
+      <Dialog open={dischargeDialog} onOpenChange={setDischargeDialog}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900">Discharge Summary</DialogTitle>
+            <DialogDescription>
+              Complete the discharge summary for {selectedPatientForDischarge?.patient_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Patient Info Section */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">Patient Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Patient:</span> {selectedPatientForDischarge?.patient_name}
+                </div>
+                <div>
+                  <span className="font-medium">Patient ID:</span> {selectedPatientForDischarge?.patient_code}
+                </div>
+                <div>
+                  <span className="font-medium">Admission Date:</span> {selectedPatientForDischarge?.admission_date ? new Date(selectedPatientForDischarge.admission_date).toLocaleDateString() : 'N/A'}
+                </div>
+                <div>
+                  <span className="font-medium">Discharge Date:</span> {new Date().toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Admission Diagnoses */}
+            <div>
+              <Label htmlFor="admissionDiagnoses" className="text-sm font-medium">
+                Admission Diagnoses
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Initial diagnosis based on presenting information, or reason for admission based on symptoms if tentative diagnosis not possible.</p>
+              <Textarea 
+                id="admissionDiagnoses" 
+                placeholder="Enter initial diagnosis or reason for admission..."
+                className="min-h-[80px]"
+                readOnly
+                value={selectedPatientForDischarge?.diagnosis || 'Not specified'}
+              />
+            </div>
+
+            {/* Discharge Diagnoses */}
+            <div>
+              <Label htmlFor="dischargeDiagnoses" className="text-sm font-medium">
+                Discharge Diagnoses *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Concluding diagnosis(es) based on testing, studies, examination, etc.</p>
+              <Textarea 
+                id="dischargeDiagnoses" 
+                placeholder="Enter final diagnosis based on tests and examination..."
+                value={dischargeForm.dischargeDiagnoses} 
+                onChange={(e) => setDischargeForm({...dischargeForm, dischargeDiagnoses: e.target.value})} 
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Consults */}
+            <div>
+              <Label htmlFor="consults" className="text-sm font-medium">
+                Consults
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Any consultation(s) had during stay, including dates, specialty(ies) involved, findings or recommendations.</p>
+              <Textarea 
+                id="consults" 
+                placeholder="List consultations with dates, specialties, and recommendations..."
+                value={dischargeForm.consults} 
+                onChange={(e) => setDischargeForm({...dischargeForm, consults: e.target.value})} 
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Procedures */}
+            <div>
+              <Label htmlFor="procedures" className="text-sm font-medium">
+                Procedures
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Any procedure(s) had during stay, including dates, specialty(ies) involved, findings or recommendations.</p>
+              <Textarea 
+                id="procedures" 
+                placeholder="List procedures with dates, specialties, and outcomes..."
+                value={dischargeForm.procedures} 
+                onChange={(e) => setDischargeForm({...dischargeForm, procedures: e.target.value})} 
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Hospital Course */}
+            <div>
+              <Label htmlFor="hospitalCourse" className="text-sm font-medium">
+                Hospital Course *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Consider what information would be important for you as the primary, or receiving physician seeing the patient in follow-up. Be succinct and only include pertinent information.</p>
+              <Textarea 
+                id="hospitalCourse" 
+                placeholder="Describe the patient's hospital stay, treatments, and progress..."
+                value={dischargeForm.hospitalCourse} 
+                onChange={(e) => setDischargeForm({...dischargeForm, hospitalCourse: e.target.value})} 
+                className="min-h-[100px]"
+              />
+            </div>
+
+            {/* Discharge To */}
+            <div>
+              <Label htmlFor="dischargeTo" className="text-sm font-medium">
+                Discharge To *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Home or facility, include homecare if applicable.</p>
+              <Input 
+                id="dischargeTo" 
+                placeholder="e.g., Home, Nursing facility, Rehabilitation center..."
+                value={dischargeForm.dischargeTo} 
+                onChange={(e) => setDischargeForm({...dischargeForm, dischargeTo: e.target.value})} 
+              />
+            </div>
+
+            {/* Discharge Condition */}
+            <div>
+              <Label htmlFor="dischargeCondition" className="text-sm font-medium">
+                Discharge Condition *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">One line summary of patient's condition.</p>
+              <Input 
+                id="dischargeCondition" 
+                placeholder="e.g., Stable, Improved, Good condition..."
+                value={dischargeForm.dischargeCondition} 
+                onChange={(e) => setDischargeForm({...dischargeForm, dischargeCondition: e.target.value})} 
+              />
+            </div>
+
+            {/* Discharge Medications */}
+            <div>
+              <Label htmlFor="dischargeMedications" className="text-sm font-medium">
+                Discharge Medications *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Include doses, frequency, length of therapy, and any changes to pre-existing medications.</p>
+              <Textarea 
+                id="dischargeMedications" 
+                placeholder="List medications with dosage, frequency, and duration..."
+                value={dischargeForm.dischargeMedications} 
+                onChange={(e) => setDischargeForm({...dischargeForm, dischargeMedications: e.target.value})} 
+                className="min-h-[100px]"
+              />
+            </div>
+
+            {/* Discharge Instructions */}
+            <div>
+              <Label htmlFor="dischargeInstructions" className="text-sm font-medium">
+                Discharge Instructions *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">List all instructions that were written on patient's discharge form.</p>
+              <Textarea 
+                id="dischargeInstructions" 
+                placeholder="Activity restrictions, diet, wound care, when to seek medical attention..."
+                value={dischargeForm.dischargeInstructions} 
+                onChange={(e) => setDischargeForm({...dischargeForm, dischargeInstructions: e.target.value})} 
+                className="min-h-[100px]"
+              />
+            </div>
+
+            {/* Pending Labs */}
+            <div>
+              <Label htmlFor="pendingLabs" className="text-sm font-medium">
+                Pending Labs
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">List all lab results that have not yet arrived at time of dictation, as well as any lab results that arrived between time of discharge and time of dictation.</p>
+              <Textarea 
+                id="pendingLabs" 
+                placeholder="List pending laboratory results and follow-up requirements..."
+                value={dischargeForm.pendingLabs} 
+                onChange={(e) => setDischargeForm({...dischargeForm, pendingLabs: e.target.value})} 
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Follow-Up */}
+            <div>
+              <Label htmlFor="followUp" className="text-sm font-medium">
+                Follow-Up *
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">List all follow-up appointments with dates, times, names of physicians/services involved, and contact information.</p>
+              <Textarea 
+                id="followUp" 
+                placeholder="Appointment dates, physician names, contact information..."
+                value={dischargeForm.followUp} 
+                onChange={(e) => setDischargeForm({...dischargeForm, followUp: e.target.value})} 
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Copy To */}
+            <div>
+              <Label htmlFor="copyTo" className="text-sm font-medium">
+                Copy To (Primary Care Provider)
+              </Label>
+              <p className="text-xs text-gray-600 mb-2">Request a copy sent to the primary care provider (PCP) which includes PCP's fax, address and phone number.</p>
+              <Textarea 
+                id="copyTo" 
+                placeholder="Primary care provider name, address, phone, and fax..."
+                value={dischargeForm.copyTo} 
+                onChange={(e) => setDischargeForm({...dischargeForm, copyTo: e.target.value})} 
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setDischargeDialog(false)}>
+              Cancel
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={handlePreviewPDF}>
+                <Eye className="h-4 w-4 mr-1" />
+                Preview PDF
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={handleDischargePatient}>
+                <LogOut className="h-4 w-4 mr-1" />
+                Save & Discharge Patient
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -15,7 +15,15 @@ export async function GET(req: NextRequest) {
     console.log(`[OPD-PATIENTS] Parsed date from URL: ${date}`);
     const status = searchParams.get('status');
 
-    // Simple query - just get appointments for the logged-in doctor ID
+    // First, get the logged-in doctor's department
+    const [doctorDetails]: any = await executeQuery(`SELECT department FROM users WHERE id = ?`, [userId]);
+    if (!doctorDetails || !doctorDetails.department) {
+      console.error(`[OPD-PATIENTS] Could not find department for doctor ID: ${userId}`);
+      return NextResponse.json({ error: 'Doctor department not found' }, { status: 404 });
+    }
+    const doctorDepartment = doctorDetails.department;
+
+    // Query for all appointments in the doctor's department for the given date
     let query = `
       SELECT 
         a.id, 
@@ -34,14 +42,16 @@ export async function GET(req: NextRequest) {
         p.age,
         p.gender,
         creator.name as createdByName,
-        creator.role as createdByRole
+        creator.role as createdByRole,
+        assigned_doctor.name as doctorName
       FROM appointments a
       JOIN patients p ON a.patient_id = p.id
       LEFT JOIN users creator ON a.created_by = creator.id
-      WHERE a.doctor_id = ? AND DATE(appointment_date) = ?
+      LEFT JOIN users assigned_doctor ON a.doctor_id = assigned_doctor.id
+      WHERE a.department = ? AND DATE(a.appointment_date) = ?
     `;
 
-    const params = [userId, date];
+    const params: (string | number)[] = [doctorDepartment, date];
 
     // Add status filter if provided
     if (status && status !== 'all') {
@@ -82,6 +92,7 @@ export async function GET(req: NextRequest) {
         appointmentType: appt.appointment_type,
         consultationFee: appt.consultation_fee,
         createdAt: appt.created_at,
+        doctorName: appt.doctorName, // Add assigned doctor's name
         createdBy: {
           name: appt.createdByName,
           role: appt.createdByRole
