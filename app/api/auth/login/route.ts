@@ -95,6 +95,52 @@ export async function POST(request: NextRequest) {
       'UPDATE users SET last_login = NOW() WHERE id = ?',
       [user.id]
     )
+
+    // Extract IP and User-Agent
+    const forwardedFor = request.headers.get('x-forwarded-for') || ''
+    const ipAddress = forwardedFor.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+
+    // Create admin login logs table if not exists and insert record for admin roles
+    try {
+      await connection2.execute(`
+        CREATE TABLE IF NOT EXISTS admin_login_logs (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          user_id BIGINT NOT NULL,
+          user_uid VARCHAR(50) NULL,
+          user_name VARCHAR(255) NULL,
+          email VARCHAR(255) NULL,
+          role VARCHAR(50) NOT NULL,
+          ip_address VARCHAR(100) NULL,
+          user_agent VARCHAR(512) NULL,
+          logged_in_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_logged_in_at (logged_in_at),
+          INDEX idx_user_id (user_id),
+          INDEX idx_role (role)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `)
+
+      // Only track admins and super-admins
+      if (String(user.role).toLowerCase() === 'admin' || String(user.role).toLowerCase() === 'super-admin') {
+        await connection2.execute(
+          `INSERT INTO admin_login_logs 
+            (user_id, user_uid, user_name, email, role, ip_address, user_agent) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            user.id,
+            user.user_id || null,
+            user.name || null,
+            user.email || null,
+            user.role,
+            String(ipAddress).slice(0, 100),
+            String(userAgent).slice(0, 512)
+          ]
+        )
+      }
+    } catch (logErr) {
+      console.error('Failed to record admin login log:', logErr)
+      // Do not fail login if logging fails
+    }
     await connection2.end()
 
     // Create JWT token
