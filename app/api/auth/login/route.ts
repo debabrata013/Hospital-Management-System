@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT } from 'jose'
-import mysql from 'mysql2/promise'
+import { getConnection } from '@/lib/db/connection'
 import bcrypt from 'bcryptjs'
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const connection = await mysql.createConnection(dbConfig)
+    const connection = await getConnection().getConnection()
 
     // Find user by mobile number or email
     const [users] = await connection.execute(
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Login query found users:', users);
 
-    await connection.end()
+    connection.release()
 
     const userArray = users as any[]
     if (userArray.length === 0) {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     // 403s during login when a nurse has no assigned shift.
 
     // Update last login
-    const connection2 = await mysql.createConnection(dbConfig)
+    const connection2 = await getConnection().getConnection()
     await connection2.execute(
       'UPDATE users SET last_login = NOW() WHERE id = ?',
       [user.id]
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to record admin login log:', logErr)
       // Do not fail login if logging fails
     }
-    await connection2.end()
+    connection2.release()
 
     // Create JWT token
     const token = await new SignJWT({
