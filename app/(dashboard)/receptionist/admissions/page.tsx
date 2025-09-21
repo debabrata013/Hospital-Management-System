@@ -128,6 +128,7 @@ export default function AdmissionsPage() {
   
   const [transferForm, setTransferForm] = useState({
     newRoomId: '',
+    newBedNumber: '',
     transferReason: ''
   })
 
@@ -289,8 +290,8 @@ export default function AdmissionsPage() {
 
       if (response.ok) {
         alert('Patient transferred successfully!')
-        setShowTransferDialog(false)
-        setTransferForm({ newRoomId: '', transferReason: '' })
+  setShowTransferDialog(false)
+  setTransferForm({ newRoomId: '', newBedNumber: '', transferReason: '' })
         fetchAdmissions()
         fetchRooms()
       } else {
@@ -912,6 +913,21 @@ export default function AdmissionsPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Bed number for General Ward */}
+            {(() => {
+              const chosen = rooms.find(r => r.id.toString() === transferForm.newRoomId);
+              const requireBed = chosen?.room_type === 'General Ward';
+              return (
+                <div>
+                  <Label>Bed Number {requireBed ? '*' : '(optional)'}</Label>
+                  <Input
+                    placeholder={requireBed ? 'Enter required bed number' : 'Enter bed number (if applicable)'}
+                    value={transferForm.newBedNumber}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, newBedNumber: e.target.value }))}
+                  />
+                </div>
+              );
+            })()}
             
             <div>
               <Label>Transfer Reason</Label>
@@ -930,7 +946,7 @@ export default function AdmissionsPage() {
             </Button>
             <Button 
               onClick={transferPatient}
-              disabled={isSubmitting || !transferForm.newRoomId}
+              disabled={(() => { const chosen = rooms.find(r => r.id.toString() === transferForm.newRoomId); const req = chosen?.room_type === 'General Ward'; return isSubmitting || !transferForm.newRoomId || (req && !transferForm.newBedNumber); })()}
               className="bg-yellow-500 hover:bg-yellow-600"
             >
               {isSubmitting ? (

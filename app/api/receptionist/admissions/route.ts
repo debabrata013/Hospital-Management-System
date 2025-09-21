@@ -138,6 +138,19 @@ export async function POST(request: NextRequest) {
 
     connection = await getConnection();
     await connection.beginTransaction();
+
+    // Prevent duplicate active admissions for the same patient
+    const [existingActive] = await connection.execute(
+      `SELECT admission_id FROM admissions WHERE patient_id = ? AND status = 'active' LIMIT 1`,
+      [patientId]
+    ) as [any[], any];
+    if ((existingActive as any[]).length > 0) {
+      await connection.rollback();
+      return NextResponse.json(
+        { message: `Patient already admitted (Admission ID: ${(existingActive as any[])[0].admission_id}). Discharge before creating a new admission.` },
+        { status: 409 }
+      );
+    }
     
     // Resolve effective room ID from provided roomId or roomNumber
     let effectiveRoomId: number | null = null;
@@ -320,7 +333,7 @@ export async function PUT(request: NextRequest) {
     connection = await getConnection();
     await connection.beginTransaction();
     
-    if (action === 'discharge') {
+  if (action === 'discharge') {
       const dischargeDate = new Date();
       
       // Get admission details for billing
@@ -428,7 +441,7 @@ export async function PUT(request: NextRequest) {
         stayDays: stayDays
       });
       
-    } else if (action === 'transfer') {
+  } else if (action === 'transfer') {
       // Resolve new room by ID or Number
       let effectiveNewRoomId: number | null = null;
       if (newRoomId) {
@@ -455,7 +468,7 @@ export async function PUT(request: NextRequest) {
       }
       // Check if new room is available
       const [roomCheck] = await connection.execute(
-        `SELECT id, status, capacity, current_occupancy FROM rooms WHERE id = ?`,
+        `SELECT id, status, capacity, current_occupancy, room_type FROM rooms WHERE id = ?`,
         [effectiveNewRoomId]
       ) as [any[], any];
       
@@ -474,6 +487,31 @@ export async function PUT(request: NextRequest) {
           { message: 'New room is not available' },
           { status: 400 }
         );
+      }
+
+      // For General Ward, require a bed number and ensure it's free
+      const bodyFull: any = await request.json().catch(() => ({}));
+      const newBedNumber: string | null = bodyFull?.newBedNumber ? String(bodyFull.newBedNumber) : null;
+      const isNewGW = String(newRoom.room_type || '').toLowerCase() === 'general ward';
+      if (isNewGW) {
+        if (!(newBedNumber && newBedNumber.trim())) {
+          await connection.rollback();
+          return NextResponse.json(
+            { message: 'Bed number is required when transferring to General Ward' },
+            { status: 400 }
+          );
+        }
+        const [occupied] = await connection.execute(
+          `SELECT 1 FROM bed_assignments WHERE room_id = ? AND bed_number = ? AND released_date IS NULL LIMIT 1`,
+          [effectiveNewRoomId, newBedNumber]
+        ) as [any[], any];
+        if ((occupied as any[]).length > 0) {
+          await connection.rollback();
+          return NextResponse.json(
+            { message: 'Selected bed is already occupied in the target ward' },
+            { status: 409 }
+          );
+        }
       }
       
       // Get current admission details
@@ -535,9 +573,9 @@ export async function PUT(request: NextRequest) {
       // Create new bed assignment
       await connection.execute(
         `INSERT INTO bed_assignments (
-          admission_id, room_id, assigned_date, assigned_by, reason
-        ) VALUES (?, ?, NOW(), ?, ?)`,
-        [admissionDbId, effectiveNewRoomId, dischargedBy || 1, transferReason || 'transfer']
+          admission_id, room_id, bed_number, assigned_date, assigned_by, reason
+        ) VALUES (?, ?, ?, NOW(), ?, ?)`,
+        [admissionDbId, effectiveNewRoomId, newBedNumber, dischargedBy || 1, transferReason || 'transfer']
       );
     }
     
