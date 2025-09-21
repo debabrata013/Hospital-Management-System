@@ -57,52 +57,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If multiple users found, prefer the one with the lowest ID (original entry)
-    // This ensures we use the correct Dr. Rajesh Kumar (ID 3) instead of duplicate (ID 22)
-    const user = userArray[0];
-    console.log('Selected user for login:', { id: user.id, name: user.name, role: user.role });
+    // If multiple users found (duplicates by contact/email),
+    // find the row whose password hash matches the provided password.
+    let user = null as any
+    for (const candidate of userArray) {
+      try {
+        if (candidate?.password_hash) {
+          const ok = await bcrypt.compare(password, candidate.password_hash)
+          if (ok) {
+            user = candidate
+            break
+          }
+        }
+      } catch {
+        // ignore and continue checking next candidate
+      }
+    }
 
-    // Compare password with hashed password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash)
-    if (!isPasswordValid) {
+    if (!user) {
       return NextResponse.json(
         { message: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
-    // Validate schedule for nurses before allowing login
-    if (user.role === 'nurse') {
-      console.log('[LOGIN] Validating nurse schedule for user:', user.id)
-      
-      try {
-        const scheduleValidation = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/validate-schedule`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, role: user.role })
-        })
-        
-        const scheduleResult = await scheduleValidation.json()
-        console.log('[LOGIN] Schedule validation result:', scheduleResult)
-        
-        if (!scheduleResult.canLogin) {
-          return NextResponse.json(
-            { 
-              message: scheduleResult.message,
-              errorType: scheduleResult.errorType,
-              schedule: scheduleResult.schedule
-            },
-            { status: 403 }
-          )
-        }
-      } catch (scheduleError) {
-        console.error('[LOGIN] Schedule validation error:', scheduleError)
-        return NextResponse.json(
-          { message: 'Unable to validate your schedule. Please contact IT support.' },
-          { status: 500 }
-        )
-      }
-    }
+    console.log('Selected user for login after hash match:', { id: user.id, name: user.name, role: user.role });
+
+    // Note: Do not block login based on schedule.
+    // Schedule-based access control is enforced at page access time
+    // by middleware for nurse routes (e.g., /nurse/*). This keeps
+    // authentication independent from schedule availability and avoids
+    // 403s during login when a nurse has no assigned shift.
 
     // Update last login
     const connection2 = await mysql.createConnection(dbConfig)
