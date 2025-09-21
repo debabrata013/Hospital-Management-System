@@ -264,9 +264,11 @@ export default function DoctorsPage() {
       return
     }
 
+    const requestData: { [key: string]: any } = { ...cleanData };
+
     // Remove empty password from request if not provided
-    if (!cleanData.password) {
-      delete cleanData.password
+    if (!requestData.password) {
+      delete requestData.password;
     }
 
     console.log('Sending doctor update data:', cleanData) // Debug log

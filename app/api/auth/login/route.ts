@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT } from 'jose'
-import mysql from 'mysql2/promise'
+import { getConnection } from '@/lib/db/connection'
 import bcrypt from 'bcryptjs'
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const connection = await mysql.createConnection(dbConfig)
+    const connection = await getConnection().getConnection()
 
     // Find user by mobile number or email
     const [users] = await connection.execute(
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Login query found users:', users);
 
-    await connection.end()
+    connection.release()
 
     const userArray = users as any[]
     if (userArray.length === 0) {
@@ -57,60 +57,91 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If multiple users found, prefer the one with the lowest ID (original entry)
-    // This ensures we use the correct Dr. Rajesh Kumar (ID 3) instead of duplicate (ID 22)
-    const user = userArray[0];
-    console.log('Selected user for login:', { id: user.id, name: user.name, role: user.role });
+    // If multiple users found (duplicates by contact/email),
+    // find the row whose password hash matches the provided password.
+    let user = null as any
+    for (const candidate of userArray) {
+      try {
+        if (candidate?.password_hash) {
+          const ok = await bcrypt.compare(password, candidate.password_hash)
+          if (ok) {
+            user = candidate
+            break
+          }
+        }
+      } catch {
+        // ignore and continue checking next candidate
+      }
+    }
 
-    // Compare password with hashed password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash)
-    if (!isPasswordValid) {
+    if (!user) {
       return NextResponse.json(
         { message: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
-    // Validate schedule for nurses before allowing login
-    if (user.role === 'nurse') {
-      console.log('[LOGIN] Validating nurse schedule for user:', user.id)
-      
-      try {
-        const scheduleValidation = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/validate-schedule`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, role: user.role })
-        })
-        
-        const scheduleResult = await scheduleValidation.json()
-        console.log('[LOGIN] Schedule validation result:', scheduleResult)
-        
-        if (!scheduleResult.canLogin) {
-          return NextResponse.json(
-            { 
-              message: scheduleResult.message,
-              errorType: scheduleResult.errorType,
-              schedule: scheduleResult.schedule
-            },
-            { status: 403 }
-          )
-        }
-      } catch (scheduleError) {
-        console.error('[LOGIN] Schedule validation error:', scheduleError)
-        return NextResponse.json(
-          { message: 'Unable to validate your schedule. Please contact IT support.' },
-          { status: 500 }
-        )
-      }
-    }
+    console.log('Selected user for login after hash match:', { id: user.id, name: user.name, role: user.role });
+
+    // Note: Do not block login based on schedule.
+    // Schedule-based access control is enforced at page access time
+    // by middleware for nurse routes (e.g., /nurse/*). This keeps
+    // authentication independent from schedule availability and avoids
+    // 403s during login when a nurse has no assigned shift.
 
     // Update last login
-    const connection2 = await mysql.createConnection(dbConfig)
+    const connection2 = await getConnection().getConnection()
     await connection2.execute(
       'UPDATE users SET last_login = NOW() WHERE id = ?',
       [user.id]
     )
-    await connection2.end()
+
+    // Extract IP and User-Agent
+    const forwardedFor = request.headers.get('x-forwarded-for') || ''
+    const ipAddress = forwardedFor.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+
+    // Create admin login logs table if not exists and insert record for admin roles
+    try {
+      await connection2.execute(`
+        CREATE TABLE IF NOT EXISTS admin_login_logs (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          user_id BIGINT NOT NULL,
+          user_uid VARCHAR(50) NULL,
+          user_name VARCHAR(255) NULL,
+          email VARCHAR(255) NULL,
+          role VARCHAR(50) NOT NULL,
+          ip_address VARCHAR(100) NULL,
+          user_agent VARCHAR(512) NULL,
+          logged_in_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_logged_in_at (logged_in_at),
+          INDEX idx_user_id (user_id),
+          INDEX idx_role (role)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `)
+
+      // Only track admins and super-admins
+      if (String(user.role).toLowerCase() === 'admin' || String(user.role).toLowerCase() === 'super-admin') {
+        await connection2.execute(
+          `INSERT INTO admin_login_logs 
+            (user_id, user_uid, user_name, email, role, ip_address, user_agent) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            user.id,
+            user.user_id || null,
+            user.name || null,
+            user.email || null,
+            user.role,
+            String(ipAddress).slice(0, 100),
+            String(userAgent).slice(0, 512)
+          ]
+        )
+      }
+    } catch (logErr) {
+      console.error('Failed to record admin login log:', logErr)
+      // Do not fail login if logging fails
+    }
+    connection2.release()
 
     // Create JWT token
     const token = await new SignJWT({
