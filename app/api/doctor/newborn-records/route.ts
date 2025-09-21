@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const [rows] = await connection.execute(
       'SELECT * FROM newborn_records WHERE id = ?',
       [(result as any).insertId]
-    );
+    ) as mysql.RowDataPacket[];
 
     return NextResponse.json({
       success: true,
