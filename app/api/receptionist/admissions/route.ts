@@ -319,8 +319,18 @@ export async function PUT(request: NextRequest) {
   
   try {
     const {
-      admissionId, action, dischargeNotes, dischargeSummary, dischargeInstructions,
-      newRoomId, transferReason, dischargedBy
+      admissionId,
+      action,
+      dischargeNotes,
+      dischargeSummary,
+      dischargeInstructions,
+      newRoomId,
+      newRoomNumber,
+      newRoomType,
+      newBedNumber,
+      newDoctorId,
+      transferReason,
+      dischargedBy
     } = await request.json();
 
     if (!admissionId || !action) {
@@ -444,12 +454,13 @@ export async function PUT(request: NextRequest) {
   } else if (action === 'transfer') {
       // Resolve new room by ID or Number
       let effectiveNewRoomId: number | null = null;
+      let manualNewRoomNumber: string | null = null;
+      let manualNewBedNumber: string | null = null;
       if (newRoomId) {
         effectiveNewRoomId = parseInt(newRoomId, 10);
         if (Number.isNaN(effectiveNewRoomId)) effectiveNewRoomId = null;
       }
-      const body: any = await request.json().catch(() => ({}));
-      const newRoomNumber = body?.newRoomNumber as string | undefined;
+      // newRoomNumber provided from the initial body destructure
       if (!effectiveNewRoomId && newRoomNumber) {
         const [lookup] = await connection.execute(
           `SELECT id FROM rooms WHERE room_number = ? LIMIT 1`,
@@ -457,61 +468,87 @@ export async function PUT(request: NextRequest) {
         ) as [any[], any];
         if ((lookup as any[]).length > 0) {
           effectiveNewRoomId = (lookup as any[])[0].id;
+        } else {
+          // Fallback to manual room transfer
+          manualNewRoomNumber = String(newRoomNumber);
+          manualNewBedNumber = newBedNumber ? String(newBedNumber) : null;
         }
       }
-      if (!effectiveNewRoomId) {
+      let newRoom: any = null;
+      let isNewGW = false;
+      let nextBed: string | null = newBedNumber ? String(newBedNumber) : null;
+      if (effectiveNewRoomId) {
+        // Check if new room is available
+        const [roomCheck] = await connection.execute(
+          `SELECT id, status, capacity, current_occupancy, room_type FROM rooms WHERE id = ?`,
+          [effectiveNewRoomId]
+        ) as [any[], any];
+        if ((roomCheck as any[]).length === 0) {
+          await connection.rollback();
+          return NextResponse.json(
+            { message: 'New room not found' },
+            { status: 400 }
+          );
+        }
+        newRoom = (roomCheck as any[])[0];
+        if (newRoom.status === 'Maintenance' || newRoom.current_occupancy >= newRoom.capacity) {
+          await connection.rollback();
+          return NextResponse.json(
+            { message: 'New room is not available' },
+            { status: 400 }
+          );
+        }
+        isNewGW = String(newRoom.room_type || '').toLowerCase() === 'general ward';
+        if (isNewGW) {
+          if (!(nextBed && nextBed.trim())) {
+            await connection.rollback();
+            return NextResponse.json(
+              { message: 'Bed number is required when transferring to General Ward' },
+              { status: 400 }
+            );
+          }
+          const [occupied] = await connection.execute(
+            `SELECT 1 FROM bed_assignments WHERE room_id = ? AND bed_number = ? AND released_date IS NULL LIMIT 1`,
+            [effectiveNewRoomId, nextBed]
+          ) as [any[], any];
+          if ((occupied as any[]).length > 0) {
+            await connection.rollback();
+            return NextResponse.json(
+              { message: 'Selected bed is already occupied in the target ward' },
+              { status: 409 }
+            );
+          }
+        }
+      } else if (manualNewRoomNumber) {
+        // Manual transfer path (room not tracked in rooms table)
+        const manualType = String(newRoomType || '').toLowerCase();
+        isNewGW = manualType === 'general ward';
+        if (isNewGW) {
+          if (!(manualNewBedNumber && manualNewBedNumber.trim())) {
+            await connection.rollback();
+            return NextResponse.json(
+              { message: 'Bed number is required when transferring to General Ward' },
+              { status: 400 }
+            );
+          }
+          const [occupiedManual] = await connection.execute(
+            `SELECT 1 FROM admissions WHERE status = 'active' AND manual_room_number = ? AND manual_bed_number = ? LIMIT 1`,
+            [manualNewRoomNumber, manualNewBedNumber]
+          ) as [any[], any];
+          if ((occupiedManual as any[]).length > 0) {
+            await connection.rollback();
+            return NextResponse.json(
+              { message: 'Selected bed is already occupied in the target ward' },
+              { status: 409 }
+            );
+          }
+        }
+      } else {
         await connection.rollback();
         return NextResponse.json(
           { message: 'New room (ID or Number) is required' },
           { status: 400 }
         );
-      }
-      // Check if new room is available
-      const [roomCheck] = await connection.execute(
-        `SELECT id, status, capacity, current_occupancy, room_type FROM rooms WHERE id = ?`,
-        [effectiveNewRoomId]
-      ) as [any[], any];
-      
-      if ((roomCheck as any[]).length === 0) {
-        await connection.rollback();
-        return NextResponse.json(
-          { message: 'New room not found' },
-          { status: 400 }
-        );
-      }
-      
-      const newRoom = (roomCheck as any[])[0];
-      if (newRoom.status === 'Maintenance' || newRoom.current_occupancy >= newRoom.capacity) {
-        await connection.rollback();
-        return NextResponse.json(
-          { message: 'New room is not available' },
-          { status: 400 }
-        );
-      }
-
-      // For General Ward, require a bed number and ensure it's free
-      const bodyFull: any = await request.json().catch(() => ({}));
-      const newBedNumber: string | null = bodyFull?.newBedNumber ? String(bodyFull.newBedNumber) : null;
-      const isNewGW = String(newRoom.room_type || '').toLowerCase() === 'general ward';
-      if (isNewGW) {
-        if (!(newBedNumber && newBedNumber.trim())) {
-          await connection.rollback();
-          return NextResponse.json(
-            { message: 'Bed number is required when transferring to General Ward' },
-            { status: 400 }
-          );
-        }
-        const [occupied] = await connection.execute(
-          `SELECT 1 FROM bed_assignments WHERE room_id = ? AND bed_number = ? AND released_date IS NULL LIMIT 1`,
-          [effectiveNewRoomId, newBedNumber]
-        ) as [any[], any];
-        if ((occupied as any[]).length > 0) {
-          await connection.rollback();
-          return NextResponse.json(
-            { message: 'Selected bed is already occupied in the target ward' },
-            { status: 409 }
-          );
-        }
       }
       
       // Get current admission details
@@ -531,10 +568,38 @@ export async function PUT(request: NextRequest) {
       const oldRoomId = (currentAdmission as any[])[0].room_id;
       const admissionDbId = (currentAdmission as any[])[0].id;
       
-      // Update admission with new room
+      // Update admission with new room (tracked or manual) and optionally doctor
+      const updateFields: string[] = [];
+      const updateParams: any[] = [];
+      if (effectiveNewRoomId) {
+        updateFields.push('room_id = ?');
+        updateParams.push(effectiveNewRoomId);
+        // Clear manual fields when moving into a tracked room
+        updateFields.push('manual_room_number = NULL', 'manual_bed_number = NULL');
+        // Optionally carry room_type from rooms
+        if (newRoom && newRoom.room_type) {
+          updateFields.push('room_type = ?');
+          updateParams.push(newRoom.room_type);
+        }
+      } else if (manualNewRoomNumber) {
+        updateFields.push('room_id = NULL');
+        updateFields.push('manual_room_number = ?');
+        updateParams.push(manualNewRoomNumber);
+        updateFields.push('manual_bed_number = ?');
+        updateParams.push(manualNewBedNumber || null);
+        if (newRoomType) {
+          updateFields.push('room_type = ?');
+          updateParams.push(newRoomType);
+        }
+      }
+      if (newDoctorId) {
+        updateFields.push('doctor_id = ?');
+        updateParams.push(newDoctorId);
+      }
+      updateParams.push(admissionId);
       await connection.execute(
-        `UPDATE admissions SET room_id = ?, updated_at = NOW() WHERE admission_id = ?`,
-        [effectiveNewRoomId, admissionId]
+        `UPDATE admissions SET ${updateFields.join(', ')}, updated_at = NOW() WHERE admission_id = ?`,
+        updateParams
       );
       
       // Get old room info and update occupancy
@@ -553,14 +618,15 @@ export async function PUT(request: NextRequest) {
         );
       }
       
-      // Update new room occupancy
-      const newRoomOccupancy = newRoom.current_occupancy + 1;
-      const newRoomStatus = newRoomOccupancy >= newRoom.capacity ? 'Occupied' : 'Available';
-      
-      await connection.execute(
-        `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
-        [newRoomStatus, newRoomOccupancy, effectiveNewRoomId]
-      );
+      // Update new room occupancy (only for tracked rooms)
+      if (effectiveNewRoomId && newRoom) {
+        const newRoomOccupancy = newRoom.current_occupancy + 1;
+        const newRoomStatus = newRoomOccupancy >= newRoom.capacity ? 'Occupied' : 'Available';
+        await connection.execute(
+          `UPDATE rooms SET status = ?, current_occupancy = ?, updated_at = NOW() WHERE id = ?`,
+          [newRoomStatus, newRoomOccupancy, effectiveNewRoomId]
+        );
+      }
       
       // Close old bed assignment
       await connection.execute(
@@ -570,13 +636,15 @@ export async function PUT(request: NextRequest) {
         [transferReason || 'transfer', admissionDbId]
       );
       
-      // Create new bed assignment
-      await connection.execute(
-        `INSERT INTO bed_assignments (
-          admission_id, room_id, bed_number, assigned_date, assigned_by, reason
-        ) VALUES (?, ?, ?, NOW(), ?, ?)`,
-        [admissionDbId, effectiveNewRoomId, newBedNumber, dischargedBy || 1, transferReason || 'transfer']
-      );
+      // Create new bed assignment only for tracked rooms
+      if (effectiveNewRoomId) {
+        await connection.execute(
+          `INSERT INTO bed_assignments (
+            admission_id, room_id, bed_number, assigned_date, assigned_by, reason
+          ) VALUES (?, ?, ?, NOW(), ?, ?)`,
+          [admissionDbId, effectiveNewRoomId, isNewGW ? (nextBed || null) : null, dischargedBy || 1, transferReason || 'transfer']
+        );
+      }
     }
     
     await connection.commit();

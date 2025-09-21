@@ -128,7 +128,10 @@ export default function AdmissionsPage() {
   
   const [transferForm, setTransferForm] = useState({
     newRoomId: '',
+    newRoomType: 'Private',
+    newRoomNumber: '',
     newBedNumber: '',
+    newDoctorId: '',
     transferReason: ''
   })
 
@@ -273,7 +276,12 @@ export default function AdmissionsPage() {
 
 
   const transferPatient = async () => {
-    if (!selectedAdmission || !transferForm.newRoomId) return
+    if (!selectedAdmission) return
+    const requireBed = transferForm.newRoomType === 'General Ward'
+    if (!transferForm.newRoomNumber || !transferForm.newDoctorId || (requireBed && !transferForm.newBedNumber)) {
+      alert('Please fill in required fields for transfer')
+      return
+    }
     
     try {
       setIsSubmitting(true)
@@ -291,7 +299,7 @@ export default function AdmissionsPage() {
       if (response.ok) {
         alert('Patient transferred successfully!')
   setShowTransferDialog(false)
-  setTransferForm({ newRoomId: '', newBedNumber: '', transferReason: '' })
+  setTransferForm({ newRoomId: '', newRoomType: 'Private', newRoomNumber: '', newBedNumber: '', newDoctorId: '', transferReason: '' })
         fetchAdmissions()
         fetchRooms()
       } else {
@@ -896,39 +904,55 @@ export default function AdmissionsPage() {
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Room Type */}
             <div>
-              <Label>New Room *</Label>
-              <Select value={transferForm.newRoomId} onValueChange={(value) => 
-                setTransferForm(prev => ({ ...prev, newRoomId: value }))
-              }>
+              <Label>Room Type</Label>
+              <Select value={transferForm.newRoomType} onValueChange={(value) => setTransferForm(prev => ({ ...prev, newRoomType: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select new room" />
+                  <SelectValue placeholder="Select room type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rooms.map(room => (
-                    <SelectItem key={room.id} value={room.id.toString()}>
-                      {room.room_number} - {room.room_type} (₹{room.daily_rate}/day) - Floor {room.floor}
+                  <SelectItem value="Private">Private</SelectItem>
+                  <SelectItem value="General Ward">General Ward</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Room Number */}
+            <div>
+              <Label>Room Number *</Label>
+              <Input
+                placeholder={transferForm.newRoomType === 'General Ward' ? 'e.g., GW-1' : 'e.g., 101'}
+                value={transferForm.newRoomNumber}
+                onChange={(e) => setTransferForm(prev => ({ ...prev, newRoomNumber: e.target.value }))}
+              />
+            </div>
+            {/* Bed number for General Ward */}
+            <div>
+              <Label>Bed Number {transferForm.newRoomType === 'General Ward' ? '*' : '(N/A for Private)'}</Label>
+              <Input
+                placeholder={transferForm.newRoomType === 'General Ward' ? 'Enter bed number' : 'N/A'}
+                value={transferForm.newBedNumber}
+                onChange={(e) => setTransferForm(prev => ({ ...prev, newBedNumber: e.target.value }))}
+                disabled={transferForm.newRoomType !== 'General Ward'}
+              />
+            </div>
+            {/* Attending Doctor */}
+            <div>
+              <Label>Attending Doctor *</Label>
+              <Select value={transferForm.newDoctorId} onValueChange={(value) => setTransferForm(prev => ({ ...prev, newDoctorId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors.map(doc => (
+                    <SelectItem key={doc.id} value={doc.id.toString()}>
+                      Dr. {doc.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            {/* Bed number for General Ward */}
-            {(() => {
-              const chosen = rooms.find(r => r.id.toString() === transferForm.newRoomId);
-              const requireBed = chosen?.room_type === 'General Ward';
-              return (
-                <div>
-                  <Label>Bed Number {requireBed ? '*' : '(optional)'}</Label>
-                  <Input
-                    placeholder={requireBed ? 'Enter required bed number' : 'Enter bed number (if applicable)'}
-                    value={transferForm.newBedNumber}
-                    onChange={(e) => setTransferForm(prev => ({ ...prev, newBedNumber: e.target.value }))}
-                  />
-                </div>
-              );
-            })()}
-            
+            {/* Transfer Reason */}
             <div>
               <Label>Transfer Reason</Label>
               <Textarea
@@ -946,7 +970,7 @@ export default function AdmissionsPage() {
             </Button>
             <Button 
               onClick={transferPatient}
-              disabled={(() => { const chosen = rooms.find(r => r.id.toString() === transferForm.newRoomId); const req = chosen?.room_type === 'General Ward'; return isSubmitting || !transferForm.newRoomId || (req && !transferForm.newBedNumber); })()}
+              disabled={(() => { const req = transferForm.newRoomType === 'General Ward'; return isSubmitting || !transferForm.newRoomNumber || !transferForm.newDoctorId || (req && !transferForm.newBedNumber); })()}
               className="bg-yellow-500 hover:bg-yellow-600"
             >
               {isSubmitting ? (
