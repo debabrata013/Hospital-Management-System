@@ -108,6 +108,7 @@ export default function AdmissionsPage() {
   // Form states
   const [admissionForm, setAdmissionForm] = useState({
     patientId: '',
+    roomType: 'Private',
     roomNumber: '',
     bedNumber: '',
     doctorId: '',
@@ -220,7 +221,8 @@ export default function AdmissionsPage() {
   }
 
   const createAdmission = async () => {
-    if (!admissionForm.patientId || !admissionForm.roomNumber || !admissionForm.bedNumber || !admissionForm.doctorId) {
+    const requireBed = admissionForm.roomType === 'General Ward'
+    if (!admissionForm.patientId || !admissionForm.roomNumber || (requireBed && !admissionForm.bedNumber) || !admissionForm.doctorId) {
       alert('Please fill in all required fields')
       return
     }
@@ -232,6 +234,7 @@ export default function AdmissionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: admissionForm.patientId,
+          roomType: admissionForm.roomType,
           roomNumber: admissionForm.roomNumber,
           bedNumber: admissionForm.bedNumber,
           doctorId: admissionForm.doctorId,
@@ -300,6 +303,7 @@ export default function AdmissionsPage() {
   const resetAdmissionForm = () => {
     setAdmissionForm({
       patientId: '',
+      roomType: 'Private',
       roomNumber: '',
       bedNumber: '',
       doctorId: '',
@@ -375,6 +379,7 @@ export default function AdmissionsPage() {
             setPatientSearchQuery('')
             setAdmissionForm({
               patientId: '',
+              roomType: 'Private',
               roomNumber: '',
               bedNumber: '',
               doctorId: '',
@@ -700,24 +705,61 @@ export default function AdmissionsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              {/* Room Type */}
+              <div>
+                <Label>Room Type</Label>
+                <Select value={(admissionForm as any).roomType} onValueChange={(value) => {
+                  setAdmissionForm(prev => ({ ...prev, roomType: value }))
+                  if (value === 'General Ward') {
+                    if (!admissionForm.roomNumber) {
+                      const gwRooms = rooms.filter(r => (r.room_type || '').toLowerCase() === 'general ward')
+                      if (gwRooms.length > 0) {
+                        setAdmissionForm(prev => ({ ...prev, roomNumber: gwRooms[0].room_number }))
+                      } else {
+                        setAdmissionForm(prev => ({ ...prev, roomNumber: 'GW-1' }))
+                      }
+                    }
+                  } else {
+                    setAdmissionForm(prev => ({ ...prev, bedNumber: '' }))
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select room type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Private">Private</SelectItem>
+                    <SelectItem value="General Ward">General Ward</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Room Manual Entry */}
               <div>
                 <Label>Room Number *</Label>
                 <Input
-                  placeholder="Enter room number"
+                  placeholder={(admissionForm as any).roomType === 'General Ward' ? 'e.g., GW-1' : 'e.g., 101'}
                   value={admissionForm.roomNumber}
                   onChange={(e) => setAdmissionForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                  onBlur={() => {
+                    if ((admissionForm as any).roomType === 'General Ward' && admissionForm.roomNumber && !admissionForm.roomNumber.startsWith('GW-')) {
+                      setAdmissionForm(prev => ({ ...prev, roomNumber: `GW-${prev.roomNumber}` }))
+                    }
+                  }}
                 />
               </div>
 
               {/* Bed Manual Entry */}
               <div>
-                <Label>Bed Number *</Label>
+                <Label>Bed Number {(admissionForm as any).roomType === 'General Ward' ? '*' : '(N/A for Private)'}</Label>
                 <Input
                   placeholder="Enter bed number"
                   value={admissionForm.bedNumber}
                   onChange={(e) => setAdmissionForm(prev => ({ ...prev, bedNumber: e.target.value }))}
+                  disabled={(admissionForm as any).roomType !== 'General Ward'}
                 />
+                {(admissionForm as any).roomType === 'General Ward' && (
+                  <div className="text-xs text-gray-500 mt-1">Bed number is required for General Ward</div>
+                )}
               </div>
 
               {/* Doctor Selection */}
@@ -820,7 +862,7 @@ export default function AdmissionsPage() {
             </Button>
             <Button 
               onClick={createAdmission}
-              disabled={isSubmitting || !admissionForm.patientId || !admissionForm.roomNumber || !admissionForm.bedNumber || !admissionForm.doctorId}
+              disabled={(() => { const req = admissionForm.roomType === 'General Ward'; return isSubmitting || !admissionForm.patientId || !admissionForm.roomNumber || (req && !admissionForm.bedNumber) || !admissionForm.doctorId })()}
               className="bg-pink-500 hover:bg-pink-600"
             >
               {isSubmitting ? (

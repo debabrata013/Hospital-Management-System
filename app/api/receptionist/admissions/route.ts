@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         a.emergency_contact_name, a.emergency_contact_phone, a.emergency_contact_relation,
         p.name as patient_name, p.age, p.gender, p.contact_number as patient_phone,
         COALESCE(r.room_number, a.manual_room_number) as room_number,
-        r.room_type,
+        COALESCE(r.room_type, a.room_type) as room_type,
         d.name as doctor_name,
         ab.name as admitted_by_name,
         a.created_at
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (roomType && roomType !== 'all') {
-      query += ` AND r.room_type = ?`;
+      query += ` AND COALESCE(r.room_type, a.room_type) = ?`;
       params.push(roomType);
     }
     
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const {
       patientId, roomId, roomNumber, bedNumber, doctorId, admissionType, diagnosis, chiefComplaint,
       admissionNotes, estimatedStayDays, emergencyContactName, emergencyContactPhone,
-      emergencyContactRelation, insuranceDetails, admittedBy
+      emergencyContactRelation, insuranceDetails, admittedBy, roomType
     } = await request.json();
 
     // Require patientId, doctorId and either roomId or roomNumber
@@ -158,6 +158,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If General Ward, bedNumber is mandatory
+    const isGeneralWard = String(roomType || '').toLowerCase() === 'general ward'.toLowerCase();
+    if (isGeneralWard && !(manualBedNumber && manualBedNumber.trim())) {
+      await connection.rollback();
+      return NextResponse.json(
+        { message: 'Bed number is required for General Ward admissions' },
+        { status: 400 }
+      );
+    }
+
     // Check if room is available
     if (effectiveRoomId) {
       const [roomCheck] = await connection.execute(
@@ -181,20 +191,54 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Prevent double booking of same bed in General Ward
+    if (isGeneralWard) {
+      if (effectiveRoomId) {
+        const [occupied] = await connection.execute(
+          `SELECT 1 FROM bed_assignments 
+           WHERE room_id = ? AND bed_number = ? AND released_date IS NULL 
+           LIMIT 1`,
+          [effectiveRoomId, manualBedNumber]
+        ) as [any[], any];
+        if ((occupied as any[]).length > 0) {
+          await connection.rollback();
+          return NextResponse.json(
+            { message: 'Selected bed is already occupied in this ward' },
+            { status: 409 }
+          );
+        }
+      } else if (manualRoomNumber) {
+        const [occupiedManual] = await connection.execute(
+          `SELECT 1 FROM admissions 
+           WHERE status = 'active' AND manual_room_number = ? AND manual_bed_number = ?
+           LIMIT 1`,
+          [manualRoomNumber, manualBedNumber]
+        ) as [any[], any];
+        if ((occupiedManual as any[]).length > 0) {
+          await connection.rollback();
+          return NextResponse.json(
+            { message: 'Selected bed is already occupied in this ward' },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     const admissionId = generateAdmissionId();
     const admissionDate = new Date();
     
     // Insert admission
     const [admissionResult] = await connection.execute(
       `INSERT INTO admissions (
-        admission_id, patient_id, room_id, manual_room_number, manual_bed_number, doctor_id, admission_date,
+        admission_id, patient_id, room_id, room_type, manual_room_number, manual_bed_number, doctor_id, admission_date,
         admission_type, status, diagnosis, chief_complaint, admission_notes,
         estimated_stay_days, emergency_contact_name, emergency_contact_phone,
         emergency_contact_relation, insurance_details, admitted_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        admissionId, patientId, effectiveRoomId, manualRoomNumber, manualBedNumber, doctorId, admissionDate,
-        admissionType || 'planned', diagnosis || null, chiefComplaint || null,
+        admissionId, patientId, effectiveRoomId, roomType || null, manualRoomNumber, manualBedNumber, doctorId, admissionDate,
+        admissionType || 'planned',
+        diagnosis || null, chiefComplaint || null,
         admissionNotes || null, estimatedStayDays || null, emergencyContactName || null,
         emergencyContactPhone || null, emergencyContactRelation || null,
         insuranceDetails ? JSON.stringify(insuranceDetails) : null, admittedBy || 1
@@ -220,13 +264,15 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Create bed assignment record
-    await connection.execute(
-      `INSERT INTO bed_assignments (
-        admission_id, room_id, bed_number, assigned_date, assigned_by
-      ) VALUES (?, ?, ?, ?, ?)`,
-      [admissionDbId, effectiveRoomId, manualBedNumber, admissionDate, admittedBy || 1]
-    );
+    // Create bed assignment record (only when we have a room_id)
+    if (effectiveRoomId) {
+      await connection.execute(
+        `INSERT INTO bed_assignments (
+          admission_id, room_id, bed_number, assigned_date, assigned_by
+        ) VALUES (?, ?, ?, ?, ?)`,
+        [admissionDbId, effectiveRoomId, manualBedNumber, admissionDate, admittedBy || 1]
+      );
+    }
     
     await connection.commit();
     
