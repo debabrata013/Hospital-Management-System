@@ -111,6 +111,22 @@ export async function POST(request: NextRequest) {
     
     const internalPatientId = (patientResult[0] as RowDataPacket).id as number;
 
+    // Prevent duplicate appointment for same patient on the same date
+    const [existingForPatient] = await connection.execute<RowDataPacket[]>(
+      `SELECT id FROM appointments 
+       WHERE patient_id = ? 
+         AND DATE(appointment_date) = DATE(?)
+         AND status NOT IN ('cancelled', 'Cancelled')
+       LIMIT 1`,
+      [internalPatientId, appointmentDate]
+    );
+    if (existingForPatient.length > 0) {
+      return NextResponse.json(
+        { message: 'This patient already has an appointment on the selected date.' },
+        { status: 409 }
+      );
+    }
+
     // If doctorId is not provided, select one from the specified department
     let resolvedDoctorId = doctorId as number | undefined;
     if (!resolvedDoctorId) {
