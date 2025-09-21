@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['male', 'female', 'other'].includes(gender)) {
+    if (!['male', 'female', 'ambiguous'].includes(gender)) {
       return NextResponse.json(
         { success: false, message: 'Invalid gender value' },
         { status: 400 }

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS newborn_records (
     id INT AUTO_INCREMENT PRIMARY KEY,
     record_id VARCHAR(20) NOT NULL UNIQUE,
     birth_date DATETIME NOT NULL,
-    gender ENUM('male', 'female', 'other') NOT NULL,
+    gender ENUM('male', 'female', 'ambiguous') NOT NULL,
     status ENUM('healthy', 'under_observation', 'critical', 'deceased') NOT NULL,
     weight_grams INT NOT NULL,
     mother_name VARCHAR(100),

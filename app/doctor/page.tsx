@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse } from 'lucide-react'
+import NewbornSection from '@/doctor-dashboard-newborn-section';
 
 
 // Mock data removed - using real API data from /api/doctor/appointments
@@ -96,6 +97,15 @@ export default function DoctorDashboard() {
   const [recentPatientsLoading, setRecentPatientsLoading] = useState(true);
   const [assignedNurses, setAssignedNurses] = useState<any>({ opd: { count: 0, nurses: [] }, ward: { count: 0, nurses: [] } });
   const [nursesLoading, setNursesLoading] = useState(true);
+  const [newbornRecords, setNewbornRecords] = useState<any[]>([]);
+  const [newbornsLoading, setNewbornsLoading] = useState(true);
+  
+  // Calculate newborn stats from the records
+  const newbornStats = {
+    healthy: newbornRecords.filter(r => r.status === 'healthy').length,
+    under_observation: newbornRecords.filter(r => r.status === 'under_observation').length,
+    total: newbornRecords.length,
+  };
   
   // Patient filter state
   const [patientFilter, setPatientFilter] = useState<'all' | 'active' | 'discharged'>('all');
@@ -704,12 +714,29 @@ export default function DoctorDashboard() {
       }
     };
 
+    const fetchNewbornRecords = async () => {
+      if (user?.department?.toLowerCase() !== 'gynecology') return;
+      try {
+        setNewbornsLoading(true);
+        const response = await fetch('/api/doctor/newborn-records');
+        if (response.ok) {
+          const data = await response.json();
+          setNewbornRecords(data.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching newborn records:", error);
+      } finally {
+        setNewbornsLoading(false);
+      }
+    };
+
 
     if (user) {
       fetchStats();
       fetchAdmittedPatients();
       fetchRecentPatients();
       fetchAssignedNurses();
+      fetchNewbornRecords();
     }
   }, [user]);
 
@@ -985,37 +1012,55 @@ export default function DoctorDashboard() {
                 <CardDescription>Common daily operations</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Link href="/doctor/patients">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Users className="h-5 w-5" />
-                      <span className="text-sm">Patient Records</span>
-                    </Button>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Link href="/doctor/patients" className="block p-6 bg-white rounded-xl shadow-sm border hover:border-pink-300 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-3 bg-pink-100 rounded-lg">
+                        <Users className="h-6 w-6 text-pink-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Patient Records</h3>
+                        <p className="text-sm text-gray-600">Access and manage patient files</p>
+                      </div>
+                    </div>
                   </Link>
-                  
-                  <Link href="/doctor/opd-patients">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Stethoscope className="h-5 w-5" />
-                      <span className="text-sm">OPD Patients</span>
-                    </Button>
+                  <Link href="/doctor/opd-patients" className="block p-6 bg-white rounded-xl shadow-sm border hover:border-pink-300 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-3 bg-pink-100 rounded-lg">
+                        <Stethoscope className="h-6 w-6 text-pink-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">OPD Patients</h3>
+                        <p className="text-sm text-gray-600">View today's OPD patient list</p>
+                      </div>
+                    </div>
                   </Link>
-                  
-                  <Link href="/doctor/ai-tools">
-                    <Button variant="outline" className="w-full h-16 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-xl flex flex-col items-center justify-center space-y-1">
-                      <Brain className="h-5 w-5" />
-                      <span className="text-sm">AI Assistant</span>
-                    </Button>
+                  <Link href="/doctor/ai-tools" className="block p-6 bg-white rounded-xl shadow-sm border hover:border-pink-300 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-3 bg-pink-100 rounded-lg">
+                        <Brain className="h-6 w-6 text-pink-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">AI Assistant</h3>
+                        <p className="text-sm text-gray-600">Clinical decision support tools</p>
+                      </div>
+                    </div>
                   </Link>
-                  
                 </div>
               </CardContent>
             </Card>
 
-            {/* Main Dashboard Widgets */}
-            <div className="w-full">
-              {/* Admitted Patients */}
-              <Card className="border-pink-100">
-                <CardHeader className="flex flex-row items-center justify-between">
+            {/* Newborn Records Section */}
+            {user?.department?.toLowerCase() === 'gynecology' && (
+              <div className="mt-8">
+                <NewbornSection user={user} newbornStats={newbornStats} />
+              </div>
+            )}
+
+            {/* Patient Management Section */}
+            <Card className="border-pink-100 mt-8">
+              <CardHeader>
+                <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-gray-900">Patient Management</CardTitle>
                     <CardDescription>Active admissions and recent discharges under your care</CardDescription>
@@ -1046,7 +1091,8 @@ export default function DoctorDashboard() {
                       {admittedPatients.filter(p => p.status === 'discharged').length} Discharged
                     </Button>
                   </div>
-                </CardHeader>
+                </div>
+              </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {admittedPatientsLoading ? (
@@ -1326,9 +1372,6 @@ export default function DoctorDashboard() {
                   )}
                 </CardContent>
               </Card>
-
-            </div>
-
           </main>
         </SidebarInset>
       </div>
