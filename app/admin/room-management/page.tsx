@@ -18,7 +18,194 @@ import AssignCleaningButton from '@/components/admin/AssignCleaningButton'
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
+// General Ward Beds Component
+interface GeneralWardBed {
+  id: number
+  bed_number: string
+  bed_label: string
+  status: 'Available' | 'Occupied' | 'Under Maintenance'
+  patient_name?: string
+  admission_date?: string
+  notes?: string
+}
 
+function GeneralWardBeds({ roomId, roomNumber }: { roomId: string, roomNumber: string }) {
+  const [beds, setBeds] = useState<GeneralWardBed[]>([])
+  const [loading, setLoading] = useState(false)
+  const [showAdmitDialog, setShowAdmitDialog] = useState(false)
+  const [selectedBed, setSelectedBed] = useState<GeneralWardBed | null>(null)
+  const [patientName, setPatientName] = useState('')
+  const [notes, setNotes] = useState('')
+
+  // Fetch beds for this room
+  const fetchBeds = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/general-ward-beds?roomId=${roomId}`)
+      const data = await response.json()
+      if (data.success) {
+        setBeds(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching beds:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load beds on component mount
+  useEffect(() => {
+    fetchBeds()
+  }, [roomId])
+
+  const handleAdmitPatient = async () => {
+    if (!selectedBed || !patientName) return
+
+    try {
+      const response = await fetch('/api/general-ward-beds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bedId: selectedBed.id,
+          patientName,
+          admissionDate: new Date().toISOString().split('T')[0],
+          notes
+        })
+      })
+
+      if (response.ok) {
+        fetchBeds() // Refresh beds
+        setShowAdmitDialog(false)
+        setPatientName('')
+        setNotes('')
+        setSelectedBed(null)
+      }
+    } catch (error) {
+      console.error('Error admitting patient:', error)
+    }
+  }
+
+  const handleDischargePatient = async (bedId: number) => {
+    try {
+      const response = await fetch('/api/general-ward-beds', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bedId,
+          action: 'discharge'
+        })
+      })
+
+      if (response.ok) {
+        fetchBeds() // Refresh beds
+      }
+    } catch (error) {
+      console.error('Error discharging patient:', error)
+    }
+  }
+
+  const getBedStatusColor = (status: string) => {
+    switch (status) {
+      case 'Available': return 'bg-green-100 text-green-800'
+      case 'Occupied': return 'bg-red-100 text-red-800'
+      case 'Under Maintenance': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Loading beds...</div>
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Beds in Ward:</p>
+        <span className="text-xs text-muted-foreground">
+          {beds.filter(b => b.status === 'Available').length} available
+        </span>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2">
+        {beds.map(bed => (
+          <div key={bed.id} className="p-2 border rounded-md">
+            <div className="flex items-start justify-between mb-1">
+              <span className="text-xs font-medium">{bed.bed_label}</span>
+              <Badge className={`text-xs ${getBedStatusColor(bed.status)}`}>
+                {bed.status}
+              </Badge>
+            </div>
+            
+            {bed.status === 'Occupied' && bed.patient_name && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-blue-600">{bed.patient_name}</p>
+                {bed.admission_date && (
+                  <p className="text-xs text-muted-foreground">
+                    Since: {new Date(bed.admission_date).toLocaleDateString()}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-xs"
+                  onClick={() => handleDischargePatient(bed.id)}
+                >
+                  Discharge
+                </Button>
+              </div>
+            )}
+            
+            {bed.status === 'Available' && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-xs w-full"
+                onClick={() => {
+                  setSelectedBed(bed)
+                  setShowAdmitDialog(true)
+                }}
+              >
+                Admit Patient
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Admit Patient Dialog */}
+      <Dialog open={showAdmitDialog} onOpenChange={setShowAdmitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Admit Patient to {selectedBed?.bed_label}</DialogTitle>
+            <DialogDescription>
+              Room {roomNumber} - {selectedBed?.bed_label}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Patient Name"
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+            />
+            <Textarea
+              placeholder="Notes (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+            <div className="flex space-x-2">
+              <Button onClick={handleAdmitPatient} disabled={!patientName}>
+                Admit Patient
+              </Button>
+              <Button variant="outline" onClick={() => setShowAdmitDialog(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
 
 interface Room {
   id: string
@@ -204,9 +391,9 @@ export default function RoomManagementPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <Link href="/admin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
-  <ArrowLeft className="h-4 w-4 mr-2" />
-  Back to Dashboard
-</Link>
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Dashboard
+      </Link>
 
       <div className="flex items-center justify-between">
         <div>
@@ -407,40 +594,44 @@ export default function RoomManagementPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {roomPatients.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Current Patients:</p>
-                        {roomPatients.map(patient => (
-                          <div key={patient.id} className="p-2 bg-blue-50 rounded border">
-                            <p className="font-medium text-sm">{patient.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {patient.diagnosis} • Admitted {patient.admissionDate}
-                            </p>
+                    {room.type === 'General' ? (
+                      <GeneralWardBeds roomId={room.id} roomNumber={room.roomNumber} />
+                    ) : (
+                      <>
+                        {roomPatients.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Current Patients:</p>
+                            {roomPatients.map(patient => (
+                              <div key={patient.id} className="p-2 bg-blue-50 rounded border">
+                                <p className="font-medium text-sm">{patient.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {patient.diagnosis} • Admitted {patient.admissionDate}
+                                </p>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        )}
+                        
+                        <div className="flex space-x-2">
+                          {room.status === 'Available' && (
+                            <PatientAdmissionForm 
+                              room={room} 
+                              onAdmissionComplete={refreshData}
+                            />
+                          )}
+                          {room.status === 'Cleaning Required' && (
+                            <AssignCleaningButton 
+                              room={room} 
+                              onCleaningAssigned={refreshData}
+                            />
+                          )}
+                          <Button size="sm" variant="outline" onClick={() => { setDetailsRoom(room); setDetailsOpen(true) }}>
+                            <FileText className="mr-1 h-3 w-3" />
+                            Details
+                          </Button>
+                        </div>
+                      </>
                     )}
-                    
-
-
-                                         <div className="flex space-x-2">
-                       {room.status === 'Available' && (
-                         <PatientAdmissionForm 
-                           room={room} 
-                           onAdmissionComplete={refreshData}
-                         />
-                       )}
-                       {room.status === 'Cleaning Required' && (
-                         <AssignCleaningButton 
-                           room={room} 
-                           onCleaningAssigned={refreshData}
-                         />
-                       )}
-                       <Button size="sm" variant="outline" onClick={() => { setDetailsRoom(room); setDetailsOpen(true) }}>
-                         <FileText className="mr-1 h-3 w-3" />
-                         Details
-                       </Button>
-                     </div>
                   </CardContent>
                 </Card>
               )
