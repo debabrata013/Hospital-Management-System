@@ -128,7 +128,7 @@ Thumbs.db
 
 # Database backups
 /backups/
-*.sql
+#*.sql
 !create-discharge-summaries-table.sql
 !fix-foreign-key-constraint.sql
 !fix-admission-status.sql
@@ -341,13 +341,13 @@ deploy.local.sh
 /api-docs/generated/
 
 # Debug and utility scripts
-debug-*.js
-check-*.js
-create-*.js
-setup-*.js
-test-*.js
-add-*.js
-fix-*.js
+#debug-*.js
+#check-*.js
+#create-*.js
+#setup-*.js
+#test-*.js
+#add-*.js
+#fix-*.js
 
 # Text files with SQL commands
 add-department-column.txt
