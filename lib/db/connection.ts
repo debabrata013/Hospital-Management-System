@@ -10,12 +10,18 @@ const dbConfig = {
   timezone: '+00:00',
   connectTimeout: 30000,
   waitForConnections: true,
-  connectionLimit: 5,
-  maxIdle: 3,
+  connectionLimit: 10,
+  maxIdle: 5,
   idleTimeout: 60000,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+  keepAliveInitialDelay: 0,
+  // Add SSL configuration for production (conditionally)
+  ...(process.env.NODE_ENV === 'production' && {
+    ssl: {
+      rejectUnauthorized: false
+    }
+  })
 }
 
 // Augment the global type to include our custom database pool
@@ -39,10 +45,23 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export function getConnection() {
-  if (!pool) {
-    pool = createPool();
+  try {
+    if (!pool) {
+      console.log('[DB] Creating new database pool...');
+      pool = createPool();
+    }
+    
+    // Validate pool is properly initialized
+    if (!pool || typeof pool.getConnection !== 'function') {
+      console.error('[DB] Pool is not properly initialized, recreating...');
+      pool = createPool();
+    }
+    
+    return pool;
+  } catch (error) {
+    console.error('[DB] Error getting connection pool:', error);
+    throw new Error(`Failed to get database connection pool: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-  return pool;
 }
 
 export async function executeQuery(
@@ -54,6 +73,9 @@ export async function executeQuery(
   console.log('[DB] executeQuery params:', params);
   console.log('[DB] NEXT_PHASE:', process.env.NEXT_PHASE);
   console.log('[DB] NEXT_STATIC_BUILD:', process.env.NEXT_STATIC_BUILD);
+  
+  // Ensure params is always an array to prevent undefined errors
+  const safeParams = Array.isArray(params) ? params : [];
   
   const { allowDuringBuild = false } = options;
   // During build time, return empty results to prevent build failures unless explicitly allowed
@@ -84,9 +106,17 @@ export async function executeQuery(
         throw new Error('Failed to get database connection from pool');
       }
 
+      // Validate connection before use
+      if (typeof connection.execute !== 'function') {
+        throw new Error('Invalid database connection - execute method not available');
+      }
+
       console.log('[DB] Executing query:', query.substring(0, 100) + '...');
-      console.log('[DB] With params:', params);
-      const [results] = await connection.execute(query, params);
+      console.log('[DB] With params:', safeParams);
+      
+      // Use safeParams instead of params to ensure it's always an array
+      const [results] = await connection.execute(query, safeParams);
+      
       console.log('[DB] Query results:', results);
       console.log('[DB] Results type:', typeof results);
       console.log('[DB] Results length:', Array.isArray(results) ? results.length : 'not array');
@@ -116,8 +146,8 @@ export async function executeQuery(
 
       if (shouldRetry && retryCount < maxRetries) {
         console.log(`Retrying database query (${retryCount}/${maxRetries})...`);
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        // Wait before retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
         continue;
       }
 

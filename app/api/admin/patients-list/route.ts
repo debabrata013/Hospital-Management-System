@@ -7,11 +7,12 @@ export async function GET(request: NextRequest) {
     let rows;
     try {
       // Try the optimized query first
+      const dbName = process.env.DB_NAME || 'hospital_management';
       const cols = await executeQuery(`
         SELECT COLUMN_NAME 
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'patients'
-      `, [process.env.DB_NAME || 'hospital_management'])
+      `, [dbName])
       
       if (!cols || !Array.isArray(cols)) {
         throw new Error('Failed to get column information');
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       }
       query += ' ORDER BY name ASC LIMIT 100'
 
-      rows = await executeQuery(query)
+      rows = await executeQuery(query, [])
     } catch (columnError) {
       console.warn('Column detection failed, using fallback query:', columnError)
       // Fallback to basic query
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         WHERE COALESCE(is_active, 1) = 1 
         ORDER BY name ASC 
         LIMIT 100
-      `)
+      `, [])
     }
 
     if (!rows || !Array.isArray(rows)) {

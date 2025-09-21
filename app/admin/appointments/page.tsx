@@ -22,7 +22,7 @@ import {
 interface Appointment {
   id: number
   appointmentDate: string
-  appointmentTime: string
+  appointmentTime: string | null
   appointmentType: string
   status: string
   notes?: string
@@ -269,7 +269,7 @@ export default function AppointmentsPage() {
       patient_id: appointment.patient.id.toString(),
       doctor_id: appointment.doctor.id.toString(),
       appointment_date: appointment.appointmentDate,
-      appointment_time: appointment.appointmentTime,
+      appointment_time: appointment.appointmentTime || '',
       appointment_type: appointment.appointmentType,
       notes: appointment.notes || ''
     })
@@ -311,12 +311,32 @@ export default function AppointmentsPage() {
     return age
   }
 
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':')
-    const hour = parseInt(hours, 10)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const formattedHour = hour % 12 || 12
-    return `${formattedHour}:${minutes} ${ampm}`
+  const formatTime = (timeString: string | null | undefined) => {
+    // Handle null, undefined, or empty timeString
+    if (!timeString) {
+      return 'Time not set'
+    }
+    
+    // Ensure timeString is a string and has the expected format
+    if (typeof timeString !== 'string' || !timeString.includes(':')) {
+      return 'Invalid time'
+    }
+    
+    try {
+      const [hours, minutes] = timeString.split(':')
+      const hour = parseInt(hours, 10)
+      
+      // Validate hour and minutes
+      if (isNaN(hour) || !minutes) {
+        return 'Invalid time'
+      }
+      
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const formattedHour = hour % 12 || 12
+      return `${formattedHour}:${minutes} ${ampm}`
+    } catch (error) {
+      return 'Invalid time'
+    }
   }
 
   return (
