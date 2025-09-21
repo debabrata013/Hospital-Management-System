@@ -173,6 +173,22 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Prevent duplicate: same patient cannot have more than one appointment on the same date
+    const [patientDateDup] = await connection.execute(
+      `SELECT id FROM appointments 
+       WHERE patient_id = ? AND DATE(appointment_date) = DATE(?) 
+         AND status NOT IN ('Cancelled', 'cancelled')
+       LIMIT 1`,
+      [patient_id, appointment_date]
+    )
+    if ((patientDateDup as any[]).length > 0) {
+      await connection.end()
+      return NextResponse.json(
+        { error: 'This patient already has an appointment on the selected date.' },
+        { status: 409 }
+      )
+    }
+    
     // Check for conflicting appointments
     const [conflictCheck] = await connection.execute(
       `SELECT id FROM appointments 
