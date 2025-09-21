@@ -57,11 +57,12 @@ export async function GET(request: NextRequest) {
       SELECT 
         a.id, a.admission_id, a.patient_id, a.room_id, a.manual_room_number, a.manual_bed_number, a.doctor_id,
         a.admission_date, a.discharge_date, a.admission_type, a.status,
-        a.diagnosis, a.chief_complaint, a.estimated_stay_days, a.total_charges,
-        a.emergency_contact_name, a.emergency_contact_phone, a.emergency_contact_relation,
+        a.diagnosis, a.chief_complaint, a.admission_notes, a.estimated_stay_days, a.total_charges,
+        a.emergency_contact_name, a.emergency_contact_phone, a.emergency_contact_relation, a.insurance_details,
         p.name as patient_name, p.age, p.gender, p.contact_number as patient_phone,
         COALESCE(r.room_number, a.manual_room_number) as room_number,
         COALESCE(r.room_type, a.room_type) as room_type,
+        COALESCE(ba.bed_number, a.bed_number, a.manual_bed_number) as bed_number,
         d.name as doctor_name,
         ab.name as admitted_by_name,
         a.created_at
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN rooms r ON a.room_id = r.id
       LEFT JOIN users d ON a.doctor_id = d.id
       LEFT JOIN users ab ON a.admitted_by = ab.id
+      LEFT JOIN bed_assignments ba ON ba.admission_id = a.id AND ba.released_date IS NULL
       WHERE 1=1
     `;
     

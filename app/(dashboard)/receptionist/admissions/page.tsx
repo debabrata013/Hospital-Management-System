@@ -42,15 +42,20 @@ interface Admission {
   doctor_name: string
   room_number: string
   room_type: string
+  bed_number?: string
   admission_date: string
   admission_type: string
   status: 'active' | 'discharged' | 'transferred' | 'cancelled'
   diagnosis?: string
   chief_complaint?: string
+  admission_notes?: string
   estimated_stay_days?: number
+  discharge_date?: string | null
   total_charges: number
   emergency_contact_name?: string
   emergency_contact_phone?: string
+  emergency_contact_relation?: string
+  admitted_by_name?: string
 }
 
 interface Room {
@@ -979,10 +984,19 @@ export default function AdmissionsPage() {
                     <p><strong>Admission Date:</strong> {new Date(selectedAdmission.admission_date).toLocaleString()}</p>
                     <p><strong>Type:</strong> {getAdmissionTypeBadge(selectedAdmission.admission_type)}</p>
                     <p><strong>Status:</strong> {getStatusBadge(selectedAdmission.status)}</p>
+                    {selectedAdmission.discharge_date && (
+                      <p><strong>Discharge Date:</strong> {new Date(selectedAdmission.discharge_date).toLocaleString()}</p>
+                    )}
                   </div>
                   <div>
                     <p><strong>Doctor:</strong> Dr. {selectedAdmission.doctor_name}</p>
                     <p><strong>Room:</strong> {selectedAdmission.room_number} ({selectedAdmission.room_type})</p>
+                    {selectedAdmission.bed_number && (
+                      <p><strong>Bed:</strong> {selectedAdmission.bed_number}</p>
+                    )}
+                    {selectedAdmission.admitted_by_name && (
+                      <p><strong>Admitted By:</strong> {selectedAdmission.admitted_by_name}</p>
+                    )}
                     {/* Estimated stay removed from UI */}
                     <p><strong>Total Charges:</strong> ₹{selectedAdmission.total_charges.toLocaleString()}</p>
                   </div>
@@ -999,8 +1013,34 @@ export default function AdmissionsPage() {
                       <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{selectedAdmission.diagnosis}</p>
                     </div>
                   )}
+                  {selectedAdmission.chief_complaint && (
+                    <div>
+                      <p className="text-sm mt-2"><strong>Chief Complaint:</strong></p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{selectedAdmission.chief_complaint}</p>
+                    </div>
+                  )}
+                  {selectedAdmission.admission_notes && (
+                    <div>
+                      <p className="text-sm mt-2"><strong>Admission Notes:</strong></p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded whitespace-pre-wrap">{selectedAdmission.admission_notes}</p>
+                    </div>
+                  )}
                 </div>
               )}
+              {/* Contacts */}
+              <div>
+                <h4 className="font-semibold mb-3">Contacts & Stay</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Emergency Contact:</strong> {selectedAdmission.emergency_contact_name || 'Not provided'}</p>
+                    <p><strong>Emergency Phone:</strong> {selectedAdmission.emergency_contact_phone || 'Not provided'}</p>
+                    <p><strong>Relation:</strong> {selectedAdmission.emergency_contact_relation || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p><strong>Estimated Stay (days):</strong> {selectedAdmission.estimated_stay_days ?? '—'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
