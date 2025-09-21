@@ -86,15 +86,29 @@ export const useScheduleMonitor = () => {
             }, 2000);
           }
         } else {
-          // Schedule validation failed, logout immediately
-          console.log('[SCHEDULE-MONITOR] Schedule validation failed, logging out...');
-          toast.error('Schedule validation failed. You will be logged out.', {
-            duration: 3000,
-          });
-          
-          setTimeout(() => {
-            logout();
-          }, 1000);
+          // Schedule validation failed: decide behavior by error type.
+          // We DO NOT log out for NO_SCHEDULE or OUTSIDE_SCHEDULE. Allow staying logged in
+          // and inform the user, while nurse pages are still guarded by middleware.
+          const errorType = result.errorType as string | undefined;
+          console.log('[SCHEDULE-MONITOR] Schedule validation failed:', errorType, result.message);
+
+          if (errorType === 'NO_SCHEDULE') {
+            toast.info('You have no schedule today. Some nurse features may be restricted.', {
+              duration: 5000,
+            });
+          } else if (errorType === 'OUTSIDE_SCHEDULE') {
+            toast.info(result.message || 'You are outside your scheduled hours.', {
+              duration: 5000,
+            });
+          } else {
+            // For system errors or unknown policy violations, fallback to logout
+            toast.error('Schedule validation failed. You will be logged out.', {
+              duration: 3000,
+            });
+            setTimeout(() => {
+              logout();
+            }, 1000);
+          }
         }
       } else {
         console.error('[SCHEDULE-MONITOR] Schedule validation request failed');

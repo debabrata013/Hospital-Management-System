@@ -559,57 +559,6 @@ export default function AdmissionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Room Status Overview */}
-      <Card className="border-pink-100 mt-6">
-        <CardHeader>
-          <CardTitle>Room Status Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { title: "ICU", icon: <Activity className="h-8 w-8 text-red-500 mx-auto mb-2"/>, occupied: 8, total: 10, bg: "bg-red-50", text: "text-red-600" },
-              { title: "CCU", icon: <Activity className="h-8 w-8 text-orange-500 mx-auto mb-2"/>, occupied: 5, total: 6, bg: "bg-orange-50", text: "text-orange-600" },
-              { title: "General Ward", icon: <Bed className="h-8 w-8 text-blue-500 mx-auto mb-2"/>, occupied: 15, total: 25, bg: "bg-blue-50", text: "text-blue-600" },
-              { title: "Private Rooms", icon: <MapPin className="h-8 w-8 text-green-500 mx-auto mb-2"/>, occupied: 8, total: 15, bg: "bg-green-50", text: "text-green-600" }
-            ].map((room) => (
-              <div key={room.title} className={`p-4 ${room.bg} rounded-lg text-center`}>
-                {room.icon}
-                <h4 className={`font-semibold ${room.text}`}>{room.title}</h4>
-                <p className={`text-2xl font-bold ${room.text}`}>{room.occupied}/{room.total}</p>
-                <p className={`text-sm ${room.text}`}>Occupied/Total</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card className="border-pink-100 mt-6">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <Plus className="h-6 w-6" />
-              <span className="text-xs sm:text-sm text-center">New Admission</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <LogOut className="h-6 w-6" />
-              <span className="text-xs sm:text-sm text-center">Process Discharge</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <MapPin className="h-6 w-6" />
-              <span className="text-xs sm:text-sm text-center">Room Assignment</span>
-            </Button>
-            <Button variant="outline" className="h-20 border-pink-200 text-pink-600 hover:bg-pink-50 flex flex-col items-center justify-center space-y-2">
-              <FileText className="h-6 w-6" />
-              <span className="text-xs sm:text-sm text-center">Discharge Summary</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Coming Soon Notice */}
       <div className="mt-6 sm:mt-8 text-center">
         <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-pink-100 text-pink-700 rounded-full text-sm sm:text-base">

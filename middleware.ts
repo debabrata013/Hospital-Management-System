@@ -111,7 +111,10 @@ export async function middleware(request: NextRequest) {
     console.log(`[MIDDLEWARE] User role: ${userRole}`)
     console.log(`[MIDDLEWARE] Protected route: ${protectedRoute}`)
 
-    // Additional schedule validation for nurses accessing nurse routes
+  // Additional schedule validation for nurses accessing nurse routes.
+  // Note: We intentionally DO NOT validate schedules during login or on auth routes.
+  // Auth endpoints like /api/auth/login are public (see PUBLIC_ROUTES) and
+  // schedule enforcement happens at page/API access time for nurse areas only.
     if (userRole === 'nurse' && pathname.startsWith('/nurse')) {
       console.log(`[MIDDLEWARE] Validating nurse schedule for user: ${userId}`)
       
@@ -125,15 +128,24 @@ export async function middleware(request: NextRequest) {
         
         if (scheduleValidation.ok) {
           const scheduleResult = await scheduleValidation.json()
-          
+
           if (!scheduleResult.canLogin) {
-            console.log(`[MIDDLEWARE] Nurse schedule validation failed: ${scheduleResult.message}`)
-            // Redirect to login with schedule error
+            const errorType = scheduleResult.errorType as string | undefined
+            console.log(`[MIDDLEWARE] Nurse schedule validation failed (${errorType}): ${scheduleResult.message}`)
+
+            // Allow access (no redirect, no cookie clear) when there's no schedule for today.
+            // Other error types will continue to redirect as before.
+            if (errorType === 'NO_SCHEDULE') {
+              const pass = NextResponse.next()
+              pass.headers.set('x-schedule-warning', 'no-schedule')
+              pass.headers.set('x-schedule-message', scheduleResult.message)
+              return pass
+            }
+
+            // For outside schedule or unknown policy, block access and clear session
             const loginUrl = new URL('/login', request.url)
             loginUrl.searchParams.set('message', 'schedule-restriction')
             loginUrl.searchParams.set('details', scheduleResult.message)
-            
-            // Clear invalid session
             const response = NextResponse.redirect(loginUrl)
             response.cookies.set('auth-token', '', { maxAge: 0, path: '/' })
             return response
