@@ -9,7 +9,7 @@ interface NewbornRecord {
   id: number;
   record_id: string;
   birth_date: string;
-  gender: 'male' | 'female' | 'other';
+  gender: 'male' | 'female' | 'ambiguous';
   status: 'healthy' | 'under_observation' | 'critical' | 'deceased';
   weight_grams: number;
   mother_name?: string;
@@ -138,6 +138,7 @@ export default function NewbornRecordsPage() {
     switch (gender) {
       case 'male': return '👦';
       case 'female': return '👧';
+      case 'ambiguous': return '👶';
       default: return '👶';
     }
   };
@@ -302,7 +303,7 @@ export default function NewbornRecordsPage() {
                     >
                       <option value="male">Male</option>
                       <option value="female">Female</option>
-                      <option value="other">Other</option>
+                      <option value="ambiguous">Ambiguous</option>
                     </select>
                   </div>
 
