@@ -613,7 +613,7 @@ export default function LandingPage() {
     },
     {
       id: 7,
-      name: 'Dr Niharika Nayak - MBBS DGO FMAS and FRM',
+      name: 'Dr Niharika Nayak - MBBS DGO, FMAS, FRM',
       specialization: 'Gynecology',
       qualification: '',
       experience: '10+ Years',

@@ -55,15 +55,56 @@ interface NurseSchedule {
 }
 
 interface CreateScheduleData {
-  nurseId: string
-  startDate: string
-  endDate: string
-  startTime: string
-  endTime: string
-  wardAssignment: string
-  shiftType: string
-  maxPatients: string
+  nurseId: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  shiftType: string;
 }
+
+const groupSchedules = (schedules: NurseSchedule[]) => {
+  const scheduleGroups = new Map<string, NurseSchedule[]>();
+
+  // Group schedules by properties that define a continuous range
+  schedules.forEach(schedule => {
+    const key = `${schedule.start_time}|${schedule.end_time}|${schedule.shift_type}|${schedule.ward_assignment}`;
+    if (!scheduleGroups.has(key)) {
+      scheduleGroups.set(key, []);
+    }
+    scheduleGroups.get(key)!.push(schedule);
+  });
+
+  const consolidatedSchedules: NurseSchedule[] = [];
+
+  // Find consecutive date ranges within each group
+  scheduleGroups.forEach(group => {
+    if (group.length > 0) {
+      group.sort((a, b) => new Date(a.shift_date!).getTime() - new Date(b.shift_date!).getTime());
+      
+      let currentRange = { ...group[0], start_date: group[0].shift_date, end_date: group[0].shift_date };
+
+      for (let i = 1; i < group.length; i++) {
+        const currentDate = new Date(group[i].shift_date!);
+        const prevDate = new Date(currentRange.end_date!);
+        prevDate.setDate(prevDate.getDate() + 1);
+
+        if (currentDate.getTime() === prevDate.getTime()) {
+          // Consecutive day, extend the range
+          currentRange.end_date = group[i].shift_date;
+        } else {
+          // Not consecutive, push the completed range and start a new one
+          consolidatedSchedules.push(currentRange);
+          currentRange = { ...group[i], start_date: group[i].shift_date, end_date: group[i].shift_date };
+        }
+      }
+      // Push the last range for the group
+      consolidatedSchedules.push(currentRange);
+    }
+  });
+
+  return consolidatedSchedules;
+};
 
 export default function NursesSchedulesPage() {
   const [nurses, setNurses] = useState<Nurse[]>([])
@@ -87,9 +128,7 @@ export default function NursesSchedulesPage() {
     endDate: new Date().toISOString().split('T')[0],
     startTime: '06:00',
     endTime: '14:00',
-    wardAssignment: '',
     shiftType: 'Morning',
-    maxPatients: '8',
   });
 
   // Stats - Calculate available nurses dynamically
@@ -245,9 +284,7 @@ export default function NursesSchedulesPage() {
         endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        wardAssignment: formData.wardAssignment,
         shiftType: formData.shiftType,
-        maxPatients: parseInt(formData.maxPatients),
       };
       
       console.log('📤 Sending request:', requestBody);
@@ -270,14 +307,12 @@ export default function NursesSchedulesPage() {
         toast.success(`Created ${created} schedule(s)${skipped ? `, skipped ${skipped}` : ''}`)
         setIsCreateModalOpen(false)
         setFormData({
-            nurseId: '',
-            startDate: new Date().toISOString().split('T')[0],
-            endDate: new Date().toISOString().split('T')[0],
-            startTime: '06:00',
-            endTime: '14:00',
-            wardAssignment: '',
-            shiftType: 'Morning',
-            maxPatients: '8',
+          nurseId: '',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
+          startTime: '06:00',
+          endTime: '14:00',
+          shiftType: 'Morning',
         })
         loadSchedules()
       } else {
@@ -307,9 +342,7 @@ export default function NursesSchedulesPage() {
           endDate: formData.endDate,
           startTime: formData.startTime,
           endTime: formData.endTime,
-          wardAssignment: selectedNurse?.department || editingSchedule.ward_assignment, // Use nurse's department
           shiftType: formData.shiftType,
-          maxPatients: parseInt(formData.maxPatients),
           applyToRange: true
         }),
       });
@@ -361,9 +394,7 @@ export default function NursesSchedulesPage() {
       endDate: schedule.end_date || schedule.shift_date || '',
       startTime: schedule.start_time,
       endTime: schedule.end_time,
-      wardAssignment: schedule.ward_assignment,
       shiftType: schedule.shift_type,
-      maxPatients: schedule.max_patients?.toString() || '8',
     });
     setIsEditModalOpen(true);
   };
@@ -444,7 +475,12 @@ export default function NursesSchedulesPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <Dialog open={isCreateModalOpen} onOpenChange={(isOpen) => {
+              setIsCreateModalOpen(isOpen);
+              if (isOpen) {
+                setNurseSearch(''); // Reset search on open
+              }
+            }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 w-full sm:w-auto flex items-center justify-center gap-2">
                 <Plus className="h-4 w-4" />
@@ -535,15 +571,6 @@ export default function NursesSchedulesPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="wardAssignment">Ward Assignment</Label>
-                  <Input
-                    id="wardAssignment"
-                    type="text"
-                    value={formData.wardAssignment}
-                    onChange={(e) => setFormData(prev => ({ ...prev, wardAssignment: e.target.value }))}
-                  />
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="shiftType">Shift Type</Label>
@@ -559,15 +586,6 @@ export default function NursesSchedulesPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="maxPatients">Max Patients</Label>
-                  <Input
-                    id="maxPatients"
-                    type="number"
-                    value={formData.maxPatients}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxPatients: e.target.value }))}
-                  />
-                </div>
 
               </div>
               <div className="flex justify-end gap-2">
@@ -655,7 +673,9 @@ export default function NursesSchedulesPage() {
             </div>
           ) : schedules.length > 0 ? (
             <Accordion type="single" collapsible className="w-full">
-              {Object.entries(groupedSchedules).map(([nurseName, nurseSchedules]) => (
+              {Object.entries(groupedSchedules).map(([nurseName, nurseSchedules]) => {
+                const uniqueSchedules = groupSchedules(nurseSchedules);
+                return (
                 <AccordionItem value={nurseName} key={nurseName}>
                   <AccordionTrigger className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-4">
@@ -670,7 +690,7 @@ export default function NursesSchedulesPage() {
                   </AccordionTrigger>
                   <AccordionContent className="p-4">
                     <div className="space-y-4">
-                      {nurseSchedules.map((schedule) => (
+                      {uniqueSchedules.map((schedule) => (
                         <div key={schedule.id} className="p-4 sm:p-5 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
                           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                             <div className="flex-1">
@@ -686,11 +706,9 @@ export default function NursesSchedulesPage() {
                                   <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-pink-500" />
                                     <span>
-                                      {schedule.start_date && schedule.end_date
+                                      {schedule.start_date && schedule.end_date && schedule.start_date !== schedule.end_date
                                         ? `${new Date(schedule.start_date).toLocaleDateString()} - ${new Date(schedule.end_date).toLocaleDateString()}`
-                                        : schedule.shift_date
-                                          ? new Date(schedule.shift_date).toLocaleDateString()
-                                          : 'N/A'}
+                                        : new Date(schedule.start_date || schedule.shift_date!).toLocaleDateString()}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -702,10 +720,6 @@ export default function NursesSchedulesPage() {
                                   <div className="flex items-center gap-2">
                                     <MapPin className="h-4 w-4 text-pink-500" />
                                     <span>{schedule.ward_assignment}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <User className="h-4 w-4 text-pink-500" />
-                                    <span>{schedule.current_patients}/{schedule.max_patients} patients</span>
                                   </div>
                                 </div>
                               </div>
@@ -730,7 +744,8 @@ export default function NursesSchedulesPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-              ))}
+              )}
+            )}
             </Accordion>
           ) : (
             <div className="text-center py-8">
