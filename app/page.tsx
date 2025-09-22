@@ -439,7 +439,7 @@ type Language = keyof ContentType;
 
 export default function LandingPage() {
   const { user, isAuthenticated, logout } = useAuth();
-  const [language, setLanguage] = useState<Language>('english');
+  const [language, setLanguage] = useState<Language>('hindi');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [appointmentForm, setAppointmentForm] = useState({
