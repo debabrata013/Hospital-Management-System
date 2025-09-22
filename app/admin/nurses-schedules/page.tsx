@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -55,12 +55,14 @@ interface NurseSchedule {
 }
 
 interface CreateScheduleData {
-  nurseId: string;
-  startDate: string;
-  endDate: string;
-  startTime: string;
-  endTime: string;
-  shiftType: string;
+  nurseId: string
+  startDate: string
+  endDate: string
+  startTime: string
+  endTime: string
+  wardAssignment: string
+  shiftType: string
+  maxPatients: string
 }
 
 export default function NursesSchedulesPage() {
@@ -85,7 +87,9 @@ export default function NursesSchedulesPage() {
     endDate: new Date().toISOString().split('T')[0],
     startTime: '06:00',
     endTime: '14:00',
+    wardAssignment: '',
     shiftType: 'Morning',
+    maxPatients: '8',
   });
 
   // Stats - Calculate available nurses dynamically
@@ -117,6 +121,25 @@ export default function NursesSchedulesPage() {
     availableNurses: getAvailableNurses(),
     lastUpdated: new Date()
   }
+
+  // Group schedules to compute date ranges (by nurse, time, ward, shift type)
+  const scheduleRanges = useMemo(() => {
+    const map = new Map<string, { min: string; max: string }>()
+    for (const s of schedules) {
+      const date = s.shift_date
+      if (date) {
+        const key = `${s.nurse_id}|${s.start_time}|${s.end_time}|${s.ward_assignment}|${s.shift_type}`
+        const entry = map.get(key)
+        if (!entry) {
+          map.set(key, { min: date, max: date })
+        } else {
+          if (date < entry.min) entry.min = date
+          if (date > entry.max) entry.max = date
+        }
+      }
+    }
+    return map
+  }, [schedules])
 
   // Load nurses and schedules
   useEffect(() => {
@@ -202,6 +225,12 @@ export default function NursesSchedulesPage() {
         return
       }
 
+      if (formData.startDate > formData.endDate) {
+        console.log('❌ Date range validation failed:', formData.startDate, '>', formData.endDate);
+        toast.error('End date must be on or after start date')
+        return
+      }
+
       console.log('✅ All validations passed, creating schedule...');
 
       const selectedNurse = nurses.find(n => n.id.toString() === formData.nurseId);
@@ -216,7 +245,9 @@ export default function NursesSchedulesPage() {
         endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
+        wardAssignment: formData.wardAssignment,
         shiftType: formData.shiftType,
+        maxPatients: parseInt(formData.maxPatients),
       };
       
       console.log('📤 Sending request:', requestBody);
@@ -234,15 +265,19 @@ export default function NursesSchedulesPage() {
       if (response.ok) {
         const successData = await response.json();
         console.log('✅ Success response:', successData);
-        toast.success('Nurse schedule created successfully!')
+        const created = successData.createdCount ?? 1;
+        const skipped = successData.skippedCount ?? 0;
+        toast.success(`Created ${created} schedule(s)${skipped ? `, skipped ${skipped}` : ''}`)
         setIsCreateModalOpen(false)
         setFormData({
-          nurseId: '',
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date().toISOString().split('T')[0],
-          startTime: '06:00',
-          endTime: '14:00',
-          shiftType: 'Morning',
+            nurseId: '',
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date().toISOString().split('T')[0],
+            startTime: '06:00',
+            endTime: '14:00',
+            wardAssignment: '',
+            shiftType: 'Morning',
+            maxPatients: '8',
         })
         loadSchedules()
       } else {
@@ -274,14 +309,19 @@ export default function NursesSchedulesPage() {
           endTime: formData.endTime,
           wardAssignment: selectedNurse?.department || editingSchedule.ward_assignment, // Use nurse's department
           shiftType: formData.shiftType,
+          maxPatients: parseInt(formData.maxPatients),
+          applyToRange: true
         }),
       });
 
       if (response.ok) {
-        toast.success('Schedule updated successfully!');
-        setIsEditModalOpen(false);
-        setEditingSchedule(null);
-        loadSchedules();
+        const data = await response.json();
+        const updated = data.updatedCount ?? 1;
+        const created = data.createdCount ?? 0;
+        toast.success(`Updated ${updated} schedule(s)${created ? `, created ${created}` : ''}`)
+        setIsEditModalOpen(false)
+        setEditingSchedule(null)
+        loadSchedules()
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || 'Failed to update schedule');
@@ -321,7 +361,9 @@ export default function NursesSchedulesPage() {
       endDate: schedule.end_date || schedule.shift_date || '',
       startTime: schedule.start_time,
       endTime: schedule.end_time,
+      wardAssignment: schedule.ward_assignment,
       shiftType: schedule.shift_type,
+      maxPatients: schedule.max_patients?.toString() || '8',
     });
     setIsEditModalOpen(true);
   };
@@ -375,7 +417,6 @@ export default function NursesSchedulesPage() {
     acc[nurseName].push(schedule);
     return acc;
   }, {} as Record<string, NurseSchedule[]>);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
@@ -447,7 +488,7 @@ export default function NursesSchedulesPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="startDate">Start Date *</Label>
                     <Input
@@ -464,6 +505,7 @@ export default function NursesSchedulesPage() {
                       id="endDate"
                       type="date"
                       value={formData.endDate}
+                      min={formData.startDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                       required
                     />
@@ -494,6 +536,16 @@ export default function NursesSchedulesPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="wardAssignment">Ward Assignment</Label>
+                  <Input
+                    id="wardAssignment"
+                    type="text"
+                    value={formData.wardAssignment}
+                    onChange={(e) => setFormData(prev => ({ ...prev, wardAssignment: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="shiftType">Shift Type</Label>
                   <Select value={formData.shiftType} onValueChange={(value) => setFormData(prev => ({ ...prev, shiftType: value }))}>
                     <SelectTrigger>
@@ -507,8 +559,17 @@ export default function NursesSchedulesPage() {
                   </Select>
                 </div>
 
-                
-                              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxPatients">Max Patients</Label>
+                  <Input
+                    id="maxPatients"
+                    type="number"
+                    value={formData.maxPatients}
+                    onChange={(e) => setFormData(prev => ({ ...prev, maxPatients: e.target.value }))}
+                  />
+                </div>
+
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
                   Cancel
@@ -637,6 +698,16 @@ export default function NursesSchedulesPage() {
                                     <span>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</span>
                                   </div>
                                 </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-pink-500" />
+                                    <span>{schedule.ward_assignment}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-pink-500" />
+                                    <span>{schedule.current_patients}/{schedule.max_patients} patients</span>
+                                  </div>
+                                </div>
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => handleViewSchedule(schedule)} className="border-green-200 text-green-600 hover:bg-green-50">
@@ -671,6 +742,37 @@ export default function NursesSchedulesPage() {
         </CardContent>
       </Card>
 
+      {/* View Schedule Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              Nurse Schedule Details
+            </DialogTitle>
+            <DialogDescription>
+              Details for {viewingSchedule?.nurse_name}
+            </DialogDescription>
+          </DialogHeader>
+          {viewingSchedule && (
+            <div className="space-y-3 py-2">
+              <div><b>ID:</b> {viewingSchedule.id}</div>
+              <div><b>Date:</b> {viewingSchedule.shift_date}</div>
+              <div><b>Shift:</b> {viewingSchedule.shift_type} ({viewingSchedule.start_time} - {viewingSchedule.end_time})</div>
+              <div><b>Status:</b> <Badge>{viewingSchedule.status}</Badge></div>
+              <div><b>Ward:</b> {viewingSchedule.ward_assignment}</div>
+              <div><b>Patients:</b> {viewingSchedule.current_patients}/{viewingSchedule.max_patients}</div>
+              <div><b>Created At:</b> {viewingSchedule.created_at}</div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Schedule Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
@@ -684,7 +786,7 @@ export default function NursesSchedulesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-startDate">Start Date *</Label>
                 <Input
@@ -701,6 +803,7 @@ export default function NursesSchedulesPage() {
                   id="edit-endDate"
                   type="date"
                   value={formData.endDate}
+                  min={formData.startDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                   required
                 />

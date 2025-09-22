@@ -3,11 +3,39 @@ import { executeQuery } from '@/lib/db/connection'
 
 export const dynamic = 'force-dynamic'
 
+async function getScheduleColumnInfo() {
+  try {
+    const columns = await executeQuery('DESCRIBE nurse_schedules') as any[]
+    const names = new Set(columns.map(c => c.Field))
+    return {
+      hasWardAssignment: names.has('ward_assignment'),
+      hasDepartment: names.has('department'),
+      hasMaxPatients: names.has('max_patients'),
+      hasCurrentPatients: names.has('current_patients'),
+    }
+  } catch (e) {
+    // Fallback: assume older schema with department only
+    return {
+      hasWardAssignment: false,
+      hasDepartment: true,
+      hasMaxPatients: false,
+      hasCurrentPatients: false,
+    }
+  }
+}
+
 // GET - Fetch all nurse schedules
 export async function GET(request: NextRequest) {
   try {
-    const schedules = await executeQuery(`
-      SELECT 
+    const cols = await getScheduleColumnInfo()
+    const wardSelect = cols.hasWardAssignment
+      ? 'ns.ward_assignment as ward_assignment'
+      : (cols.hasDepartment ? 'ns.department as ward_assignment' : `"General Ward" as ward_assignment`)
+    const maxPatientsSelect = cols.hasMaxPatients ? 'ns.max_patients as max_patients' : '8 as max_patients'
+    const currentPatientsSelect = cols.hasCurrentPatients ? 'ns.current_patients as current_patients' : '0 as current_patients'
+
+    const schedules = await executeQuery(
+      `SELECT 
         ns.id,
         ns.nurse_id,
         u.name as nurse_name,
@@ -16,9 +44,11 @@ export async function GET(request: NextRequest) {
         ns.end_date,
         ns.start_time,
         ns.end_time,
-        ns.department as ward_assignment,
+        ${wardSelect},
         ns.shift_type,
         ns.status,
+        ${maxPatientsSelect},
+        ${currentPatientsSelect},
         ns.created_at,
         ns.updated_at
       FROM nurse_schedules ns
@@ -50,12 +80,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nurseId, startDate, endDate, startTime, endTime, shiftType } = body
+    const { nurseId, date, startDate, endDate, startTime, endTime, wardAssignment, shiftType, maxPatients } = body
 
     // Validation
-    if (!nurseId || !startDate || !endDate || !startTime || !endTime) {
+    const effectiveStart = startDate || date;
+    const effectiveEnd = endDate || date;
+
+    if (!nurseId || !effectiveStart || !effectiveEnd || !startTime || !endTime) {
       return NextResponse.json(
         { error: 'Missing required fields: nurseId, startDate, endDate, startTime, endTime' },
+        { status: 400 }
+      )
+    }
+
+    if (effectiveStart > effectiveEnd) {
+      return NextResponse.json(
+        { error: 'End date must be on or after start date' },
         { status: 400 }
       )
     }
@@ -73,91 +113,80 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for existing schedule conflicts (only time overlaps, allow multiple shifts per day)
-    const conflictCheck = await executeQuery(
-      `SELECT id, shift_type, start_time, end_time, shift_date, start_date, end_date FROM nurse_schedules 
-       WHERE nurse_id = ? 
-       AND status != 'cancelled' 
-       AND (
-         (shift_date BETWEEN ? AND ?) OR
-         (start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= ? AND end_date >= ?)
-       )`,
-      [nurseId, startDate, endDate, endDate, startDate]
-    ) as any[]
+    // Determine available columns
+    const cols = await getScheduleColumnInfo()
+    const wardColumn = cols.hasWardAssignment ? 'ward_assignment' : (cols.hasDepartment ? 'department' : null)
+    const includeMaxPatients = cols.hasMaxPatients
 
-    if (conflictCheck && conflictCheck.length > 0) {
-      // Only check for time overlap conflicts (allow double shifts with different times)
-      const timeConflict = conflictCheck.find(schedule => {
-        const existingStart = schedule.start_time.slice(0, 5);
-        const existingEnd = schedule.end_time.slice(0, 5);
-        
-        console.log(`⏰ Checking overlap: New ${startTime}-${endTime} vs Existing ${schedule.shift_type} ${existingStart}-${existingEnd}`);
-        
-        // Check if new shift overlaps with existing shift
-        const hasOverlap = (startTime < existingEnd && endTime > existingStart);
-        
-        if (hasOverlap) {
-          console.log(`❌ Time overlap detected with ${schedule.shift_type} shift`);
+    // Iterate date range and create per day
+    const dates: string[] = [];
+    const start = new Date(effectiveStart);
+    const end = new Date(effectiveEnd);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(d.toISOString().split('T')[0]);
+    }
+
+    let createdCount = 0;
+    let skippedCount = 0;
+    const createdIds: number[] = [];
+    const conflicts: Array<{ date: string; reason: string }> = [];
+
+    for (const day of dates) {
+      const conflictCheck = await executeQuery(
+        `SELECT id, shift_type, start_time, end_time FROM nurse_schedules 
+         WHERE nurse_id = ? AND shift_date = ? 
+         AND LOWER(status) != 'cancelled'`,
+        [nurseId, day]
+      ) as any[]
+
+      let hasOverlap = false;
+      if (conflictCheck && conflictCheck.length > 0) {
+        const overlap = conflictCheck.find(schedule => {
+          const existingStart = schedule.start_time.slice(0, 5);
+          const existingEnd = schedule.end_time.slice(0, 5);
+          return (startTime < existingEnd && endTime > existingStart);
+        });
+        if (overlap) {
+          hasOverlap = true;
+          skippedCount++;
+          conflicts.push({ date: day, reason: `Overlaps with ${overlap.shift_type} ${overlap.start_time}-${overlap.end_time}` });
+          continue;
         }
-        
-        return hasOverlap;
-      });
-
-      if (timeConflict) {
-        return NextResponse.json(
-          { error: `Time conflict: Nurse already has a ${timeConflict.shift_type} shift (${timeConflict.start_time} - ${timeConflict.end_time}) that overlaps with the requested time (${startTime} - ${endTime})` },
-          { status: 409 }
-        )
       }
-      
-      console.log(`✅ No time conflicts found. Nurse can work double shift.`);
+
+      // Build dynamic insert based on available columns
+      const colsArr: string[] = ['nurse_id', 'shift_date', 'start_time', 'end_time', 'shift_type', 'status', 'created_at']
+      const placeholders: string[] = ['?', '?', '?', '?', '?', '"Scheduled"', 'NOW()']
+      const nurseDetails = await executeQuery('SELECT department FROM users WHERE id = ?', [nurseId]) as any[];
+      const finalWardAssignment = wardAssignment || nurseDetails[0]?.department || 'General Ward';
+      const values: any[] = [nurseId, day, startTime, endTime, shiftType]
+      if (wardColumn) {
+        colsArr.splice(4, 0, wardColumn)
+        placeholders.splice(4, 0, '?')
+        values.splice(4, 0, finalWardAssignment)
+      }
+      if (includeMaxPatients) {
+        colsArr.splice(colsArr.length - 2, 0, 'max_patients')
+        placeholders.splice(placeholders.length - 2, 0, '?')
+        values.splice(values.length, 0, maxPatients || 8)
+      }
+
+      const insertSQL = `INSERT INTO nurse_schedules (${colsArr.join(', ')}) VALUES (${placeholders.join(', ')})`
+      const insertResult = await executeQuery(insertSQL, values) as any
+
+      if (insertResult.insertId) {
+        createdCount++;
+        createdIds.push(insertResult.insertId);
+      }
     }
 
-    // Create the schedule
-    const nurseDetails = await executeQuery('SELECT department FROM users WHERE id = ?', [nurseId]) as any[];
-    const wardAssignment = nurseDetails[0]?.department || 'General Ward';
-
-    const isRecurring = startDate !== endDate;
-
-    const insertResult = await executeQuery(
-      `INSERT INTO nurse_schedules (
-        nurse_id, 
-        shift_date, 
-        start_date,
-        end_date,
-        start_time, 
-        end_time, 
-        department, 
-        shift_type, 
-        status, 
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', NOW())`,
-      [
-        nurseId,
-        isRecurring ? null : startDate,
-        isRecurring ? startDate : null,
-        isRecurring ? endDate : null,
-        startTime,
-        endTime,
-        wardAssignment, // Use nurse's department
-        shiftType
-      ]
-    ) as any
-
-    if (!insertResult.insertId) {
-      throw new Error('Failed to create nurse schedule')
-    }
-
-    // Return success response
     return NextResponse.json({
       success: true,
-      message: 'Nurse schedule created successfully',
-      scheduleId: insertResult.insertId,
-      nurse: nurseCheck[0].name,
-      date: startDate,
-      time: `${startTime} - ${endTime}`,
-      ward: wardAssignment, // Use nurse's department
-      shiftType
+      message: `Created ${createdCount} schedule(s)${skippedCount ? `, skipped ${skippedCount} due to conflicts` : ''}`,
+      createdCount,
+      skippedCount,
+      createdIds,
+      conflicts
     })
 
   } catch (error: any) {
@@ -168,7 +197,7 @@ export async function POST(request: NextRequest) {
       if (error.sqlMessage && error.sqlMessage.includes('unique_nurse_shift')) {
         return NextResponse.json(
           { 
-            error: 'Database constraint prevents double shifts. To fix this:\n\n1. Go to your database (phpMyAdmin/MySQL Workbench)\n2. Run: ALTER TABLE nurse_schedules DROP INDEX unique_nurse_shift;\n3. Then try creating the schedule again.\n\nOR create a schedule with different shift type (Evening/Night instead of Morning)' 
+            error: 'Database constraint prevents double shifts. To fix this:\\n\\n1. Go to your database (phpMyAdmin/MySQL Workbench)\\n2. Run: ALTER TABLE nurse_schedules DROP INDEX unique_nurse_shift;\\n3. Then try creating the schedule again.\\n\\nOR create a schedule with different shift type (Evening/Night instead of Morning)' 
           },
           { status: 409 }
         )
