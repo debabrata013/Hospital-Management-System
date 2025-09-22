@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -53,7 +53,8 @@ interface NurseSchedule {
 
 interface CreateScheduleData {
   nurseId: string
-  date: string
+  startDate: string
+  endDate: string
   startTime: string
   endTime: string
   wardAssignment: string
@@ -79,7 +80,8 @@ export default function NursesSchedulesPage() {
   }
   const [formData, setFormData] = useState<CreateScheduleData>({
     nurseId: '',
-    date: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
     startTime: '06:00',
     endTime: '14:00',
     wardAssignment: 'General Ward',
@@ -116,6 +118,23 @@ export default function NursesSchedulesPage() {
     availableNurses: getAvailableNurses(),
     lastUpdated: new Date()
   }
+
+  // Group schedules to compute date ranges (by nurse, time, ward, shift type)
+  const scheduleRanges = useMemo(() => {
+    const map = new Map<string, { min: string; max: string }>()
+    for (const s of schedules) {
+      const key = `${s.nurse_id}|${s.start_time}|${s.end_time}|${s.ward_assignment}|${s.shift_type}`
+      const date = s.shift_date
+      const entry = map.get(key)
+      if (!entry) {
+        map.set(key, { min: date, max: date })
+      } else {
+        if (date < entry.min) entry.min = date
+        if (date > entry.max) entry.max = date
+      }
+    }
+    return map
+  }, [schedules])
 
   // Load nurses and schedules
   useEffect(() => {
@@ -183,10 +202,11 @@ export default function NursesSchedulesPage() {
       console.log('👥 Available nurses:', nurses.length);
       
       // Validation
-      if (!formData.nurseId || !formData.date || !formData.startTime || !formData.endTime) {
+      if (!formData.nurseId || !formData.startDate || !formData.endDate || !formData.startTime || !formData.endTime) {
         console.log('❌ Validation failed - missing required fields:', {
           nurseId: !!formData.nurseId,
-          date: !!formData.date,
+          startDate: !!formData.startDate,
+          endDate: !!formData.endDate,
           startTime: !!formData.startTime,
           endTime: !!formData.endTime
         });
@@ -200,11 +220,18 @@ export default function NursesSchedulesPage() {
         return
       }
 
+      if (formData.startDate > formData.endDate) {
+        console.log('❌ Date range validation failed:', formData.startDate, '>', formData.endDate);
+        toast.error('End date must be on or after start date')
+        return
+      }
+
       console.log('✅ All validations passed, creating schedule...');
 
       const requestBody = {
         nurseId: parseInt(formData.nurseId),
-        date: formData.date,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
         wardAssignment: formData.wardAssignment,
@@ -227,11 +254,14 @@ export default function NursesSchedulesPage() {
       if (response.ok) {
         const successData = await response.json();
         console.log('✅ Success response:', successData);
-        toast.success('Nurse schedule created successfully!')
+        const created = successData.createdCount ?? 1;
+        const skipped = successData.skippedCount ?? 0;
+        toast.success(`Created ${created} schedule(s)${skipped ? `, skipped ${skipped}` : ''}`)
         setIsCreateModalOpen(false)
         setFormData({
           nurseId: '',
-          date: new Date().toISOString().split('T')[0],
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
           startTime: '06:00',
           endTime: '14:00',
           wardAssignment: 'General Ward',
@@ -260,17 +290,23 @@ export default function NursesSchedulesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          date: formData.date,
+          // Apply changes across a date range; default to single day
+          startDate: formData.startDate,
+          endDate: formData.endDate,
           startTime: formData.startTime,
           endTime: formData.endTime,
           wardAssignment: formData.wardAssignment,
           shiftType: formData.shiftType,
-          maxPatients: parseInt(formData.maxPatients)
+          maxPatients: parseInt(formData.maxPatients),
+          applyToRange: true
         }),
       })
 
       if (response.ok) {
-        toast.success('Schedule updated successfully!')
+        const data = await response.json();
+        const updated = data.updatedCount ?? 1;
+        const created = data.createdCount ?? 0;
+        toast.success(`Updated ${updated} schedule(s)${created ? `, created ${created}` : ''}`)
         setIsEditModalOpen(false)
         setEditingSchedule(null)
         loadSchedules()
@@ -309,7 +345,8 @@ export default function NursesSchedulesPage() {
     setEditingSchedule(schedule)
     setFormData({
       nurseId: schedule.nurse_id.toString(),
-      date: schedule.shift_date,
+      startDate: schedule.shift_date,
+      endDate: schedule.shift_date,
       startTime: schedule.start_time,
       endTime: schedule.end_time,
       wardAssignment: schedule.ward_assignment,
@@ -431,15 +468,28 @@ export default function NursesSchedulesPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Start Date *</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">End Date *</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      min={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -615,7 +665,18 @@ export default function NursesSchedulesPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-pink-500" />
-                            <span>{new Date(schedule.shift_date).toLocaleDateString()}</span>
+                            <span>
+                              {(() => {
+                                const key = `${schedule.nurse_id}|${schedule.start_time}|${schedule.end_time}|${schedule.ward_assignment}|${schedule.shift_type}`
+                                const range = scheduleRanges.get(key)
+                                if (range && range.min !== range.max) {
+                                  const start = new Date(range.min).toLocaleDateString()
+                                  const end = new Date(range.max).toLocaleDateString()
+                                  return `${start} - ${end}`
+                                }
+                                return new Date(schedule.shift_date).toLocaleDateString()
+                              })()}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-pink-500" />
@@ -721,15 +782,28 @@ export default function NursesSchedulesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">Date *</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                required
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-startDate">Start Date *</Label>
+                <Input
+                  id="edit-startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endDate">End Date *</Label>
+                <Input
+                  id="edit-endDate"
+                  type="date"
+                  value={formData.endDate}
+                  min={formData.startDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
