@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import mysql from 'mysql2/promise';
+import { format, toZonedTime } from 'date-fns-tz';
 
 // Database configuration
 const dbConfig = {
@@ -182,11 +183,23 @@ export async function GET(request: NextRequest) {
       ORDER BY birth_date DESC
     `;
 
-    const [rows] = await connection.execute(query, [doctorId]);
+    const [rows] = await connection.execute(query, [doctorId]) as mysql.RowDataPacket[];
+
+    const timeZone = 'Asia/Kolkata';
+    const formattedRows = rows.map((row: any) => {
+      if (row.birth_date) {
+        const zonedDate = toZonedTime(new Date(row.birth_date), timeZone);
+        return {
+          ...row,
+          birth_date: format(zonedDate, 'M/d/yyyy, h:mm:ss a', { timeZone }),
+        };
+      }
+      return row;
+    });
 
     return NextResponse.json({
       success: true,
-      data: rows
+      data: formattedRows,
     });
 
   } catch (error) {

@@ -143,9 +143,6 @@ export default function NewbornRecordsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
 
   const formatWeight = (grams: number) => {
     const kg = (grams / 1000).toFixed(2);
@@ -231,7 +228,7 @@ export default function NewbornRecordsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatDate(record.birth_date)}</span>
+                          <span>{record.birth_date}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Weight className="h-4 w-4" />
