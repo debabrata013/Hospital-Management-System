@@ -10,6 +10,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { toast } from 'sonner'
 import { 
   Calendar, 
@@ -40,7 +41,9 @@ interface NurseSchedule {
   id: number
   nurse_id: number
   nurse_name: string
-  shift_date: string
+  shift_date: string | null
+  start_date: string | null
+  end_date: string | null
   start_time: string
   end_time: string
   ward_assignment: string
@@ -52,13 +55,12 @@ interface NurseSchedule {
 }
 
 interface CreateScheduleData {
-  nurseId: string
-  date: string
-  startTime: string
-  endTime: string
-  wardAssignment: string
-  shiftType: string
-  maxPatients: string
+  nurseId: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  shiftType: string;
 }
 
 export default function NursesSchedulesPage() {
@@ -79,13 +81,12 @@ export default function NursesSchedulesPage() {
   }
   const [formData, setFormData] = useState<CreateScheduleData>({
     nurseId: '',
-    date: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
     startTime: '06:00',
     endTime: '14:00',
-    wardAssignment: 'General Ward',
     shiftType: 'Morning',
-    maxPatients: '8'
-  })
+  });
 
   // Stats - Calculate available nurses dynamically
   const getTodayDate = () => {
@@ -101,8 +102,8 @@ export default function NursesSchedulesPage() {
     const scheduledTodayNurseIds = schedules
       .filter(s => {
         // Convert shift_date to YYYY-MM-DD format for comparison
-        const shiftDate = new Date(s.shift_date).toISOString().split('T')[0]
-        return shiftDate === today && (s.status === 'Scheduled' || s.status === 'active')
+        const shiftDate = s.shift_date ? new Date(s.shift_date).toISOString().split('T')[0] : null
+        return shiftDate === today && (s.status.toLowerCase() === 'scheduled' || s.status.toLowerCase() === 'active')
       })
       .map(s => s.nurse_id)
     
@@ -183,10 +184,11 @@ export default function NursesSchedulesPage() {
       console.log('👥 Available nurses:', nurses.length);
       
       // Validation
-      if (!formData.nurseId || !formData.date || !formData.startTime || !formData.endTime) {
+      if (!formData.nurseId || !formData.startDate || !formData.endDate || !formData.startTime || !formData.endTime) {
         console.log('❌ Validation failed - missing required fields:', {
           nurseId: !!formData.nurseId,
-          date: !!formData.date,
+          startDate: !!formData.startDate,
+          endDate: !!formData.endDate,
           startTime: !!formData.startTime,
           endTime: !!formData.endTime
         });
@@ -202,14 +204,19 @@ export default function NursesSchedulesPage() {
 
       console.log('✅ All validations passed, creating schedule...');
 
+      const selectedNurse = nurses.find(n => n.id.toString() === formData.nurseId);
+      if (!selectedNurse) {
+        toast.error('Selected nurse not found.');
+        return;
+      }
+
       const requestBody = {
         nurseId: parseInt(formData.nurseId),
-        date: formData.date,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        wardAssignment: formData.wardAssignment,
         shiftType: formData.shiftType,
-        maxPatients: parseInt(formData.maxPatients)
       };
       
       console.log('📤 Sending request:', requestBody);
@@ -231,12 +238,11 @@ export default function NursesSchedulesPage() {
         setIsCreateModalOpen(false)
         setFormData({
           nurseId: '',
-          date: new Date().toISOString().split('T')[0],
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
           startTime: '06:00',
           endTime: '14:00',
-          wardAssignment: 'General Ward',
           shiftType: 'Morning',
-          maxPatients: '8'
         })
         loadSchedules()
       } else {
@@ -251,7 +257,9 @@ export default function NursesSchedulesPage() {
   }
 
   const handleUpdateSchedule = async () => {
-    if (!editingSchedule) return
+    if (!editingSchedule) return;
+
+    const selectedNurse = nurses.find(n => n.id === editingSchedule.nurse_id);
 
     try {
       const response = await fetch(`/api/admin/nurses-schedules/${editingSchedule.id}`, {
@@ -260,29 +268,29 @@ export default function NursesSchedulesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          date: formData.date,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
           startTime: formData.startTime,
           endTime: formData.endTime,
-          wardAssignment: formData.wardAssignment,
+          wardAssignment: selectedNurse?.department || editingSchedule.ward_assignment, // Use nurse's department
           shiftType: formData.shiftType,
-          maxPatients: parseInt(formData.maxPatients)
         }),
-      })
+      });
 
       if (response.ok) {
-        toast.success('Schedule updated successfully!')
-        setIsEditModalOpen(false)
-        setEditingSchedule(null)
-        loadSchedules()
+        toast.success('Schedule updated successfully!');
+        setIsEditModalOpen(false);
+        setEditingSchedule(null);
+        loadSchedules();
       } else {
-        const errorData = await response.json()
-        toast.error(errorData.error || 'Failed to update schedule')
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to update schedule');
       }
     } catch (error) {
-      console.error('Error updating schedule:', error)
-      toast.error('Failed to update schedule')
+      console.error('Error updating schedule:', error);
+      toast.error('Failed to update schedule');
     }
-  }
+  };
 
   const handleDeleteSchedule = async (scheduleId: number) => {
     if (!confirm('Are you sure you want to delete this schedule?')) return
@@ -306,18 +314,17 @@ export default function NursesSchedulesPage() {
   }
 
   const handleEditSchedule = (schedule: NurseSchedule) => {
-    setEditingSchedule(schedule)
+    setEditingSchedule(schedule);
     setFormData({
       nurseId: schedule.nurse_id.toString(),
-      date: schedule.shift_date,
+      startDate: schedule.start_date || schedule.shift_date || '',
+      endDate: schedule.end_date || schedule.shift_date || '',
       startTime: schedule.start_time,
       endTime: schedule.end_time,
-      wardAssignment: schedule.ward_assignment,
       shiftType: schedule.shift_type,
-      maxPatients: schedule.max_patients.toString()
-    })
-    setIsEditModalOpen(true)
-  }
+    });
+    setIsEditModalOpen(true);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -360,6 +367,15 @@ export default function NursesSchedulesPage() {
     (nurse.mobile && nurse.mobile.includes(nurseSearch))
   );
 
+  const groupedSchedules = schedules.reduce((acc, schedule) => {
+    const nurseName = schedule.nurse_name;
+    if (!acc[nurseName]) {
+      acc[nurseName] = [];
+    }
+    acc[nurseName].push(schedule);
+    return acc;
+  }, {} as Record<string, NurseSchedule[]>);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-white p-4 sm:p-6">
       {/* Header */}
@@ -401,7 +417,7 @@ export default function NursesSchedulesPage() {
                   Create Nurse Schedule
                 </DialogTitle>
                 <DialogDescription>
-                  Assign a nurse to a specific shift and ward
+                  Assign a nurse to a specific shift
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
@@ -431,15 +447,27 @@ export default function NursesSchedulesPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Start Date *</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">End Date *</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -479,37 +507,8 @@ export default function NursesSchedulesPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="wardAssignment">Ward Assignment</Label>
-                  <Select value={formData.wardAssignment} onValueChange={(value) => setFormData(prev => ({ ...prev, wardAssignment: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="General Ward">General Ward</SelectItem>
-                      <SelectItem value="ICU">ICU</SelectItem>
-                      <SelectItem value="Emergency">Emergency</SelectItem>
-                      <SelectItem value="Pediatric">Pediatric</SelectItem>
-                      <SelectItem value="Maternity">Maternity</SelectItem>
-                      <SelectItem value="Surgery">Surgery</SelectItem>
-                      <SelectItem value="Cardiology">Cardiology</SelectItem>
-                      <SelectItem value="Orthopedic">Orthopedic</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="maxPatients">Maximum Patients</Label>
-                  <Input
-                    id="maxPatients"
-                    type="number"
-                    value={formData.maxPatients}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxPatients: e.target.value }))}
-                    min="1"
-                    max="20"
-                  />
-                </div>
-              </div>
+                
+                              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
                   Cancel
@@ -594,110 +593,74 @@ export default function NursesSchedulesPage() {
               ))}
             </div>
           ) : schedules.length > 0 ? (
-            <div className="space-y-4">
-              {schedules.map((schedule) => (
-                <div key={schedule.id} className="p-4 sm:p-5 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
-                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                    <div className="flex-shrink-0 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-14 w-14 flex items-center justify-center font-bold">
-                      <UserCheck className="h-7 w-7" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                        <h3 className="font-bold text-lg text-gray-900">{schedule.nurse_name}</h3>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline">ID: {schedule.id}</Badge>
-                          <Badge className={getShiftTypeColor(schedule.shift_type)}>{schedule.shift_type}</Badge>
-                          {getStatusBadge(schedule.status)}
-                        </div>
+            <Accordion type="single" collapsible className="w-full">
+              {Object.entries(groupedSchedules).map(([nurseName, nurseSchedules]) => (
+                <AccordionItem value={nurseName} key={nurseName}>
+                  <AccordionTrigger className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-lg h-12 w-12 flex items-center justify-center font-bold">
+                        <UserCheck className="h-6 w-6" />
                       </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-pink-500" />
-                            <span>{new Date(schedule.shift_date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-pink-500" />
-                            <span>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-pink-500" />
-                            <span>{schedule.ward_assignment}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-pink-500" />
-                            <span>{schedule.current_patients}/{schedule.max_patients} patients</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewSchedule(schedule)}
-                          className="border-green-200 text-green-600 hover:bg-green-50"
-                        >
-                          <UserCheck className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditSchedule(schedule)}
-                          className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteSchedule(schedule.id)}
-                          className="border-red-200 text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-      {/* View Schedule Modal */}
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
-              Nurse Schedule Details
-            </DialogTitle>
-            <DialogDescription>
-              Details for {viewingSchedule?.nurse_name}
-            </DialogDescription>
-          </DialogHeader>
-          {viewingSchedule && (
-            <div className="space-y-3 py-2">
-              <div><b>ID:</b> {viewingSchedule.id}</div>
-              <div><b>Date:</b> {viewingSchedule.shift_date}</div>
-              <div><b>Shift:</b> {viewingSchedule.shift_type} ({viewingSchedule.start_time} - {viewingSchedule.end_time})</div>
-              <div><b>Status:</b> <Badge>{viewingSchedule.status}</Badge></div>
-              <div><b>Ward:</b> {viewingSchedule.ward_assignment}</div>
-              <div><b>Patients:</b> {viewingSchedule.current_patients}/{viewingSchedule.max_patients}</div>
-              <div><b>Created At:</b> {viewingSchedule.created_at}</div>
-            </div>
-          )}
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">{nurseName}</h3>
+                        <p className="text-sm text-gray-500">{nurseSchedules.length} schedule(s)</p>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4">
+                    <div className="space-y-4">
+                      {nurseSchedules.map((schedule) => (
+                        <div key={schedule.id} className="p-4 sm:p-5 border border-pink-100 rounded-lg hover:shadow-md transition-all duration-200">
+                          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                            <div className="flex-1">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="outline">ID: {schedule.id}</Badge>
+                                  <Badge className={getShiftTypeColor(schedule.shift_type)}>{schedule.shift_type}</Badge>
+                                  {getStatusBadge(schedule.status)}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-pink-500" />
+                                    <span>
+                                      {schedule.start_date && schedule.end_date
+                                        ? `${new Date(schedule.start_date).toLocaleDateString()} - ${new Date(schedule.end_date).toLocaleDateString()}`
+                                        : schedule.shift_date
+                                          ? new Date(schedule.shift_date).toLocaleDateString()
+                                          : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-pink-500" />
+                                    <span>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" onClick={() => handleViewSchedule(schedule)} className="border-green-200 text-green-600 hover:bg-green-50">
+                                  <UserCheck className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => handleEditSchedule(schedule)} className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => handleDeleteSchedule(schedule.id)} className="border-red-200 text-red-600 hover:bg-red-50">
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           ) : (
             <div className="text-center py-8">
               <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -721,15 +684,27 @@ export default function NursesSchedulesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">Date *</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-startDate">Start Date *</Label>
+                <Input
+                  id="edit-startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endDate">End Date *</Label>
+                <Input
+                  id="edit-endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -769,37 +744,8 @@ export default function NursesSchedulesPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-wardAssignment">Ward Assignment</Label>
-              <Select value={formData.wardAssignment} onValueChange={(value) => setFormData(prev => ({ ...prev, wardAssignment: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="General Ward">General Ward</SelectItem>
-                  <SelectItem value="ICU">ICU</SelectItem>
-                  <SelectItem value="Emergency">Emergency</SelectItem>
-                  <SelectItem value="Pediatric">Pediatric</SelectItem>
-                  <SelectItem value="Maternity">Maternity</SelectItem>
-                  <SelectItem value="Surgery">Surgery</SelectItem>
-                  <SelectItem value="Cardiology">Cardiology</SelectItem>
-                  <SelectItem value="Orthopedic">Orthopedic</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-maxPatients">Maximum Patients</Label>
-              <Input
-                id="edit-maxPatients"
-                type="number"
-                value={formData.maxPatients}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxPatients: e.target.value }))}
-                min="1"
-                max="20"
-              />
-            </div>
-          </div>
+            
+                      </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
               Cancel

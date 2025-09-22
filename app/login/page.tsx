@@ -98,22 +98,37 @@ function LoginForm() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateForm()) {
-      return
+      return;
     }
 
     try {
+      // First, check the user's schedule if they are a nurse
+      const scheduleResponse = await fetch('/api/auth/check-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobileNumber: formData.mobileNumber }),
+      });
+
+      const scheduleData = await scheduleResponse.json();
+
+      if (scheduleResponse.ok && !scheduleData.allowLogin) {
+        toast.error(scheduleData.message || 'You can only log in during your scheduled shift.');
+        return;
+      }
+
+      // If schedule check passes or is not required, proceed with login
       await login({
         login: formData.mobileNumber,
-        password: formData.password
+        password: formData.password,
       });
     } catch (error) {
       console.error('Login error:', error);
-      toast.error("An unexpected error occurred during login.");
+      toast.error('An unexpected error occurred during login.');
     }
-  }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}

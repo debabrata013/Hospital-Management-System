@@ -12,19 +12,19 @@ export async function GET(request: NextRequest) {
         ns.nurse_id,
         u.name as nurse_name,
         ns.shift_date,
+        ns.start_date,
+        ns.end_date,
         ns.start_time,
         ns.end_time,
         ns.department as ward_assignment,
         ns.shift_type,
         ns.status,
-        8 as max_patients,
-        0 as current_patients,
         ns.created_at,
         ns.updated_at
       FROM nurse_schedules ns
       LEFT JOIN users u ON ns.nurse_id = u.id
       WHERE u.role = 'nurse'
-      ORDER BY ns.shift_date DESC, ns.start_time ASC
+      ORDER BY ns.shift_date DESC, ns.start_date DESC, ns.start_time ASC
     `, []) as any[]
 
     return NextResponse.json({
@@ -50,12 +50,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nurseId, date, startTime, endTime, wardAssignment, shiftType, maxPatients } = body
+    const { nurseId, startDate, endDate, startTime, endTime, shiftType } = body
 
     // Validation
-    if (!nurseId || !date || !startTime || !endTime) {
+    if (!nurseId || !startDate || !endDate || !startTime || !endTime) {
       return NextResponse.json(
-        { error: 'Missing required fields: nurseId, date, startTime, endTime' },
+        { error: 'Missing required fields: nurseId, startDate, endDate, startTime, endTime' },
         { status: 400 }
       )
     }
@@ -75,10 +75,14 @@ export async function POST(request: NextRequest) {
 
     // Check for existing schedule conflicts (only time overlaps, allow multiple shifts per day)
     const conflictCheck = await executeQuery(
-      `SELECT id, shift_type, start_time, end_time FROM nurse_schedules 
-       WHERE nurse_id = ? AND shift_date = ? 
-       AND status != 'cancelled'`,
-      [nurseId, date]
+      `SELECT id, shift_type, start_time, end_time, shift_date, start_date, end_date FROM nurse_schedules 
+       WHERE nurse_id = ? 
+       AND status != 'cancelled' 
+       AND (
+         (shift_date BETWEEN ? AND ?) OR
+         (start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= ? AND end_date >= ?)
+       )`,
+      [nurseId, startDate, endDate, endDate, startDate]
     ) as any[]
 
     if (conflictCheck && conflictCheck.length > 0) {
@@ -110,23 +114,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the schedule
+    const nurseDetails = await executeQuery('SELECT department FROM users WHERE id = ?', [nurseId]) as any[];
+    const wardAssignment = nurseDetails[0]?.department || 'General Ward';
+
+    const isRecurring = startDate !== endDate;
+
     const insertResult = await executeQuery(
       `INSERT INTO nurse_schedules (
         nurse_id, 
         shift_date, 
+        start_date,
+        end_date,
         start_time, 
         end_time, 
         department, 
         shift_type, 
         status, 
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'Scheduled', NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', NOW())`,
       [
         nurseId,
-        date,
+        isRecurring ? null : startDate,
+        isRecurring ? startDate : null,
+        isRecurring ? endDate : null,
         startTime,
         endTime,
-        wardAssignment,
+        wardAssignment, // Use nurse's department
         shiftType
       ]
     ) as any
@@ -141,11 +154,10 @@ export async function POST(request: NextRequest) {
       message: 'Nurse schedule created successfully',
       scheduleId: insertResult.insertId,
       nurse: nurseCheck[0].name,
-      date,
+      date: startDate,
       time: `${startTime} - ${endTime}`,
-      ward: wardAssignment,
-      shiftType,
-      maxPatients: maxPatients || 8
+      ward: wardAssignment, // Use nurse's department
+      shiftType
     })
 
   } catch (error: any) {

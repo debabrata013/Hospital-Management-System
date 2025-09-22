@@ -632,13 +632,19 @@ export default function StaffDashboard() {
                           </div>
                         ))}
                       </div>
-                    ) : scheduleData?.todaySchedule || currentSchedule ? (
+                    ) : scheduleData?.todaySchedule || currentSchedule || (scheduleData?.upcomingSchedules && scheduleData.upcomingSchedules.length > 0) ? (
                       <div className="space-y-2">
+                        {scheduleData.todaySchedule && (
                         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <div className="flex items-center">
                             <div className="w-2 h-10 bg-blue-500 rounded-full mr-3"></div>
                             <div>
                               <p className="font-medium capitalize">{scheduleData.todaySchedule.shift_type} Shift</p>
+                              <p className="text-sm text-gray-500">
+                                {scheduleData.todaySchedule.start_date && scheduleData.todaySchedule.end_date
+                                  ? `${new Date(scheduleData.todaySchedule.start_date).toLocaleDateString()} - ${new Date(scheduleData.todaySchedule.end_date).toLocaleDateString()}`
+                                  : new Date(scheduleData.todaySchedule.shift_date || scheduleData.todaySchedule.start_date).toLocaleDateString()}
+                              </p>
                               <p className="text-sm text-gray-500">
                                 {scheduleData.todaySchedule.start_time} - {scheduleData.todaySchedule.end_time}
                               </p>
@@ -656,19 +662,23 @@ export default function StaffDashboard() {
                             {scheduleData.todaySchedule.status}
                           </Badge>
                         </div>
+                        )}
                         
-                        {scheduleData.upcomingSchedules && scheduleData.upcomingSchedules.length > 1 && (
+                        {scheduleData.upcomingSchedules && scheduleData.upcomingSchedules.length > 0 && (
                           <div className="mt-4">
                             <h4 className="text-sm font-medium text-gray-600 mb-2">Upcoming Schedules</h4>
                             <div className="space-y-2">
-                              {scheduleData.upcomingSchedules.slice(1, 3).map((schedule: any, index: number) => (
+                              {scheduleData.upcomingSchedules.slice(0, 2).map((schedule: any, index: number) => (
                                 <div key={schedule.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                                   <div className="flex items-center">
                                     <div className="w-2 h-8 bg-gray-400 rounded-full mr-3"></div>
                                     <div>
                                       <p className="text-sm font-medium capitalize">{schedule.shift_type} Shift</p>
                                       <p className="text-xs text-gray-500">
-                                        {new Date(schedule.shift_date).toLocaleDateString()} • {schedule.start_time} - {schedule.end_time}
+                                        {schedule.start_date && schedule.end_date
+                                          ? `${new Date(schedule.start_date).toLocaleDateString()} - ${new Date(schedule.end_date).toLocaleDateString()}`
+                                          : new Date(schedule.shift_date || schedule.start_date).toLocaleDateString()}
+                                        • {schedule.start_time} - {schedule.end_time}
                                       </p>
                                     </div>
                                   </div>

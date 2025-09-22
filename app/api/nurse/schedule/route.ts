@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         ns.id,
         ns.shift_date,
+        ns.start_date,
+        ns.end_date,
         ns.start_time,
         ns.end_time,
         ns.department as ward_assignment,
@@ -42,10 +44,10 @@ export async function GET(request: NextRequest) {
         u.name as nurse_name
       FROM nurse_schedules ns
       LEFT JOIN users u ON ns.nurse_id = u.id
-      WHERE ns.nurse_id = ? AND ns.shift_date >= ?
-      ORDER BY ns.shift_date ASC, ns.start_time ASC
+      WHERE ns.nurse_id = ? AND (ns.shift_date >= ? OR (? BETWEEN ns.start_date AND ns.end_date))
+      ORDER BY ns.shift_date ASC, ns.start_date ASC, ns.start_time ASC
       LIMIT 10
-    `, [nurseId, todayStr]);
+    `, [nurseId, todayStr, todayStr]);
 
     // Get current time in HH:MM format
     const now = new Date();
@@ -59,15 +61,17 @@ export async function GET(request: NextRequest) {
       SELECT 
         ns.id,
         ns.shift_date,
+        ns.start_date,
+        ns.end_date,
         ns.start_time,
         ns.end_time,
         ns.department as ward_assignment,
         ns.shift_type,
         ns.status
       FROM nurse_schedules ns
-      WHERE ns.nurse_id = ? AND ns.shift_date = ?
+      WHERE ns.nurse_id = ? AND (ns.shift_date = ? OR (? BETWEEN ns.start_date AND ns.end_date))
       ORDER BY ns.start_time ASC
-    `, [nurseId, todayStr]) as any[];
+    `, [nurseId, todayStr, todayStr]) as any[];
 
     console.log('📋 Today schedules found:', Array.isArray(todaySchedules) ? todaySchedules.length : 0);
 
