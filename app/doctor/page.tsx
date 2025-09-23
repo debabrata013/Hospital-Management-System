@@ -45,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse } from 'lucide-react'
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse, Loader2 } from 'lucide-react'
 import NewbornSection from '@/doctor-dashboard-newborn-section';
 
 
@@ -178,6 +178,12 @@ export default function DoctorDashboard() {
     remarks: ''
   });
 
+  // View reports modal states
+  const [isViewReportsDialogOpen, setIsViewReportsDialogOpen] = useState(false);
+  const [selectedPatientForReports, setSelectedPatientForReports] = useState<any>(null);
+  const [patientReports, setPatientReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       console.log('Auth User Object:', user);
@@ -291,6 +297,26 @@ export default function DoctorDashboard() {
       ...prev,
       vitals: { ...prev.vitals, [field]: value }
     }));
+  };
+
+  const handleViewReportsClick = async (patient: any) => {
+    setSelectedPatientForReports(patient);
+    setIsViewReportsDialogOpen(true);
+    setReportsLoading(true);
+    try {
+      const response = await fetch(`/api/doctor/reports/${patient.patient_id}` );
+      if (response.ok) {
+        const data = await response.json();
+        setPatientReports(data.reports || []);
+      } else {
+        setPatientReports([]);
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setPatientReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
   };
 
   const saveAdmittedPatientPrescription = async () => {
@@ -1201,6 +1227,15 @@ export default function DoctorDashboard() {
                                     <LogOut className="h-3 w-3 mr-1" />
                                     Discharge
                                   </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-full text-xs bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                                    onClick={() => handleViewReportsClick(patient)}
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    View Reports
+                                  </Button>
                                 </>
                               ) : (
                                 <>
@@ -1215,6 +1250,15 @@ export default function DoctorDashboard() {
                                   >
                                     <FileText className="h-3 w-3 mr-1" />
                                     Export PDF
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-full text-xs bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                                    onClick={() => handleViewReportsClick(patient)}
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    View Reports
                                   </Button>
                                 </>
                               )}
@@ -1375,6 +1419,41 @@ export default function DoctorDashboard() {
           </main>
         </SidebarInset>
       </div>
+
+      {/* View Reports Dialog */}
+      <Dialog open={isViewReportsDialogOpen} onOpenChange={setIsViewReportsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reports for {selectedPatientForReports?.patient_name}</DialogTitle>
+            <DialogDescription>
+              Viewing all uploaded test reports for this patient.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            {reportsLoading ? (
+              <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-pink-500" /></div>
+            ) : patientReports.length > 0 ? (
+              <ul className="space-y-3">
+                {patientReports.map(report => (
+                  <li key={report.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                    <div>
+                      <a href={report.file_path} target="_blank" rel="noopener noreferrer" className="font-medium text-pink-600 hover:underline">
+                        {report.report_name}
+                      </a>
+                      <p className="text-sm text-gray-500">Uploaded by {report.nurse_name} on {new Date(report.upload_date).toLocaleString()}</p>
+                    </div>
+                    <a href={report.file_path} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">View</Button>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500">No reports found for this patient.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Prescription Dialog */}
       <Dialog open={prescriptionDialog} onOpenChange={setPrescriptionDialog}>
@@ -2307,6 +2386,41 @@ export default function DoctorDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Reports Dialog */}
+      <Dialog open={isViewReportsDialogOpen} onOpenChange={setIsViewReportsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reports for {selectedPatientForReports?.patient_name}</DialogTitle>
+            <DialogDescription>
+              Viewing all uploaded test reports for this patient.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            {reportsLoading ? (
+              <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-pink-500" /></div>
+            ) : patientReports.length > 0 ? (
+              <ul className="space-y-3">
+                {patientReports.map(report => (
+                  <li key={report.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                    <div>
+                      <a href={report.file_path} target="_blank" rel="noopener noreferrer" className="font-medium text-pink-600 hover:underline">
+                        {report.report_name}
+                      </a>
+                      <p className="text-sm text-gray-500">Uploaded by {report.nurse_name} on {new Date(report.upload_date).toLocaleString()}</p>
+                    </div>
+                    <a href={report.file_path} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">View</Button>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500">No reports found for this patient.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
-  )
+  );
 }

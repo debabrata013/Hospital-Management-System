@@ -86,7 +86,7 @@ const navigationItems = [
       { title: "Tasks", icon: ClipboardList, url: "/nurse/tasks" },
       { title: "Medicines", icon: Pill, url: "/nurse/medicines" },
       { title: "Vitals", icon: Activity, url: "/nurse/vitals" },
-      
+      { title: "Test Reports", icon: Clipboard, url: "/nurse/test-reports" }
     ]
   },
   {

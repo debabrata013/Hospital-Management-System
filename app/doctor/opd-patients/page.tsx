@@ -96,6 +96,12 @@ export default function OPDPatientsPage() {
   const [savingPrescription, setSavingPrescription] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
 
+  // View reports modal states
+  const [isViewReportsDialogOpen, setIsViewReportsDialogOpen] = useState(false);
+  const [selectedPatientForReports, setSelectedPatientForReports] = useState<OPDPatient | null>(null);
+  const [patientReports, setPatientReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
   useEffect(() => {
     fetchOPDPatients()
   }, [selectedDate, statusFilter])
@@ -309,6 +315,26 @@ export default function OPDPatientsPage() {
       setSavingPrescription(false)
     }
   }
+
+  const handleViewReportsClick = async (patient: OPDPatient) => {
+    setSelectedPatientForReports(patient);
+    setIsViewReportsDialogOpen(true);
+    setReportsLoading(true);
+    try {
+      const response = await fetch(`/api/doctor/reports/${patient.Patient.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPatientReports(data.reports || []);
+      } else {
+        setPatientReports([]);
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setPatientReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -610,6 +636,15 @@ export default function OPDPatientsPage() {
                           className="border-pink-200 text-pink-600 hover:bg-pink-50"
                           onClick={() => router.push(`/doctor/patients/${patient.Patient.id}`)}
                           title="View Patient Records"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                          onClick={() => handleViewReportsClick(patient)}
+                          title="View Test Reports"
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -1064,6 +1099,41 @@ export default function OPDPatientsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Reports Dialog */}
+      <Dialog open={isViewReportsDialogOpen} onOpenChange={setIsViewReportsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reports for {selectedPatientForReports?.Patient.firstName} {selectedPatientForReports?.Patient.lastName}</DialogTitle>
+            <DialogDescription>
+              Viewing all uploaded test reports for this patient.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            {reportsLoading ? (
+              <div className="text-center"><RefreshCw className="h-8 w-8 animate-spin text-purple-500" /></div>
+            ) : patientReports.length > 0 ? (
+              <ul className="space-y-3">
+                {patientReports.map(report => (
+                  <li key={report.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                    <div>
+                      <a href={report.file_path} target="_blank" rel="noopener noreferrer" className="font-medium text-purple-600 hover:underline">
+                        {report.report_name}
+                      </a>
+                      <p className="text-sm text-gray-500">Uploaded by {report.nurse_name} on {new Date(report.upload_date).toLocaleString()}</p>
+                    </div>
+                    <a href={report.file_path} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">View</Button>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500">No reports found for this patient.</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

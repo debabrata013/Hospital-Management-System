@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
   let connection;
   
   try {
-    const { patientId, doctorId, department, appointmentDate, appointmentTime, notes, appointmentType } = await request.json();
+    const { patientId, doctorId, department: reqDepartment, appointmentDate, appointmentTime, notes, appointmentType } = await request.json();
+const department = reqDepartment;
 
     // appointmentTime is now optional; doctorId can be auto-selected by department
     if (!patientId || !appointmentDate) {
@@ -212,10 +213,10 @@ export async function POST(request: NextRequest) {
     // Insert appointment
     const [result] = await connection.execute<OkPacket>(
       `INSERT INTO appointments (
-        appointment_id, patient_id, doctor_id, appointment_date, 
+        appointment_id, patient_id, doctor_id, department, appointment_date, 
         appointment_time, status, notes, appointment_type, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'scheduled', ?, ?, NOW(), NOW())`,
-      [appointmentId, internalPatientId, resolvedDoctorId, appointmentDate, appointmentTime || null, notes || '', appointmentType || 'consultation']
+      ) VALUES (?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, NOW(), NOW())`,
+      [appointmentId, internalPatientId, resolvedDoctorId, department, appointmentDate, appointmentTime || null, notes || '', appointmentType || 'consultation']
     );
 
     return NextResponse.json({

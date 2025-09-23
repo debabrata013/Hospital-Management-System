@@ -42,12 +42,10 @@ export async function GET(req: NextRequest) {
         p.age,
         p.gender,
         creator.name as createdByName,
-        creator.role as createdByRole,
-        assigned_doctor.name as doctorName
+        creator.role as createdByRole
       FROM appointments a
       JOIN patients p ON a.patient_id = p.id
       LEFT JOIN users creator ON a.created_by = creator.id
-      LEFT JOIN users assigned_doctor ON a.doctor_id = assigned_doctor.id
       WHERE a.department = ? AND DATE(a.appointment_date) = ?
     `;
 
