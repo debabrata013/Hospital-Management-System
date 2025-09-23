@@ -42,6 +42,14 @@ export async function PUT(
       )
     }
 
+    // Ensure shiftType is provided when updating
+    if (!shiftType || typeof shiftType !== 'string') {
+      return NextResponse.json(
+        { error: 'Missing required field: shiftType' },
+        { status: 400 }
+      )
+    }
+
     if (effectiveStart > effectiveEnd) {
       return NextResponse.json(
         { error: 'End date must be on or after start date' },
@@ -69,6 +77,21 @@ export async function PUT(
       const colsInfo = await getScheduleColumnInfo()
       const wardCol = colsInfo.hasWardAssignment ? 'ward_assignment' : (colsInfo.hasDepartment ? 'department' : null)
       const includeMaxPatients = colsInfo.hasMaxPatients
+      
+      // Resolve ward value if ward column exists
+      let resolvedWardAssignment: string | null = null
+      if (wardCol) {
+        if (typeof wardAssignment === 'string' && wardAssignment.length > 0) {
+          resolvedWardAssignment = wardAssignment
+        } else {
+          // Fallback to nurse's department or a generic label
+          const nurseDeptRows = await executeQuery(
+            'SELECT department FROM users WHERE id = ? LIMIT 1',
+            [nurseId]
+          ) as any[]
+          resolvedWardAssignment = (nurseDeptRows?.[0]?.department as string) || 'General Ward'
+        }
+      }
       // Get all dates in range
       const dates: string[] = [];
       const start = new Date(effectiveStart);
@@ -81,16 +104,18 @@ export async function PUT(
       const setParts: string[] = [
         'start_time = ?',
         'end_time = ?',
-        wardCol ? `${wardCol} = ?` : '',
+        // Only include ward column if we actually have a value to set
+        wardCol && resolvedWardAssignment !== null ? `${wardCol} = ?` : '',
         'shift_type = ?',
-        includeMaxPatients ? 'max_patients = ?' : '',
+        // Only include max_patients if a numeric value is provided
+        includeMaxPatients && typeof maxPatients === 'number' ? 'max_patients = ?' : '',
         'updated_at = NOW()'
       ].filter(Boolean)
       const updateSQL = `UPDATE nurse_schedules SET ${setParts.join(', ')} WHERE nurse_id = ? AND shift_date IN (${dates.map(() => '?').join(',')})`
       const updateParams = [
         startTime,
         endTime,
-        ...(wardCol ? [wardAssignment] : []),
+        ...(wardCol && resolvedWardAssignment !== null ? [resolvedWardAssignment] : []),
         shiftType,
         ...(includeMaxPatients && typeof maxPatients === 'number' ? [maxPatients] : []),
         nurseId,
@@ -109,7 +134,9 @@ export async function PUT(
           const colsArr: string[] = ['nurse_id', 'shift_date', 'start_time', 'end_time', 'shift_type', 'status', 'created_at']
           const placeholders: string[] = ['?', '?', '?', '?', '?', `'scheduled'`, 'NOW()']
           const values: any[] = [nurseId, day, startTime, endTime, shiftType]
-          if (wardCol) { colsArr.splice(4, 0, wardCol); placeholders.splice(4, 0, '?'); values.splice(4, 0, wardAssignment) }
+          if (wardCol && resolvedWardAssignment !== null) {
+            colsArr.splice(4, 0, wardCol); placeholders.splice(4, 0, '?'); values.splice(4, 0, resolvedWardAssignment)
+          }
           if (includeMaxPatients && typeof maxPatients === 'number') { colsArr.splice(colsArr.length - 2, 0, 'max_patients'); placeholders.splice(placeholders.length - 2, 0, '?'); values.push(maxPatients) }
           const insertSQL = `INSERT INTO nurse_schedules (${colsArr.join(', ')}) VALUES (${placeholders.join(', ')})`
           const insertRes = await executeQuery(insertSQL, values) as any
@@ -143,11 +170,12 @@ export async function PUT(
 
       const colsInfo2 = await getScheduleColumnInfo()
       const wardCol2 = colsInfo2.hasWardAssignment ? 'ward_assignment' : (colsInfo2.hasDepartment ? 'department' : null)
+      const includeWardUpdate = wardCol2 && wardAssignment !== undefined
       const setParts2: string[] = [
         'shift_date = ?',
         'start_time = ?',
         'end_time = ?',
-        wardCol2 ? `${wardCol2} = ?` : '',
+        includeWardUpdate ? `${wardCol2} = ?` : '',
         'shift_type = ?',
         'updated_at = NOW()'
       ].filter(Boolean)
@@ -156,7 +184,7 @@ export async function PUT(
         effectiveStart,
         startTime,
         endTime,
-        ...(wardCol2 ? [wardAssignment] : []),
+        ...(includeWardUpdate ? [wardAssignment === null ? null : wardAssignment] : []),
         shiftType,
         id
       ]
