@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const { patientId, doctorId, department: reqDepartment, appointmentDate, appointmentTime, notes, appointmentType } = await request.json();
-const department = reqDepartment;
+    const department = reqDepartment;
 
     // appointmentTime is now optional; doctorId can be auto-selected by department
     if (!patientId || !appointmentDate) {
