@@ -45,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse, Loader2 } from 'lucide-react'
+import { Heart, LayoutDashboard, Calendar, Users, FileText, Stethoscope, Bell, LogOut, Plus, Clock, Activity, TrendingUp, Eye, FlaskConical, Brain, Pill, User, Phone, MapPin, CalendarDays, FileEdit, HeartPulse, Loader2, Search, FileImage, Download } from 'lucide-react'
 import NewbornSection from '@/doctor-dashboard-newborn-section';
 
 
@@ -76,6 +76,7 @@ const navigationItems = [
     title: "उपकरण (Tools)",
     items: [
       { title: "AI Assistant", icon: Brain, url: "/doctor/ai-tools" },
+      { title: "USG Reports", icon: FileImage, url: "/doctor/usg-reports" },
     ]
   }
 ]
@@ -184,11 +185,13 @@ export default function DoctorDashboard() {
   const [patientReports, setPatientReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
+
   useEffect(() => {
     if (user) {
       console.log('Auth User Object:', user);
     }
   }, [user]);
+
 
   const updateMedicine = (index: number, field: string, value: string) => {
     const updatedMedicines = [...prescriptionForm.medicines];
@@ -1416,6 +1419,7 @@ export default function DoctorDashboard() {
                   )}
                 </CardContent>
               </Card>
+
           </main>
         </SidebarInset>
       </div>
@@ -2421,6 +2425,7 @@ export default function DoctorDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
     </SidebarProvider>
   );
 }
