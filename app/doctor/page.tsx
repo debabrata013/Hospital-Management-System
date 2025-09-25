@@ -122,14 +122,27 @@ export default function DoctorDashboard() {
   const [dischargeDialog, setDischargeDialog] = useState(false);
   const [selectedPatientForDischarge, setSelectedPatientForDischarge] = useState<any>(null);
   const [dischargeForm, setDischargeForm] = useState({
+    admissionDiagnoses: '',
+    treatingDoctor: '',
     dischargeDiagnoses: '',
     consults: '',
     procedures: '',
     hospitalCourse: '',
+    // Investigations
+    hbPercent: '',
+    bloodGroup: '',
+    hivStatus: '',
+    hbsag: '',
+    vdrl: '',
+    sickling: '',
+    rbs: '',
+    investigationsNotes: '',
+    // Discharge core
     dischargeTo: '',
     dischargeCondition: '',
     dischargeMedications: '',
     dischargeInstructions: '',
+    whenToCall: '',
     pendingLabs: '',
     followUp: '',
     copyTo: '',
@@ -137,6 +150,22 @@ export default function DoctorDashboard() {
   const [selectedPatientForVitals, setSelectedPatientForVitals] = useState<any>(null);
   const [vitalsData, setVitalsData] = useState<any[]>([]);
   const [vitalsLoading, setVitalsLoading] = useState(false);
+  
+  // Auto-prefill gyn-specific instructions when dialog opens
+  useEffect(() => {
+    if (dischargeDialog && user?.department?.toLowerCase() === 'gynecology') {
+      setDischargeForm(prev => ({
+        ...prev,
+        dischargeInstructions: prev.dischargeInstructions || 'Resume physical activity gradually.\nConsume protein and fibre rich food.\nDo not lift heavy weights.',
+        whenToCall: prev.whenToCall || 'Fever with chills and rigor.\nSwelling and redness of wound.\nHeavy vaginal bleeding.\nFainting episodes.'
+      }));
+    }
+    // Prefill admission diagnosis from selected patient at open
+    if (dischargeDialog && selectedPatientForDischarge && !dischargeForm.admissionDiagnoses) {
+      const adm = selectedPatientForDischarge.admission_diagnosis || selectedPatientForDischarge.admissionDiagnosis || selectedPatientForDischarge.diagnosis || '';
+      setDischargeForm(prev => ({ ...prev, admissionDiagnoses: adm }));
+    }
+  }, [dischargeDialog, user]);
   
   // Appointment details modal states
   const [appointmentDetailsDialog, setAppointmentDetailsDialog] = useState(false);
@@ -389,7 +418,23 @@ export default function DoctorDashboard() {
           admissionCode: selectedPatientForDischarge.admission_code,
           patientId: selectedPatientForDischarge.patient_id,
           doctorId: selectedPatientForDischarge.doctor_id,
-          dischargeSummary: dischargeForm,
+          dischargeSummary: {
+            ...dischargeForm,
+            // Persist investigations and when-to-call inside dischargeInstructions
+            dischargeInstructions: [
+              dischargeForm.dischargeInstructions,
+              // Investigations block
+              (dischargeForm.hbPercent || dischargeForm.bloodGroup || dischargeForm.hivStatus || dischargeForm.hbsag || dischargeForm.vdrl || dischargeForm.sickling || dischargeForm.rbs || dischargeForm.investigationsNotes)
+                ? `Investigations:\nHB%: ${dischargeForm.hbPercent || '—'}\nBlood Group: ${dischargeForm.bloodGroup || '—'}\nHIV: ${dischargeForm.hivStatus || '—'}\nHBSAG: ${dischargeForm.hbsag || '—'}\nVDRL: ${dischargeForm.vdrl || '—'}\nSickling: ${dischargeForm.sickling || '—'}\nRBS: ${dischargeForm.rbs || '—'}${dischargeForm.investigationsNotes ? `\nNotes: ${dischargeForm.investigationsNotes}` : ''}`
+                : '',
+              // When to call block
+              (dischargeForm.whenToCall && dischargeForm.whenToCall.trim())
+                ? `When to call the doctor:\n${dischargeForm.whenToCall}`
+                : (user?.department?.toLowerCase() === 'gynecology'
+                    ? 'When to call the doctor:\nFever with chills and rigor.\nSwelling and redness of wound.\nHeavy vaginal bleeding.\nFainting episodes.'
+                    : '')
+            ].filter(Boolean).join('\n\n')
+          },
           dischargedBy: user?.id,
         }),
       });
@@ -401,14 +446,25 @@ export default function DoctorDashboard() {
         setSelectedPatientForDischarge(null);
         // Reset form
         setDischargeForm({
+          admissionDiagnoses: '',
+          treatingDoctor: '',
           dischargeDiagnoses: '',
           consults: '',
           procedures: '',
           hospitalCourse: '',
+          hbPercent: '',
+          bloodGroup: '',
+          hivStatus: '',
+          hbsag: '',
+          vdrl: '',
+          sickling: '',
+          rbs: '',
+          investigationsNotes: '',
           dischargeTo: '',
           dischargeCondition: '',
           dischargeMedications: '',
           dischargeInstructions: '',
+          whenToCall: '',
           pendingLabs: '',
           followUp: '',
           copyTo: '',
@@ -462,18 +518,18 @@ export default function DoctorDashboard() {
         </div>
 
         <div class="section">
-          <div class="section-title">ADMISSION DIAGNOSES:</div>
-          <div class="content">${selectedPatientForDischarge.diagnosis || 'Not specified'}</div>
+          <div class="section-title">ADMISSION DIAGNOSIS:</div>
+          <div class="content">${selectedPatientForDischarge.admission_diagnosis || selectedPatientForDischarge.admissionDiagnosis || selectedPatientForDischarge.diagnosis || 'Not specified'}</div>
         </div>
 
         <div class="section">
-          <div class="section-title">DISCHARGE DIAGNOSES:</div>
+          <div class="section-title">TREATING DOCTOR:</div>
+          <div class="content">${dischargeForm.treatingDoctor || user?.name || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE DIAGNOSIS:</div>
           <div class="content">${dischargeForm.dischargeDiagnoses || 'Not specified'}</div>
-        </div>
-
-        <div class="section">
-          <div class="section-title">CONSULTS:</div>
-          <div class="content">${dischargeForm.consults || 'None'}</div>
         </div>
 
         <div class="section">
@@ -482,8 +538,32 @@ export default function DoctorDashboard() {
         </div>
 
         <div class="section">
+          <div class="section-title">INVESTIGATIONS:</div>
+          <div class="content">
+            <div>HB%: ${dischargeForm.hbPercent || '—'}</div>
+            <div>Blood Group: ${dischargeForm.bloodGroup || '—'}</div>
+            <div>HIV: ${dischargeForm.hivStatus || '—'}</div>
+            <div>HBSAG: ${dischargeForm.hbsag || '—'}</div>
+            <div>VDRL: ${dischargeForm.vdrl || '—'}</div>
+            <div>Sickling: ${dischargeForm.sickling || '—'}</div>
+            <div>RBS: ${dischargeForm.rbs || '—'}</div>
+            ${dischargeForm.investigationsNotes ? `<div style="margin-top:6px">Notes: ${dischargeForm.investigationsNotes}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="section">
           <div class="section-title">HOSPITAL COURSE:</div>
           <div class="content">${dischargeForm.hospitalCourse || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE CONDITION:</div>
+          <div class="content">${dischargeForm.dischargeCondition || 'Not specified'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DISCHARGE MEDICATIONS:</div>
+          <div class="content">${dischargeForm.dischargeMedications || 'None'}</div>
         </div>
 
         <div class="section">
@@ -504,6 +584,11 @@ export default function DoctorDashboard() {
         <div class="section">
           <div class="section-title">DISCHARGE INSTRUCTIONS:</div>
           <div class="content">${dischargeForm.dischargeInstructions || 'None'}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">WHEN TO CALL THE DOCTOR:</div>
+          <div class="content">${(dischargeForm.whenToCall || '').replace(/\n/g,'<br/>') || (user?.department?.toLowerCase() === 'gynecology' ? 'Fever with chills and rigor.<br/>Swelling and redness of wound.<br/>Heavy vaginal bleeding.<br/>Fainting episodes.' : 'As advised')}</div>
         </div>
 
         <div class="section">
@@ -2194,25 +2279,36 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
-            {/* Admission Diagnoses */}
+            {/* Admission Diagnosis */}
             <div>
               <Label htmlFor="admissionDiagnoses" className="text-sm font-medium">
-                Admission Diagnoses
+                Admission Diagnosis
               </Label>
               <p className="text-xs text-gray-600 mb-2">Initial diagnosis based on presenting information, or reason for admission based on symptoms if tentative diagnosis not possible.</p>
               <Textarea 
                 id="admissionDiagnoses" 
-                placeholder="Enter initial diagnosis or reason for admission..."
                 className="min-h-[80px]"
-                readOnly
-                value={selectedPatientForDischarge?.diagnosis || 'Not specified'}
+                placeholder="Enter admission diagnosis..."
+                value={dischargeForm.admissionDiagnoses}
+                onChange={(e)=> setDischargeForm({ ...dischargeForm, admissionDiagnoses: e.target.value })}
               />
             </div>
 
-            {/* Discharge Diagnoses */}
+            {/* Treating Doctor */}
+            <div>
+              <Label htmlFor="treatingDoctor" className="text-sm font-medium">Treating Doctor</Label>
+              <Input 
+                id="treatingDoctor"
+                placeholder="Enter treating doctor name"
+                value={dischargeForm.treatingDoctor}
+                onChange={(e)=> setDischargeForm({...dischargeForm, treatingDoctor: e.target.value})}
+              />
+            </div>
+
+            {/* Discharge Diagnosis */}
             <div>
               <Label htmlFor="dischargeDiagnoses" className="text-sm font-medium">
-                Discharge Diagnoses *
+                Discharge Diagnosis *
               </Label>
               <p className="text-xs text-gray-600 mb-2">Concluding diagnosis(es) based on testing, studies, examination, etc.</p>
               <Textarea 
@@ -2252,6 +2348,94 @@ export default function DoctorDashboard() {
                 onChange={(e) => setDischargeForm({...dischargeForm, procedures: e.target.value})} 
                 className="min-h-[80px]"
               />
+            </div>
+
+            {/* Investigations (no header label requested) */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="hbPercent" className="text-sm font-medium">HB% (g/dL)</Label>
+                  <Input id="hbPercent" type="text" inputMode="decimal" placeholder="12"
+                    value={dischargeForm.hbPercent}
+                    onChange={(e)=>{ const v=e.target.value; if(/^\d*(?:\.\d*)?$/.test(v)) setDischargeForm({...dischargeForm, hbPercent: v}) }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bloodGroup" className="text-sm font-medium">Blood Group</Label>
+                  <select id="bloodGroup" className="w-full border rounded-md h-9 px-3"
+                    value={dischargeForm.bloodGroup}
+                    onChange={(e)=> setDischargeForm({...dischargeForm, bloodGroup: e.target.value})}
+                  >
+                    <option value="">Select</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="hivStatus" className="text-sm font-medium">HIV</Label>
+                  <select id="hivStatus" className="w-full border rounded-md h-9 px-3"
+                    value={dischargeForm.hivStatus}
+                    onChange={(e)=> setDischargeForm({...dischargeForm, hivStatus: e.target.value})}
+                  >
+                    <option value="">Select</option>
+                    <option value="Negative">Negative</option>
+                    <option value="Positive">Positive</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="hbsag" className="text-sm font-medium">HBSAG</Label>
+                  <select id="hbsag" className="w-full border rounded-md h-9 px-3"
+                    value={dischargeForm.hbsag}
+                    onChange={(e)=> setDischargeForm({...dischargeForm, hbsag: e.target.value})}
+                  >
+                    <option value="">Select</option>
+                    <option value="Reactive">Reactive</option>
+                    <option value="Non-reactive">Non-reactive</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="vdrl" className="text-sm font-medium">VDRL</Label>
+                  <select id="vdrl" className="w-full border rounded-md h-9 px-3"
+                    value={dischargeForm.vdrl}
+                    onChange={(e)=> setDischargeForm({...dischargeForm, vdrl: e.target.value})}
+                  >
+                    <option value="">Select</option>
+                    <option value="Reactive">Reactive</option>
+                    <option value="Non-reactive">Non-reactive</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="sickling" className="text-sm font-medium">Sickling</Label>
+                  <select id="sickling" className="w-full border rounded-md h-9 px-3"
+                    value={dischargeForm.sickling}
+                    onChange={(e)=> setDischargeForm({...dischargeForm, sickling: e.target.value})}
+                  >
+                    <option value="">Select</option>
+                    <option value="Negative">Negative</option>
+                    <option value="Positive">Positive</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="rbs" className="text-sm font-medium">RBS (mg/dL)</Label>
+                  <Input id="rbs" type="text" inputMode="numeric" placeholder="110"
+                    value={dischargeForm.rbs}
+                    onChange={(e)=>{ const v=e.target.value; if(/^\d*$/.test(v)) setDischargeForm({...dischargeForm, rbs: v}) }}
+                  />
+                </div>
+              </div>
+              <div className="mt-3">
+                <Label htmlFor="investigationsNotes" className="text-sm font-medium">Other Investigation Notes</Label>
+                <Textarea id="investigationsNotes" placeholder="Any additional investigation details..."
+                  value={dischargeForm.investigationsNotes}
+                  onChange={(e)=> setDischargeForm({...dischargeForm, investigationsNotes: e.target.value})}
+                />
+              </div>
             </div>
 
             {/* Hospital Course */}
@@ -2320,10 +2504,23 @@ export default function DoctorDashboard() {
               <p className="text-xs text-gray-600 mb-2">List all instructions that were written on patient's discharge form.</p>
               <Textarea 
                 id="dischargeInstructions" 
-                placeholder="Activity restrictions, diet, wound care, when to seek medical attention..."
+                placeholder="Activity restrictions, diet, wound care..."
                 value={dischargeForm.dischargeInstructions} 
                 onChange={(e) => setDischargeForm({...dischargeForm, dischargeInstructions: e.target.value})} 
                 className="min-h-[100px]"
+              />
+              {user?.department?.toLowerCase() === 'gynecology' && !dischargeForm.dischargeInstructions && (
+                <p className="text-xs text-gray-500 mt-2">Tip: For gynecology patients, include: Resume physical activity gradually; Consume protein and fibre rich food; Do not lift heavy weights.</p>
+              )}
+            </div>
+
+            {/* When to call the doctor */}
+            <div>
+              <Label htmlFor="whenToCall" className="text-sm font-medium">When to call the doctor</Label>
+              <Textarea id="whenToCall" placeholder="Fever with chills and rigor; swelling/redness of wound; heavy vaginal bleeding; fainting episodes..."
+                value={dischargeForm.whenToCall}
+                onChange={(e)=> setDischargeForm({...dischargeForm, whenToCall: e.target.value})}
+                className="min-h-[80px]"
               />
             </div>
 
