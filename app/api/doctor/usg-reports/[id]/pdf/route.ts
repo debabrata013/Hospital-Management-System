@@ -52,12 +52,134 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const report = reports[0];
     const reportData = JSON.parse(report.report_data);
 
-    // Generate HTML content for NT/NB Ultrasonography PDF
+    // Determine template
+    const reportType: string = report.report_type || reportData.reportType || 'NT AND NB ULTRASONOGRAPHY REPORT';
+
+    // Shared header and styles. Body will be injected per template.
+    let bodyHtml = '';
+    let pageTitle = 'USG Report';
+
+    if (reportType === 'ANC / Fetal Well Being') {
+      const a = reportData.anc || {};
+      pageTitle = 'USG (ANC) Fetal Well Being';
+      bodyHtml = `
+        <div class="report-title">USG (ANC) FETAL WELL BEING</div>
+        <div class="section">
+          <div class="field-value" style="margin: 10px 0;">Single live intrauterine pregnancy with normal and regular cardiac activity is imaged.</div>
+          <table style="width:100%;font-size:14px">
+            <tr><td><strong>Presentation</strong></td><td>: ${a.presentation || ''}</td></tr>
+            <tr><td><strong>Fetal movements</strong></td><td>: ${a.fetalMovements || ''}</td></tr>
+            <tr><td><strong>Liquor</strong></td><td>: ${a.liquor || ''}</td></tr>
+            <tr><td><strong>Placenta</strong></td><td>: ${a.placenta || ''}</td></tr>
+            <tr><td><strong>B.P.D.</strong></td><td>: ${a.bpd || ''}</td></tr>
+            <tr><td><strong>H.C.</strong></td><td>: ${a.hc || ''}</td></tr>
+            <tr><td><strong>A.C.</strong></td><td>: ${a.ac || ''}</td></tr>
+            <tr><td><strong>F.L.</strong></td><td>: ${a.fl || ''}</td></tr>
+            <tr><td><strong>Composite</strong></td><td>: ${a.composite || ''}</td></tr>
+            <tr><td><strong>Foetal weight</strong></td><td>: ${a.fetalWeight || ''}</td></tr>
+            <tr><td><strong>H.R.</strong></td><td>: ${a.hr || ''}</td></tr>
+            <tr><td><strong>USEDD</strong></td><td>: ${a.usedd || ''}</td></tr>
+          </table>
+          ${a.note ? `<div style="margin-top:12px">${a.note}</div>` : ''}
+        </div>
+        ${a.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${a.impression}</div></div>` : ''}
+      `;
+    } else if (reportType === 'Gynecological Ultrasound') {
+      const g = reportData.gyne || {};
+      pageTitle = 'Gynecological Ultrasound Report';
+      bodyHtml = `
+        <div class="report-title">GYNECOLOGICAL ULTRASOUND REPORT</div>
+        <div class="section">
+          <div><strong>Reason for scan:</strong> ${g.reason || ''}</div>
+          <table style="width:100%;font-size:14px;margin-top:8px">
+            <tr><td><strong>Uterus</strong></td><td>: ${g.uterus || 'Normal'}</td></tr>
+            <tr><td><strong>Endometrial Strip</strong></td><td>: ${g.endometrialStrip || 'Normal'}</td></tr>
+            <tr><td><strong>Adnexa (R Ovary)</strong></td><td>: ${g.rOvary1 || ''} mm x ${g.rOvary2 || ''} mm</td></tr>
+            <tr><td><strong>Adnexa (L Ovary)</strong></td><td>: ${g.lOvary1 || ''} mm x ${g.lOvary2 || ''} mm</td></tr>
+          </table>
+          ${g.otherFindings ? `<div style="margin-top:12px"><strong>Other findings:</strong><br/>${String(g.otherFindings).replace(/\n/g,'<br/>')}</div>` : ''}
+        </div>
+        ${g.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${g.impression}</div></div>` : ''}
+      `;
+    } else if (reportType === 'Follicular Study (TAS)') {
+      const f = reportData.follicular || {};
+      pageTitle = 'Follicular Study (TAS)';
+      const rows = (f.rows || []).map((r:any) => `
+        <tr>
+          <td>${r.date || ''}</td><td>${r.day || ''}</td><td>${r.rightOvary || ''}</td><td>${r.leftOvary || ''}</td><td>${r.endometrialThickness || ''}</td><td>${r.freeFluid || ''}</td>
+        </tr>`).join('');
+      bodyHtml = `
+        <div class="report-title">FOLLICULAR STUDY (TAS)</div>
+        <div class="section" style="white-space:pre-wrap">${f.baseline || ''}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px" border="1" cellpadding="6">
+          <thead><tr><th>DATE</th><th>DAY</th><th>RIGHT OVARY</th><th>LEFT OVARY</th><th>ENDOMETRIAL THICKNESS</th><th>Free fluid in POD</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${f.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${f.impression}</div></div>` : ''}
+      `;
+    } else if (reportType === 'Early Pregnancy (Dating) Scan') {
+      const e = reportData.early || {};
+      pageTitle = 'Early Pregnancy (Dating) Scan';
+      bodyHtml = `
+        <div class="report-title">EARLY PREGNANCY (DATING) SCAN</div>
+        <div class="section">
+          <div class="field-row">
+            <div class="field"><div class="field-label">LMP:</div><div class="field-value">${reportData.lmp || ''}</div></div>
+            <div class="field"><div class="field-label">GA:</div><div class="field-value">${e.ga || ''}</div></div>
+            <div class="field"><div class="field-label">EDD:</div><div class="field-value">${e.edd || ''}</div></div>
+          </div>
+          <div style="margin-top:8px"><strong>Observation:</strong><br/>${String(e.observation || '').replace(/\n/g,'<br/>')}</div>
+        </div>
+        ${e.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${e.impression}</div></div>` : ''}
+      `;
+    } else {
+      // Default NT/NB layout, but avoid special bullet char
+      pageTitle = 'NT/NB Ultrasonography Report';
+      bodyHtml = `
+        <div class="report-title">NT AND NB ULTRASONOGRAPHY REPORT</div>
+        <div class="field-row">
+          <div class="field">
+            <div class="field-label">LMP:</div>
+            <div class="field-value">${reportData.lmp || 'N/A'}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">GA by LMP: w days</div>
+            <div class="field-value">${reportData.gaByLmp || 'N/A'}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">EDD by LMP:</div>
+            <div class="field-value">${reportData.eddByLmp || 'N/A'}</div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="field-value" style="margin: 15px 0; font-size: 14px;">
+            ${reportData.generalObservation || 'Single live intrauterine gestation seen at the time of the scan.'}
+          </div>
+        </div>
+        <div class="fetal-params">
+          <div class="section-title">Fetal parameters:</div>
+          <div class="field-row">
+            <div class="field"><div class="field-label">- CRL</div><div class="field-value">${reportData.fetalParameters?.crl || 'N/A'} cm</div></div>
+            <div class="field"><div class="field-label">- YOLK SAC</div><div class="field-value">${reportData.fetalParameters?.yolkSac || 'Seen'}</div></div>
+            <div class="field"><div class="field-label">- FHR</div><div class="field-value">${reportData.fetalParameters?.fhr || 'N/A'} bpm</div></div>
+          </div>
+          <div style="margin: 15px 0;"><div class="field-label">Nuchal Translucency thickness:</div><div class="field-value">${reportData.fetalParameters?.nuchalTranslucency || 'N/A'} mm</div></div>
+          <div style="margin: 15px 0;"><div class="field-label">Nasal bone seen & measure:</div><div class="field-value">${reportData.fetalParameters?.nasalBone || 'N/A'} mm</div></div>
+          <div style="margin: 15px 0;"><div class="field-label">PLACENTA:</div><div class="field-value">${reportData.fetalParameters?.placenta || 'Posterior body grade 0 maturity.'}</div></div>
+          <div style="margin: 15px 0;"><div class="field-label">Cervical length:</div><div class="field-value">${reportData.fetalParameters?.cervicalLength || 'Internal OS is closed.'}</div></div>
+        </div>
+        <div class="impression-section"><div class="section-title">IMPRESSION:</div><div style="font-weight: bold; font-size: 14px;">${reportData.impression || 'SINGLE LIVE INTRA UTERINE W D NORMAL GESTATION WITH REST OF PARAMETERS AS MENTIONED ABOVE.'}</div></div>
+        <div style="margin: 20px 0;"><div class="field-label">EDD By Scan:</div><div class="field-value">${reportData.eddByScan || 'N/A'}</div></div>
+        <div style="margin: 20px 0;"><div class="field-label">Sugg:</div><div class="field-value">${reportData.suggestion || 'Anomaly scans at 20-22 wks.'}</div></div>
+        <div class="note-section"><div class="field-label">NOTE:</div><div style="font-size: 11px; font-style: italic;">${reportData.doctorNote || 'I have not detected / nor disclosed the sex of foetus to the patient or anybody in any manner.'}</div></div>
+      `;
+    }
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>NT/NB Ultrasonography Report - ${report.patient_name}</title>
+        <title>${pageTitle} - ${report.patient_name}</title>
         <style>
           body { 
             font-family: Arial, sans-serif; 
@@ -228,91 +350,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           </div>
         </div>
 
-        <div class="report-title">NT AND NB ULTRASONOGRAPHY REPORT</div>
-
-        <div class="field-row">
-          <div class="field">
-            <div class="field-label">LMP:</div>
-            <div class="field-value">${reportData.lmp || 'N/A'}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">GA by LMP: w days</div>
-            <div class="field-value">${reportData.gaByLmp || 'N/A'}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">EDD by LMP:</div>
-            <div class="field-value">${reportData.eddByLmp || 'N/A'}</div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="field-value" style="margin: 15px 0; font-size: 14px;">
-            ${reportData.generalObservation || 'Single live intrauterine gestation seen at the time of the scan.'}
-          </div>
-        </div>
-
-        <div class="fetal-params">
-          <div class="section-title">Fetal parameters:</div>
-          
-          <div class="field-row">
-            <div class="field">
-              <div class="field-label">• CRL</div>
-              <div class="field-value">${reportData.fetalParameters?.crl || 'N/A'} cm</div>
-            </div>
-            <div class="field">
-              <div class="field-label">• YOLK SAC</div>
-              <div class="field-value">${reportData.fetalParameters?.yolkSac || 'Seen'}</div>
-            </div>
-            <div class="field">
-              <div class="field-label">• FHR</div>
-              <div class="field-value">${reportData.fetalParameters?.fhr || 'N/A'} bpm</div>
-            </div>
-          </div>
-
-          <div style="margin: 15px 0;">
-            <div class="field-label">Nuchal Translucency thickness:</div>
-            <div class="field-value">${reportData.fetalParameters?.nuchalTranslucency || 'N/A'} mm</div>
-          </div>
-
-          <div style="margin: 15px 0;">
-            <div class="field-label">Nasal bone seen & measure:</div>
-            <div class="field-value">${reportData.fetalParameters?.nasalBone || 'N/A'} mm</div>
-          </div>
-
-          <div style="margin: 15px 0;">
-            <div class="field-label">PLACENTA:</div>
-            <div class="field-value">${reportData.fetalParameters?.placenta || 'Posterior body grade 0 maturity.'}</div>
-          </div>
-
-          <div style="margin: 15px 0;">
-            <div class="field-label">Cervical length:</div>
-            <div class="field-value">${reportData.fetalParameters?.cervicalLength || 'Internal OS is closed.'}</div>
-          </div>
-        </div>
-
-        <div class="impression-section">
-          <div class="section-title">IMPRESSION:</div>
-          <div style="font-weight: bold; font-size: 14px;">
-            ${reportData.impression || 'SINGLE LIVE INTRA UTERINE W D NORMAL GESTATION WITH REST OF PARAMETERS AS MENTIONED ABOVE.'}
-          </div>
-        </div>
-
-        <div style="margin: 20px 0;">
-          <div class="field-label">EDD By Scan:</div>
-          <div class="field-value">${reportData.eddByScan || 'N/A'}</div>
-        </div>
-
-        <div style="margin: 20px 0;">
-          <div class="field-label">Sugg:</div>
-          <div class="field-value">${reportData.suggestion || 'Anomaly scans at 20-22 wks.'}</div>
-        </div>
-
-        <div class="note-section">
-          <div class="field-label">NOTE:</div>
-          <div style="font-size: 11px; font-style: italic;">
-            ${reportData.doctorNote || 'I have not detected / nor disclosed the sex of foetus to the patient or anybody in any manner.'}
-          </div>
-        </div>
+        ${bodyHtml}
 
         <div class="footer">
           <div><strong>Generated on:</strong> ${new Date(report.created_at).toLocaleDateString()}</div>
