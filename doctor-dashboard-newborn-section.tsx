@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Baby, Plus } from 'lucide-react';
+import { Baby, Eye } from 'lucide-react';
 
 interface User {
   department?: string;
@@ -31,15 +31,15 @@ const NewbornSection: React.FC<NewbornSectionProps> = ({ user, newbornStats }) =
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Newborn Records</h3>
-            <p className="text-sm text-gray-600">Manage newborn baby birth records</p>
+            <p className="text-sm text-gray-600">View newborn baby birth records</p>
           </div>
         </div>
         <Link
           href="/doctor/newborn-records"
-          className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Manage Records
+          <Eye className="h-4 w-4 mr-2" />
+          View Records
         </Link>
       </div>
 

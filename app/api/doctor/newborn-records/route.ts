@@ -176,14 +176,13 @@ export async function GET(request: NextRequest) {
     // Create database connection
     connection = await mysql.createConnection(dbConfig);
 
-    // Get newborn records for this doctor
+    // Get all newborn records (since nurses create them now)
     const query = `
       SELECT * FROM newborn_records
-      WHERE doctor_id = ?
       ORDER BY birth_date DESC
     `;
 
-    const [rows] = await connection.execute(query, [doctorId]) as mysql.RowDataPacket[];
+    const [rows] = await connection.execute(query) as mysql.RowDataPacket[];
 
     const timeZone = 'Asia/Kolkata';
     const formattedRows = rows.map((row: any) => {

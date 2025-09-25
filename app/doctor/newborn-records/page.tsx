@@ -20,19 +20,8 @@ interface NewbornRecord {
 export default function NewbornRecordsPage() {
   const [records, setRecords] = useState<NewbornRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    birth_date: '',
-    gender: 'male' as const,
-    status: 'healthy' as const,
-    weight_grams: '',
-    mother_name: '',
-    notes: ''
-  });
 
   useEffect(() => {
     fetchUserProfile();
@@ -67,62 +56,6 @@ export default function NewbornRecordsPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.birth_date || !formData.gender || !formData.status || !formData.weight_grams) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    const weight = parseInt(formData.weight_grams);
-    if (isNaN(weight) || weight < 500 || weight > 10000) {
-      toast.error('Weight must be between 500g and 10000g');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const response = await fetch('/api/doctor/newborn-records', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success('Newborn record created successfully');
-        setShowForm(false);
-        setFormData({
-          birth_date: '',
-          gender: 'male',
-          status: 'healthy',
-          weight_grams: '',
-          mother_name: '',
-          notes: ''
-        });
-        fetchRecords(); // Refresh the list
-      } else {
-        toast.error(data.message || 'Failed to create newborn record');
-      }
-    } catch (error) {
-      console.error('Error creating newborn record:', error);
-      toast.error('Failed to create newborn record');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -170,13 +103,9 @@ export default function NewbornRecordsPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Record
-            </button>
+            <div className="text-sm text-gray-600">
+              Records managed by nursing staff
+            </div>
           </div>
         </div>
       </div>
@@ -200,14 +129,7 @@ export default function NewbornRecordsPage() {
             <div className="p-8 text-center">
               <Baby className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No newborn records yet</h3>
-              <p className="text-gray-600 mb-4">Start by adding the first newborn record</p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add First Record
-              </button>
+              <p className="text-gray-600">Records will appear here once nursing staff adds them</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
@@ -254,142 +176,6 @@ export default function NewbornRecordsPage() {
         </div>
       </div>
 
-      {/* Add Record Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Add Newborn Record</h2>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Birth Date & Time *
-                    </label>
-                    <input
-                      type="datetime-local"
-                      name="birth_date"
-                      value={formData.birth_date}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Gender *
-                    </label>
-                    <select
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                      required
-                    >
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="ambiguous">Ambiguous</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Health Status *
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                      required
-                    >
-                      <option value="healthy">Healthy</option>
-                      <option value="under_observation">Under Observation</option>
-                      <option value="critical">Critical</option>
-                      <option value="deceased">Deceased</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Weight (grams) *
-                    </label>
-                    <input
-                      type="number"
-                      name="weight_grams"
-                      value={formData.weight_grams}
-                      onChange={handleInputChange}
-                      placeholder="3000"
-                      min="500"
-                      max="10000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mother's Name
-                  </label>
-                  <input
-                    type="text"
-                    name="mother_name"
-                    value={formData.mother_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter mother's name"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
-                  <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleInputChange}
-                    placeholder="Additional notes about the birth..."
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
-                  >
-                    {submitting ? 'Saving...' : 'Save Record'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
