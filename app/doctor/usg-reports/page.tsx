@@ -124,7 +124,7 @@ export default function USGReportsPage() {
     if (!w) return;
     const header = `
       <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px">
-        <h2 style="margin:0">USG REPORT</h2>
+        <h2 style="margin:0">Ultrasonography reports</h2>
         <div style="font-size:12px;color:#555">${reportForm.reportType}</div>
       </div>
       <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:10px;margin-bottom:12px;font-size:13px">
@@ -348,7 +348,7 @@ export default function USGReportsPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center">
                 <FileImage className="h-6 w-6 mr-2 text-blue-600" />
-                USG Reports
+               Ultrasonography Reports
               </h1>
               <p className="text-gray-600">Generate and manage NT/NB ultrasonography reports</p>
             </div>
@@ -364,7 +364,7 @@ export default function USGReportsPage() {
         {/* Patient Search */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Select Patient for USG Report</CardTitle>
+            <CardTitle>Select Patient for Ultrasonography reports</CardTitle>
             <CardDescription>Search and select a patient to generate NT/NB ultrasonography report</CardDescription>
           </CardHeader>
           <CardContent>

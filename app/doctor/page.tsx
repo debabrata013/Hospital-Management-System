@@ -76,7 +76,7 @@ const navigationItems = [
     title: "उपकरण (Tools)",
     items: [
       { title: "AI Assistant", icon: Brain, url: "/doctor/ai-tools" },
-      { title: "USG Reports", icon: FileImage, url: "/doctor/usg-reports" },
+      { title: "Ultrasonography reports", icon: FileImage, url: "/doctor/usg-reports" },
     ]
   }
 ]
