@@ -33,6 +33,7 @@ export default function USGReportsPage() {
     refBy: '',
     scansNo: '',
     date: new Date().toLocaleDateString(),
+    trimester: 'Trimester 1',
     reportType: 'ANC / Fetal Well Being',
     // Common
     lmp: '',
@@ -126,6 +127,7 @@ export default function USGReportsPage() {
       <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px">
         <h2 style="margin:0">Ultrasonography reports</h2>
         <div style="font-size:12px;color:#555">${reportForm.reportType}</div>
+        <div style="font-size:12px;color:#1f2937;margin-top:3px"><strong>${reportForm.trimester || ''}</strong></div>
       </div>
       <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:10px;margin-bottom:12px;font-size:13px">
         <div><strong>Patient:</strong> ${reportForm.patientName || selectedPatient?.name || ''}</div>
@@ -589,9 +591,22 @@ export default function USGReportsPage() {
               </div>
             </div>
 
-            {/* Report Type */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Trimester and Report Type */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
+                <Label>Trimester</Label>
+                <Select value={reportForm.trimester} onValueChange={(v)=> setReportForm({...reportForm, trimester: v})}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Trimester 1">Trimester 1</SelectItem>
+                    <SelectItem value="Trimester 2">Trimester 2</SelectItem>
+                    <SelectItem value="Trimester 3">Trimester 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-1">
                 <Label>Report Template</Label>
                 <Select value={reportForm.reportType} onValueChange={(v)=> setReportForm({...reportForm, reportType: v})}>
                   <SelectTrigger className="mt-1">
@@ -605,11 +620,11 @@ export default function USGReportsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="md:col-span-1">
                 <Label>LMP</Label>
                 <Input value={reportForm.lmp} onChange={(e)=> setReportForm({...reportForm, lmp: e.target.value})} className="mt-1" />
               </div>
-              <div>
+              <div className="md:col-span-1">
                 <Label>EDD by LMP</Label>
                 <Input value={reportForm.eddByLmp} onChange={(e)=> setReportForm({...reportForm, eddByLmp: e.target.value})} className="mt-1" />
               </div>

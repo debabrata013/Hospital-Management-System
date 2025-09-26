@@ -52,17 +52,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const report = reports[0];
     const reportData = JSON.parse(report.report_data);
 
-    // Determine template
-    const reportType: string = report.report_type || reportData.reportType || 'NT AND NB ULTRASONOGRAPHY REPORT';
-
-    // Shared header and styles. Body will be injected per template.
+    // Build a combined report that includes ALL filled sections
     let bodyHtml = '';
     let pageTitle = 'USG Report';
+    const parts: string[] = [];
 
-    if (reportType === 'ANC / Fetal Well Being') {
-      const a = reportData.anc || {};
-      pageTitle = 'USG (ANC) Fetal Well Being';
-      bodyHtml = `
+    // ANC / Fetal Well Being
+    if (reportData.anc && Object.values(reportData.anc).some((v: any) => (v ?? '') !== '')) {
+      const a = reportData.anc;
+      parts.push(`
         <div class="report-title">USG (ANC) FETAL WELL BEING</div>
         <div class="section">
           <div class="field-value" style="margin: 10px 0;">Single live intrauterine pregnancy with normal and regular cardiac activity is imaged.</div>
@@ -83,11 +81,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           ${a.note ? `<div style="margin-top:12px">${a.note}</div>` : ''}
         </div>
         ${a.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${a.impression}</div></div>` : ''}
-      `;
-    } else if (reportType === 'Gynecological Ultrasound') {
-      const g = reportData.gyne || {};
-      pageTitle = 'Gynecological Ultrasound Report';
-      bodyHtml = `
+      `);
+      pageTitle = 'USG (ANC) Fetal Well Being';
+    }
+
+    // Gynecological Ultrasound
+    if (reportData.gyne && Object.values(reportData.gyne).some((v: any) => (v ?? '') !== '')) {
+      const g = reportData.gyne;
+      parts.push(`
         <div class="report-title">GYNECOLOGICAL ULTRASOUND REPORT</div>
         <div class="section">
           <div><strong>Reason for scan:</strong> ${g.reason || ''}</div>
@@ -100,15 +101,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           ${g.otherFindings ? `<div style="margin-top:12px"><strong>Other findings:</strong><br/>${String(g.otherFindings).replace(/\n/g,'<br/>')}</div>` : ''}
         </div>
         ${g.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${g.impression}</div></div>` : ''}
-      `;
-    } else if (reportType === 'Follicular Study (TAS)') {
-      const f = reportData.follicular || {};
-      pageTitle = 'Follicular Study (TAS)';
+      `);
+      if (pageTitle === 'USG Report') pageTitle = 'Gynecological Ultrasound Report';
+    }
+
+    // Follicular Study (TAS)
+    if (reportData.follicular && (reportData.follicular.baseline || (reportData.follicular.rows && reportData.follicular.rows.length) || reportData.follicular.impression)) {
+      const f = reportData.follicular;
       const rows = (f.rows || []).map((r:any) => `
         <tr>
           <td>${r.date || ''}</td><td>${r.day || ''}</td><td>${r.rightOvary || ''}</td><td>${r.leftOvary || ''}</td><td>${r.endometrialThickness || ''}</td><td>${r.freeFluid || ''}</td>
         </tr>`).join('');
-      bodyHtml = `
+      parts.push(`
         <div class="report-title">FOLLICULAR STUDY (TAS)</div>
         <div class="section" style="white-space:pre-wrap">${f.baseline || ''}</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px" border="1" cellpadding="6">
@@ -116,11 +120,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           <tbody>${rows}</tbody>
         </table>
         ${f.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${f.impression}</div></div>` : ''}
-      `;
-    } else if (reportType === 'Early Pregnancy (Dating) Scan') {
-      const e = reportData.early || {};
-      pageTitle = 'Early Pregnancy (Dating) Scan';
-      bodyHtml = `
+      `);
+      if (pageTitle === 'USG Report') pageTitle = 'Follicular Study (TAS)';
+    }
+
+    // Early Pregnancy (Dating)
+    if (reportData.early && Object.values(reportData.early).some((v: any) => (v ?? '') !== '')) {
+      const e = reportData.early;
+      parts.push(`
         <div class="report-title">EARLY PREGNANCY (DATING) SCAN</div>
         <div class="section">
           <div class="field-row">
@@ -131,31 +138,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           <div style="margin-top:8px"><strong>Observation:</strong><br/>${String(e.observation || '').replace(/\n/g,'<br/>')}</div>
         </div>
         ${e.impression ? `<div class="impression-section"><div class="section-title">Impression:</div><div>${e.impression}</div></div>` : ''}
-      `;
-    } else {
-      // Default NT/NB layout, but avoid special bullet char
-      pageTitle = 'NT/NB Ultrasonography Report';
-      bodyHtml = `
+      `);
+      if (pageTitle === 'USG Report') pageTitle = 'Early Pregnancy (Dating) Scan';
+    }
+
+    // Legacy NT/NB (only if data present)
+    if (reportData.generalObservation || (reportData.fetalParameters && Object.values(reportData.fetalParameters).some((v:any)=> (v ?? '') !== ''))) {
+      parts.push(`
         <div class="report-title">NT AND NB ULTRASONOGRAPHY REPORT</div>
         <div class="field-row">
-          <div class="field">
-            <div class="field-label">LMP:</div>
-            <div class="field-value">${reportData.lmp || 'N/A'}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">GA by LMP: w days</div>
-            <div class="field-value">${reportData.gaByLmp || 'N/A'}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">EDD by LMP:</div>
-            <div class="field-value">${reportData.eddByLmp || 'N/A'}</div>
-          </div>
+          <div class="field"><div class="field-label">LMP:</div><div class="field-value">${reportData.lmp || 'N/A'}</div></div>
+          <div class="field"><div class="field-label">GA by LMP: w days</div><div class="field-value">${reportData.gaByLmp || 'N/A'}</div></div>
+          <div class="field"><div class="field-label">EDD by LMP:</div><div class="field-value">${reportData.eddByLmp || 'N/A'}</div></div>
         </div>
-        <div class="section">
-          <div class="field-value" style="margin: 15px 0; font-size: 14px;">
-            ${reportData.generalObservation || 'Single live intrauterine gestation seen at the time of the scan.'}
-          </div>
-        </div>
+        <div class="section"><div class="field-value" style="margin: 15px 0; font-size: 14px;">${reportData.generalObservation || 'Single live intrauterine gestation seen at the time of the scan.'}</div></div>
         <div class="fetal-params">
           <div class="section-title">Fetal parameters:</div>
           <div class="field-row">
@@ -168,12 +164,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           <div style="margin: 15px 0;"><div class="field-label">PLACENTA:</div><div class="field-value">${reportData.fetalParameters?.placenta || 'Posterior body grade 0 maturity.'}</div></div>
           <div style="margin: 15px 0;"><div class="field-label">Cervical length:</div><div class="field-value">${reportData.fetalParameters?.cervicalLength || 'Internal OS is closed.'}</div></div>
         </div>
-        <div class="impression-section"><div class="section-title">IMPRESSION:</div><div style="font-weight: bold; font-size: 14px;">${reportData.impression || 'SINGLE LIVE INTRA UTERINE W D NORMAL GESTATION WITH REST OF PARAMETERS AS MENTIONED ABOVE.'}</div></div>
-        <div style="margin: 20px 0;"><div class="field-label">EDD By Scan:</div><div class="field-value">${reportData.eddByScan || 'N/A'}</div></div>
-        <div style="margin: 20px 0;"><div class="field-label">Sugg:</div><div class="field-value">${reportData.suggestion || 'Anomaly scans at 20-22 wks.'}</div></div>
-        <div class="note-section"><div class="field-label">NOTE:</div><div style="font-size: 11px; font-style: italic;">${reportData.doctorNote || 'I have not detected / nor disclosed the sex of foetus to the patient or anybody in any manner.'}</div></div>
-      `;
+        ${reportData.impression ? `<div class="impression-section"><div class="section-title">IMPRESSION:</div><div style="font-weight: bold; font-size: 14px;">${reportData.impression}</div></div>` : ''}
+        ${reportData.eddByScan ? `<div style="margin: 20px 0;"><div class="field-label">EDD By Scan:</div><div class="field-value">${reportData.eddByScan}</div></div>` : ''}
+        ${reportData.suggestion ? `<div style="margin: 20px 0;"><div class="field-label">Sugg:</div><div class="field-value">${reportData.suggestion}</div></div>` : ''}
+        ${reportData.doctorNote ? `<div class="note-section"><div class="field-label">NOTE:</div><div style="font-size: 11px; font-style: italic;">${reportData.doctorNote}</div></div>` : ''}
+      `);
+      if (pageTitle === 'USG Report') pageTitle = 'NT/NB Ultrasonography Report';
     }
+
+    bodyHtml = parts.join('\n');
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -346,6 +345,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             <div class="info-item">
               <span class="info-label">REF.BY DR.</span>
               <span class="info-value">${reportData.refBy || 'N/A'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">TRIMESTER</span>
+              <span class="info-value">${reportData.trimester || 'N/A'}</span>
             </div>
           </div>
         </div>

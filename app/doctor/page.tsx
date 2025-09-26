@@ -157,7 +157,7 @@ export default function DoctorDashboard() {
       setDischargeForm(prev => ({
         ...prev,
         dischargeInstructions: prev.dischargeInstructions || 'Resume physical activity gradually.\nConsume protein and fibre rich food.\nDo not lift heavy weights.',
-        whenToCall: prev.whenToCall || 'Fever with chills and rigor.\nSwelling and redness of wound.\nHeavy vaginal bleeding.\nFainting episodes.'
+        whenToCall: prev.whenToCall || 'If you have chills and fever.\nDifficulty or pain when you urinate, or if you are urinating frequently with only small amounts of urine each time.\nHeavy, bright red bleeding saturating more than two pads in one hour.\nFainting episodes.\nRedness or severe pain in the breast area.\nPain, tiredness, redness or swelling in your calves or thighs.\nIf you have increased amount of pain medication with time.'
       }));
     }
     // Prefill admission diagnosis from selected patient at open
@@ -431,7 +431,7 @@ export default function DoctorDashboard() {
               (dischargeForm.whenToCall && dischargeForm.whenToCall.trim())
                 ? `When to call the doctor:\n${dischargeForm.whenToCall}`
                 : (user?.department?.toLowerCase() === 'gynecology'
-                    ? 'When to call the doctor:\nFever with chills and rigor.\nSwelling and redness of wound.\nHeavy vaginal bleeding.\nFainting episodes.'
+                    ? 'When to call the doctor:\nIf you have chills and fever.\nDifficulty or pain when you urinate, or if you are urinating frequently with only small amounts of urine each time.\nHeavy, bright red bleeding saturating more than two pads in one hour.\nFainting episodes.\nRedness or severe pain in the breast area.\nPain, tiredness, redness or swelling in your calves or thighs.\nIf you have increased amount of pain medication with time.'
                     : '')
             ].filter(Boolean).join('\n\n')
           },
@@ -588,7 +588,7 @@ export default function DoctorDashboard() {
 
         <div class="section">
           <div class="section-title">WHEN TO CALL THE DOCTOR:</div>
-          <div class="content">${(dischargeForm.whenToCall || '').replace(/\n/g,'<br/>') || (user?.department?.toLowerCase() === 'gynecology' ? 'Fever with chills and rigor.<br/>Swelling and redness of wound.<br/>Heavy vaginal bleeding.<br/>Fainting episodes.' : 'As advised')}</div>
+          <div class="content">${(dischargeForm.whenToCall || '').replace(/\n/g,'<br/>') || (user?.department?.toLowerCase() === 'gynecology' ? 'If you have chills and fever.<br/>Difficulty or pain when you urinate, or if you are urinating frequently with only small amounts of urine each time.<br/>Heavy, bright red bleeding saturating more than two pads in one hour.<br/>Fainting episodes.<br/>Redness or severe pain in the breast area.<br/>Pain, tiredness, redness or swelling in your calves or thighs.<br/>If you have increased amount of pain medication with time.' : 'As advised')}</div>
         </div>
 
         <div class="section">
@@ -2517,7 +2517,7 @@ export default function DoctorDashboard() {
             {/* When to call the doctor */}
             <div>
               <Label htmlFor="whenToCall" className="text-sm font-medium">When to call the doctor</Label>
-              <Textarea id="whenToCall" placeholder="Fever with chills and rigor; swelling/redness of wound; heavy vaginal bleeding; fainting episodes..."
+              <Textarea id="whenToCall" placeholder="If you have chills and fever; difficulty or pain when you urinate or frequent small urination; heavy bright red bleeding saturating >2 pads in one hour; fainting episodes; redness or severe pain in the breast; pain/tiredness/redness/swelling in calves or thighs; increased amount of pain medication with time..."
                 value={dischargeForm.whenToCall}
                 onChange={(e)=> setDischargeForm({...dischargeForm, whenToCall: e.target.value})}
                 className="min-h-[80px]"
